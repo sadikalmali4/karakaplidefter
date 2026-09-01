@@ -1,0 +1,2548 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12100F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kara Kaplı Defter">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Kara Kaplı Defter</title>
+<style>
+:root{
+  --bg:#12100F; --panel:#1C1917; --panel2:#262220; --panel3:#2F2A27;
+  --line:#39322D; --ink:#EDE6DC; --ink2:#A2968A; --ink3:#6E635A;
+  --accent:#A32E38; --accent2:#C4444E; --gold:#C9A227; --green:#4E8B5B; --red:#B4453B; --blue:#4A7A9B;
+  --r:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));overscroll-behavior-y:none}
+h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif;font-weight:600;letter-spacing:.01em}
+
+header{position:sticky;top:0;z-index:40;background:linear-gradient(#12100F,#12100Fee);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+  padding:calc(11px + env(safe-area-inset-top)) 16px 11px}
+header .brand{display:flex;align-items:center;gap:10px}
+header .seal{width:31px;height:31px;border-radius:50%;flex:0 0 31px;border:2px solid var(--accent);
+  color:var(--accent);display:grid;place-items:center;font:600 15px Georgia,serif}
+header h1{margin:0;font-size:17px;line-height:1.15}
+header .sub{font-size:11px;color:var(--ink3);margin-top:1px}
+main{padding:16px;max-width:760px;margin:0 auto}
+
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(6,1fr);
+  background:#191614f2;backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav.tabbar button{background:none;border:0;color:var(--ink3);padding:9px 1px 10px;
+  font:500 9.5px/1.25 inherit;letter-spacing:-.01em;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav.tabbar button .ic{font-size:16px;line-height:1}
+nav.tabbar button.on{color:var(--gold)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card.tight{padding:10px 12px}
+.card h2{margin:0 0 10px;font-size:16px}
+.card h3{margin:0 0 8px;font-size:12.5px;color:var(--ink2);text-transform:uppercase;letter-spacing:.1em;font-family:inherit;font-weight:700}
+.muted{color:var(--ink2)} .dim{color:var(--ink3)} .sm{font-size:12.5px} .xs{font-size:11.5px}
+.center{text-align:center} .right{text-align:right}
+.row{display:flex;gap:8px;align-items:center}
+.row.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.sep{height:1px;background:var(--line);margin:12px -14px}
+.stack>*+*{margin-top:8px}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+button,.btn{font:600 14px inherit;border-radius:11px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--ink);padding:11px 14px;cursor:pointer;transition:filter .12s;
+  display:inline-flex;align-items:center;justify-content:center;gap:7px}
+button:active{filter:brightness(1.35)}
+button:disabled{opacity:.38;cursor:default}
+.btn-p{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-b{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-g{background:var(--gold);border-color:var(--gold);color:#231d09}
+.btn-gh{background:none}
+.btn-dn{background:none;border-color:#5a2b2b;color:#C97C7C}
+.btn-full{width:100%}
+.btn-sm{padding:7px 11px;font-size:12.5px;border-radius:9px}
+.btn-xs{padding:5px 9px;font-size:11.5px;border-radius:8px}
+
+input,select,textarea{font:15px inherit;background:var(--panel2);color:var(--ink);
+  border:1px solid var(--line);border-radius:10px;padding:10px 11px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+input[type=number]{-moz-appearance:textfield}
+input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+label.fl{display:block;font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px;font-weight:700}
+.field+.field{margin-top:10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font:700 10.5px/1.4 inherit;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;
+  text-align:right;padding:0 0 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:9px 0;border-bottom:1px solid #2A2522;text-align:right;font-variant-numeric:tabular-nums}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:0}
+.pos{color:var(--green)} .neg{color:var(--red)} .zero{color:var(--ink3)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;
+  border-radius:99px;background:var(--panel3);color:var(--ink2);white-space:nowrap}
+.pill.gold{background:#3A300E;color:var(--gold)}
+.pill.red{background:#3A1D1D;color:#DD8A8A}
+.pill.green{background:#1E3324;color:#8CC79B}
+.pill.blue{background:#1C2A35;color:#8FB6D1}
+
+.chip{padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);
+  cursor:pointer;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip .n{width:18px;height:18px;border-radius:50%;background:#0004;display:grid;place-items:center;font-size:10.5px}
+
+.seg{display:flex;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:8px 4px;border-radius:8px;font-size:13px;color:var(--ink2)}
+.seg button.on{background:var(--accent);color:#fff}
+
+.empty{text-align:center;padding:32px 18px;color:var(--ink3)}
+.empty .big{font-size:40px;opacity:.35;margin-bottom:10px}
+
+.avatar{border-radius:50%;display:grid;place-items:center;font-weight:700;color:#12100F;
+  flex-shrink:0;background-size:cover;background-position:center;overflow:hidden}
+.rank{width:22px;flex:0 0 22px;font:700 13px Georgia,serif;color:var(--ink3);text-align:center}
+.rank.r1{color:var(--gold)} .rank.rs{color:var(--red)}
+
+.zabit{background:#171412;border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;
+  padding:14px;font:14px/1.72 Georgia,serif;color:#DCD3C6;white-space:pre-wrap}
+.toast{position:fixed;left:14px;right:14px;bottom:calc(88px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto;
+  background:var(--gold);color:#231d09;font-weight:600;font-size:13.5px;line-height:1.45;padding:11px 16px;
+  border-radius:13px;text-align:center;z-index:99;box-shadow:0 8px 28px #000a;opacity:0;transform:translateY(8px);
+  transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.on{opacity:1;transform:translateY(0)}
+
+.modal{position:fixed;inset:0;z-index:80;background:#000b;display:grid;place-items:end center}
+.modal .sheet{background:var(--panel);border:1px solid var(--line);border-radius:18px 18px 0 0;width:100%;
+  max-width:760px;max-height:92vh;overflow:auto;padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+.modal .grip{width:38px;height:4px;background:var(--line);border-radius:9px;margin:0 auto 14px}
+
+.el-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:9px}
+details summary{cursor:pointer;list-style:none;font-weight:600;font-size:13px;color:var(--ink2)}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:'  ▾';color:var(--ink3);font-size:11px}
+details[open] summary::after{content:'  ▴'}
+details>div{margin-top:10px}
+
+.bar{height:6px;border-radius:3px;background:var(--panel3);overflow:hidden}
+.bar i{display:block;height:100%;transition:width .3s}
+.dots{display:inline-flex;gap:4px;align-items:center}
+.dots b{width:9px;height:9px;border-radius:50%;background:var(--panel3);display:block}
+.dots b.on{background:var(--gold)}
+.cikis{background:linear-gradient(90deg,#3A1D1D,#2A1A1A);border:1px solid #6B2F2F}
+
+.rozet{display:flex;gap:10px;align-items:flex-start;padding:9px;border-radius:11px;background:var(--panel2);border:1px solid var(--line)}
+.rozet .k{font-size:21px;line-height:1.1;width:26px;text-align:center;flex-shrink:0}
+.rozet.yeni{border-color:var(--gold);background:#2B2410;animation:parla .9s ease}
+@keyframes parla{0%{transform:scale(.94);opacity:.4}60%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+
+.fotoSec{width:76px;height:76px;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;
+  cursor:pointer;background-size:cover;background-position:center;color:var(--ink3);font-size:11px;text-align:center;flex-shrink:0}
+.grupBar{display:flex;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);
+  border-radius:99px;padding:4px 5px 4px 11px;font-size:12.5px;font-weight:600;cursor:pointer;max-width:180px}
+
+/* --- bulut sürümü --- */
+.yukleniyor{display:inline-block;width:15px;height:15px;border:2px solid #fff5;border-top-color:#fff;
+  border-radius:50%;animation:don .7s linear infinite;vertical-align:-2px}
+@keyframes don{to{transform:rotate(360deg)}}
+.kod{font:700 26px/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.28em;color:var(--gold)}
+.orta{min-height:66vh;display:flex;flex-direction:column;justify-content:center}
+.uyari{background:#2B2410;border:1px solid var(--gold);border-radius:12px;padding:11px 13px;font-size:12.5px;color:#E8D9A8}
+.toast.hata{background:var(--red);color:#fff}
+.canli{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);
+  animation:nabiz 1.4s ease-in-out infinite;margin-right:6px;vertical-align:2px}
+@keyframes nabiz{0%,100%{opacity:1}50%{opacity:.2}}
+.yaziyor{font-size:10px;color:var(--gold);margin-left:5px}
+select:disabled,input:disabled,button:disabled{opacity:.55}
+</style>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="ikon-192.png" type="image/png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="seal">§</div>
+    <div class="grow" style="min-width:0">
+      <h1>Kara Kaplı Defter</h1>
+      <div class="sub" id="hdrSub">bağlanıyor…</div>
+    </div>
+    <div id="hdrRight"></div>
+  </div>
+</header>
+
+<main id="view"></main>
+
+<nav class="tabbar">
+  <button data-t="celse" class="on"><span class="ic">🂡</span>Masa</button>
+  <button data-t="sicil"><span class="ic">📊</span>Sicil</button>
+  <button data-t="iddia"><span class="ic">🤝</span>İddia</button>
+  <button data-t="rozet"><span class="ic">🏅</span>Unvan</button>
+  <button data-t="arsiv"><span class="ic">📚</span>Arşiv</button>
+  <button data-t="ayar"><span class="ic">⚙️</span>Ayarlar</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div id="modalHost"></div>
+
+<script>
+/* =========================================================
+   KARA KAPLI DEFTER  v3
+   Batak : eşli · ihaleli · parti 61 · maç = kaç parti alan
+   101   : parti 11 el · ceza puanı · çok puanlı kaybeder
+   Üyeler (profil+foto) · Gruplar · Hızlı/Detaylı giriş · Müeyyideler
+   ========================================================= */
+
+/* =========================================================
+   KARA KAPLI DEFTER  v4 — BULUT
+   Batak : eşli · ihaleli · parti 61 · maç = kaç parti alan
+   101   : parti 11 el · ceza puanı · çok puanlı kaybeder
+
+   Veri artık cihazda değil, masada. Herkes kendi hesabıyla girer;
+   masaya kodla katılır, kurucu onaylar. Tabelayı tabelacı yazar,
+   diğerleri canlı izler.
+   ========================================================= */
+
+const SB_URL = 'https://dgtgotopmbpuwmuqlkbd.supabase.co';
+const SB_KEY = 'sb_publishable_OLcMTIJvS1hA41B-kUdkjw_aRoAAjle';
+
+/* Kullanıcı adı → sahte e-posta. Kimseden e-posta istemiyoruz;
+   Supabase e-posta beklediği için içeride bu alana çeviriyoruz. */
+const POSTA_ALANI='karakaplidefter.local';
+const kadToPosta=k=>`${String(k).toLowerCase()}@${POSTA_ALANI}`;
+const postaToKad=e=>String(e||'').split('@')[0];
+
+const RENKLER=['#C9A227','#4A8FA8','#A85C4A','#6E9B5C','#9B6EA8','#C4784A','#5C8A9B','#A89B4A','#8A7BC4','#C45C7B'];
+const GRUP_EMOJI=['🍀','🂡','🀄','☕','🔥','🐺','🦅','🎩','⚔️','🧿'];
+
+const VARSAYILAN_AYAR={
+  batak:{hedef:61,minIhale:7,toplamEl:13,tutunca:'alinan',batinca:'alinan',partiHedef:2},
+  yz:{elSayisi:11,partiHedef:1,bitiren:-101,acamayan:200,cifteCarpan:2,okeyAktif:false,okeyCarpan:2,
+      muey3:'Çay ısmarlar',muey4:'Hesabı öder'}
+};
+
+let sb=null, OTURUM=null, PROFIL=null;
+let UYELIKLER=[];      // hesabımın bütün masa üyelikleri (bekleyen dahil)
+let BEKLEYENLER=[];    // aktif masada onay bekleyen hesaplar (kurucuysam)
+let MASA_UYELERI=[];   // aktif masanın onaylı hesapları
+let KANAL=null;        // canlı yayın aboneliği
+let DURUM='yukleniyor';// yukleniyor | giris | masayok | hazir | hata
+let HATA='';
+
+let DB={ ben:null, oyuncular:[], gruplar:[], aktifGrup:null,
+         ayar:JSON.parse(JSON.stringify(VARSAYILAN_AYAR)),
+         celseler:[], iddialar:[], aktif:null };
+
+let TAB='celse', SABIKA_ID=null, ARSIV_FILTRE='hepsi', SICIL_OYUN='batak', ROZET_OYUN='batak';
+
+const yid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function norm(c){
+  if(!c) return c;
+  if(!c.partiler) c.partiler=[{eller:c.eller||[],kazanan:null}];
+  if(!c.partiHedef) c.partiHedef=1;
+  if(!c.giris) c.giris='detay';
+  delete c.eller; return c;
+}
+
+/* =========================================================
+   BULUT KATMANI
+   ========================================================= */
+function hataMetni(e){
+  const m=String(e?.message||e?.error_description||e||'');
+  if(/ux_maclar_tek_acik/i.test(m))          return 'Bu masada zaten açık bir tabela var. Önce onu kapat.';
+  if(/Invalid login credentials/i.test(m))   return 'Kullanıcı adı veya şifre yanlış';
+  if(/User already registered/i.test(m))     return 'Bu kullanıcı adı alınmış';
+  if(/Password should be at least/i.test(m)) return 'Şifre en az 6 karakter olmalı';
+  if(/Email logins are disabled/i.test(m))   return 'Supabase panelinde e-posta girişi kapalı (Authentication -> Providers -> Email)';
+  if(/Email not confirmed/i.test(m))         return 'Supabase panelinde "Confirm email" hâlâ açık — kapatılmalı';
+  if(/duplicate key|unique/i.test(m))        return 'Bu kayıt zaten var';
+  if(/row-level security|violates|permission denied/i.test(m)) return 'Yetkin yok — bunu masayı kuran yapabilir';
+  if(/Failed to fetch|NetworkError|fetch failed/i.test(m))     return 'İnternete ulaşılamadı';
+  if(/JWT|token is expired/i.test(m))        return 'Oturum süresi doldu, yeniden gir';
+  return m || 'Bilinmeyen hata';
+}
+const kurucuMu=()=>UYELIKLER.some(u=>u.masa_id===DB.aktifGrup&&u.rol==='kurucu'&&u.durum==='onayli');
+const tabelaciMiyim=()=>!!(DB.aktif&&OTURUM&&DB.aktif._hesap===OTURUM.id);
+
+async function baslat(){
+  if(!window.supabase||!window.supabase.createClient){
+    DURUM='hata'; HATA='Supabase kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'; return render();
+  }
+  sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  sb.auth.onAuthStateChange((olay)=>{
+    if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
+  });
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    OTURUM=session?.user||null;
+    if(OTURUM){ await verileriGetir(); kanalKur(); }
+    DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
+  }catch(e){ DURUM='hata'; HATA=hataMetni(e); }
+  render();
+}
+
+async function verileriGetir(){
+  const {data:pr,error:e1}=await sb.from('profiller').select('*').eq('id',OTURUM.id).maybeSingle();
+  if(e1) throw e1;
+  PROFIL=pr||{id:OTURUM.id,ad:postaToKad(OTURUM.email),renk:RENKLER[0]};
+
+  const {data:uy,error:e2}=await sb.from('masa_uyeleri')
+    .select('rol,durum,masa_id,masalar(id,ad,emoji,kod,kuran_id,ayar)')
+    .eq('profil_id',OTURUM.id);
+  if(e2) throw e2;
+  UYELIKLER=(uy||[]).filter(u=>u.masalar);
+
+  const onayli=UYELIKLER.filter(u=>u.durum==='onayli');
+  DB.gruplar=onayli.map(u=>({id:u.masalar.id,ad:u.masalar.ad,emoji:u.masalar.emoji||'🍀',
+                             kod:u.masalar.kod,kuran:u.masalar.kuran_id,rol:u.rol,
+                             ayar:u.masalar.ayar||{},uyeler:[]}));
+  if(!DB.gruplar.length){
+    DB.oyuncular=[];DB.celseler=[];DB.iddialar=[];DB.aktif=null;DB.aktifGrup=null;DB.ben=null;
+    BEKLEYENLER=[];MASA_UYELERI=[];
+    return;
+  }
+  const kayitli=localStorage.getItem('kkd_aktif_masa');
+  if(!DB.gruplar.some(g=>g.id===DB.aktifGrup))
+    DB.aktifGrup = DB.gruplar.some(g=>g.id===kayitli) ? kayitli : DB.gruplar[0].id;
+  localStorage.setItem('kkd_aktif_masa',DB.aktifGrup);
+
+  const masaIds=DB.gruplar.map(g=>g.id);
+  const [oyn,mac,idd]=await Promise.all([
+    sb.from('oyuncular').select('*').in('masa_id',masaIds),
+    sb.from('maclar').select('id,masa_id,bitti,tarih,tabelaci_id,olusturma,celse').in('masa_id',masaIds)
+      .order('tarih',{ascending:false}).order('olusturma',{ascending:false}),
+    sb.from('iddialar').select('*').in('masa_id',masaIds)
+  ]);
+  if(oyn.error) throw oyn.error;
+  if(mac.error) throw mac.error;
+  if(idd.error) throw idd.error;
+
+  /* Pasif oyuncular da yüklenir — yoksa eski maçlarda adları "?" görünür.
+     Yeni maça yalnız aktif olanlar seçilebilir (g.uyeler). */
+  DB.oyuncular=(oyn.data||[]).map(o=>({id:o.id,ad:o.ad,foto:o.foto_url||null,dogum:o.dogum||null,
+                                       renk:o.renk||'#C9A227',profilId:o.profil_id,masaId:o.masa_id,
+                                       aktif:o.aktif!==false}));
+  DB.gruplar.forEach(g=>g.uyeler=DB.oyuncular.filter(o=>o.masaId===g.id&&o.aktif).map(o=>o.id));
+
+  DB.celseler=[]; DB.aktif=null;
+  (mac.data||[]).forEach(m=>{
+    /* _sira: aynı gün oynanan maçların gerçek sırası. Sıralamada id (UUID)
+       kullanılırsa "üst üste 3 galibiyet" gibi seriler yanlış çıkar. */
+    const c=Object.assign({},m.celse||{},
+      {id:m.id,grupId:m.masa_id,bitti:!!m.bitti,tarih:m.tarih,_hesap:m.tabelaci_id,
+       _sira:m.olusturma||''});
+    norm(c);
+    if(m.bitti) DB.celseler.push(c);
+    else if(m.masa_id===DB.aktifGrup) DB.aktif=c;
+  });
+
+  DB.iddialar=(idd.data||[]).map(i=>({id:i.id,grupId:i.masa_id,tarih:i.tarih,vade:i.vade||'',
+    kim:i.kim_id,kime:i.kime_id,metin:i.metin,bahis:i.bahis||'',durum:i.durum,
+    sonucNot:i.sonuc_not||'',kapanis:i.kapanis||''}));
+
+  const g=grup(DB.aktifGrup)||{};
+  DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
+            yz:   Object.assign({},VARSAYILAN_AYAR.yz,   (g.ayar||{}).yz   ||{}) };
+  DB.ben = DB.oyuncular.find(o=>o.masaId===DB.aktifGrup&&o.profilId===OTURUM.id)?.id || null;
+
+  BEKLEYENLER=[]; MASA_UYELERI=[];
+  const akt=UYELIKLER.find(u=>u.masa_id===DB.aktifGrup);
+  if(akt){
+    const {data:uyeler}=await sb.from('masa_uyeleri')
+      .select('rol,durum,profil_id,profiller(id,ad,foto_url,renk)').eq('masa_id',DB.aktifGrup);
+    MASA_UYELERI=(uyeler||[]).filter(u=>u.durum==='onayli');
+    if(akt.rol==='kurucu') BEKLEYENLER=(uyeler||[]).filter(u=>u.durum==='bekliyor');
+  }
+}
+
+/* --------- açık tabelayı buluta yazma ---------
+   Prototipte kaydet() localStorage'a yazıyordu; burada AÇIK MAÇI buluta
+   yazar. Ayar / oyuncu / iddia gibi kayıtların kendi fonksiyonları var. */
+let _yazZaman=null, _yazSira=Promise.resolve(), _bekleyenYazi=false;
+function kaydet(){
+  if(!DB.aktif) return;
+  if(!tabelaciMiyim()) return;          // yazma hakkı yoksa buluta gitmeye çalışma
+  _bekleyenYazi=true; yazIsigi();
+  clearTimeout(_yazZaman);
+  _yazZaman=setTimeout(aktifYaz,450);
+}
+function aktifBelge(c){
+  const g=JSON.parse(JSON.stringify(c));
+  ['id','grupId','bitti','_hesap'].forEach(k=>delete g[k]);
+  return g;
+}
+function aktifYaz(){
+  const c=DB.aktif;
+  if(!c||!tabelaciMiyim()){ _bekleyenYazi=false; yazIsigi(); return _yazSira; }
+  _yazSira=_yazSira.then(async()=>{
+    const {error}=await sb.from('maclar').update({
+      celse:aktifBelge(c), tarih:c.tarih||bugun(),
+      parti_hedef:Math.min(5,Math.max(1,c.partiHedef||1)), giris:c.giris, yer:c.yer||null
+    }).eq('id',c.id);
+    if(error) toast(hataMetni(error),true);
+  }).catch(e=>toast(hataMetni(e),true))
+    .then(()=>{ _bekleyenYazi=false; yazIsigi(); });
+  return _yazSira;
+}
+function yazIsigi(){
+  const n=document.getElementById('yazDurum');
+  if(n) n.textContent=_bekleyenYazi?'yazılıyor…':'';
+}
+
+async function yenile(sessiz){
+  try{
+    await verileriGetir();
+    DURUM = DB.gruplar.length ? 'hazir' : 'masayok';
+    render();
+    if(!sessiz) toast('Güncellendi');
+  }catch(e){ if(!sessiz) toast(hataMetni(e),true); }
+}
+
+/* --------- canlı yayın ---------
+   Tabelacıysam kendi yazdığımı geri çekmem; yazarken ekranım sıfırlanmasın. */
+let _yenileZaman=null;
+function kanalKur(){
+  if(!DB.aktifGrup) return;
+  if(KANAL){ sb.removeChannel(KANAL); KANAL=null; }
+  const f='masa_id=eq.'+DB.aktifGrup;
+  const olay=()=>{
+    if(_bekleyenYazi||tabelaciMiyim()) return;
+    if(document.getElementById('modalHost')?.innerHTML) return;
+    clearTimeout(_yenileZaman);
+    _yenileZaman=setTimeout(()=>yenile(true),700);
+  };
+  KANAL=sb.channel('masa_'+DB.aktifGrup)
+    .on('postgres_changes',{event:'*',schema:'public',table:'maclar',filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'iddialar',filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'oyuncular',filter:f},olay)
+    .subscribe();
+}
+
+/* ---------------- yardımcı ---------------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const oy=id=>DB.oyuncular.find(o=>o.id===id)||{id,ad:'?',renk:'#5a524c'};
+const ad=id=>oy(id).ad;
+const bas=s=>{s=String(s||'?').trim(); return s?s[0].toLocaleUpperCase('tr-TR'):'?';};
+function bugun(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function trh(iso){ if(!iso) return ''; const [y,m,g]=iso.split('-'); return `${g}.${m}.${y}`; }
+const art=n=>(n>0?'+':'')+n;
+const snf=n=>n>0?'pos':(n<0?'neg':'zero');
+function liste(a){a=a.filter(Boolean); if(a.length<=1)return a[0]||''; return a.slice(0,-1).join(', ')+' ve '+a[a.length-1];}
+const rast=a=>a[Math.floor(Math.random()*a.length)];
+function toast(m,hata){const t=$('#toast');t.textContent=m;
+  t.classList.toggle('hata',!!hata);t.classList.add('on');
+  clearTimeout(t._z);t._z=setTimeout(()=>t.classList.remove('on'),hata?4200:2000);}
+function kopyala(metin){
+  const bitir=ok=>toast(ok?'Zabıt panoya alındı':'Kopyalanamadı — metni elle seçip kopyala');
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(metin).then(()=>bitir(true),()=>bitir(false));
+  else{const ta=document.createElement('textarea');ta.value=metin;ta.style.cssText='position:fixed;top:-999px';
+    document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}
+    document.body.removeChild(ta);bitir(ok);}
+}
+function avatar(id,b){
+  b=b||28; const o=oy(id);
+  if(o.foto) return `<div class="avatar" style="width:${b}px;height:${b}px;background-image:url('${o.foto}')"></div>`;
+  return `<div class="avatar" style="background:${o.renk};width:${b}px;height:${b}px;font-size:${Math.round(b*.43)}px">${esc(bas(o.ad))}</div>`;
+}
+const dots=(k,h)=>`<span class="dots">${Array.from({length:h},(_,i)=>`<b class="${i<k?'on':''}"></b>`).join('')}</span>`;
+
+/* doğum günü */
+function yas(dogum,refIso){
+  if(!dogum) return null;
+  const d=new Date(dogum+'T00:00:00'); if(isNaN(d)) return null;
+  const r=refIso?new Date(refIso+'T00:00:00'):new Date();
+  let y=r.getFullYear()-d.getFullYear();
+  const m=r.getMonth()-d.getMonth();
+  if(m<0||(m===0&&r.getDate()<d.getDate())) y--;
+  return (y>=0&&y<130)?y:null;
+}
+/* bugüne göre kaç gün kaldı; 0 = bugün */
+function dgKalan(dogum,refIso){
+  if(!dogum) return null;
+  const p=dogum.split('-'); if(p.length<3) return null;
+  const ay=Number(p[1])-1, gun=Number(p[2]);
+  const r=refIso?new Date(refIso+'T00:00:00'):new Date();
+  const bugun0=new Date(r.getFullYear(),r.getMonth(),r.getDate());
+  let hedef=new Date(r.getFullYear(),ay,gun);
+  if(hedef<bugun0) hedef=new Date(r.getFullYear()+1,ay,gun);
+  return Math.round((hedef-bugun0)/86400000);
+}
+const dgBugun=(id,refIso)=>dgKalan(oy(id).dogum,refIso)===0;
+function dgMetni(g){
+  if(g===0) return 'bugün';
+  if(g===1) return 'yarın';
+  return `${g} gün sonra`;
+}
+
+/* grup yardımcıları */
+const grup=id=>DB.gruplar.find(g=>g.id===id)||null;
+function aktifGrup(){ return grup(DB.aktifGrup); }
+function grupOyunculari(){
+  const g=aktifGrup();
+  return g ? DB.oyuncular.filter(o=>g.uyeler.includes(o.id)) : DB.oyuncular;
+}
+function grupCelseleri(){
+  const g=aktifGrup();
+  return DB.celseler.filter(c=>c.bitti && (!g || c.grupId===g.id));
+}
+
+/* =========================================================
+   BATAK MOTORU
+   ========================================================= */
+function batakElPuan(el,a){
+  const t=[0,0], alan=el.ihaleTakim, karsi=1-alan, tuttu=el.alinan>=el.ihale;
+  t[alan]= tuttu ? (a.tutunca==='ihale'?el.ihale:el.alinan) : -el.ihale;
+  if(!tuttu&&a.batinca==='onuc')       t[karsi]=a.toplamEl;
+  else if(!tuttu&&a.batinca==='ihale') t[karsi]=el.ihale;
+  else                                 t[karsi]=a.toplamEl-el.alinan;
+  return t;
+}
+function batakPartiToplam(p){
+  const a=DB.ayar.batak, top=[0,0], seyir=[];
+  for(const el of p.eller){const x=batakElPuan(el,a);top[0]+=x[0];top[1]+=x[1];seyir.push([top[0],top[1]]);}
+  return {top,seyir};
+}
+function batakPartiKazanan(p){
+  const a=DB.ayar.batak,{top}=batakPartiToplam(p);
+  if(top[0]>=a.hedef&&top[1]>=a.hedef){const s=p.eller[p.eller.length-1];return s?s.ihaleTakim:(top[0]>=top[1]?0:1);}
+  if(top[0]>=a.hedef)return 0; if(top[1]>=a.hedef)return 1; return null;
+}
+function batakMac(c){
+  norm(c);
+  if(c.giris==='hizli'){
+    const ps=c.hizli?.partiSkor||[0,0];
+    const mk = ps[0]>=c.partiHedef?0:(ps[1]>=c.partiHedef?1:(ps[0]===ps[1]?null:(ps[0]>ps[1]?0:1)));
+    return {partiSkor:ps,gTop:c.hizli?.puan||[0,0],toplamEl:0,macKazanan:mk,aktifIdx:0,aktif:c.partiler[0]};
+  }
+  const partiSkor=[0,0],gTop=[0,0]; let toplamEl=0;
+  c.partiler.forEach(p=>{
+    const {top}=batakPartiToplam(p); gTop[0]+=top[0]; gTop[1]+=top[1]; toplamEl+=p.eller.length;
+    const k=(p.kazanan!=null)?p.kazanan:batakPartiKazanan(p); if(k!=null) partiSkor[k]++;
+  });
+  let macKazanan=null;
+  if(partiSkor[0]>=c.partiHedef)macKazanan=0; else if(partiSkor[1]>=c.partiHedef)macKazanan=1;
+  return {partiSkor,gTop,toplamEl,macKazanan,aktifIdx:c.partiler.length-1,aktif:c.partiler[c.partiler.length-1]};
+}
+const batakTumEller=c=>{norm(c);return c.partiler.flatMap(p=>p.eller);};
+
+/* =========================================================
+   101 MOTORU
+   ========================================================= */
+function yzDurumPuan(d){
+  const a=DB.ayar.yz; if(!d) return 0;
+  switch(d.tip){
+    case 'bitirdi': return (a.okeyAktif&&d.okey)?a.bitiren*a.okeyCarpan:a.bitiren;
+    case 'es':      return 0;
+    case 'acamadi': return a.acamayan;
+    case 'kaldi':   return Number(d.sayi)||0;
+    case 'cifte':   return (Number(d.sayi)||0)*a.cifteCarpan;
+    default:        return 0;
+  }
+}
+function yzPartiToplam(p,c){
+  const top={}; c.oyuncular.forEach(id=>top[id]=0);
+  for(const el of p.eller) for(const id of c.oyuncular) top[id]+=yzDurumPuan(el.durum[id]);
+  return top;
+}
+function yzPartiSira(p,c){
+  const t=yzPartiToplam(p,c);
+  return c.oyuncular.slice().sort((x,y)=>t[x]-t[y]||ad(x).localeCompare(ad(y),'tr')).map((id,i)=>({id,puan:t[id],sira:i+1}));
+}
+function yzPartiKazanan(p,c){
+  if(!p.eller.length) return null;
+  const t=yzPartiToplam(p,c);
+  if(c.mod==='esli'&&c.esler){
+    const s=c.esler.map(pr=>pr.reduce((x,id)=>x+t[id],0));
+    return c.esler[s[0]<=s[1]?0:1].slice();
+  }
+  return [yzPartiSira(p,c)[0].id];
+}
+function yzMac(c){
+  norm(c);
+  if(c.giris==='hizli'){
+    const sira=(c.hizli?.sira||c.oyuncular).map((id,i)=>({id,puan:(c.hizli?.puan||{})[id]??0,parti:0,sira:i+1}));
+    return {partiKaz:{},top:{},sira,toplamEl:0,bitmisParti:0,macKazanan:sira[0]?.id??null,aktifIdx:0,aktif:c.partiler[0]};
+  }
+  const partiKaz={}; c.oyuncular.forEach(id=>partiKaz[id]=0);
+  let toplamEl=0;
+  c.partiler.forEach(p=>{
+    toplamEl+=p.eller.length;
+    const bitti = p.kazanan!=null || p.eller.length>=(DB.ayar.yz.elSayisi||11);
+    if(!bitti) return;
+    (p.kazanan||yzPartiKazanan(p,c)||[]).forEach(id=>{ if(partiKaz[id]!=null) partiKaz[id]++; });
+  });
+  const top={}; c.oyuncular.forEach(id=>top[id]=0);
+  c.partiler.forEach(p=>p.eller.forEach(el=>c.oyuncular.forEach(id=>top[id]+=yzDurumPuan(el.durum[id]))));
+  const sira=c.oyuncular.slice().sort((x,y)=>partiKaz[y]-partiKaz[x]||top[x]-top[y]||ad(x).localeCompare(ad(y),'tr'))
+    .map((id,i)=>({id,puan:top[id],parti:partiKaz[id],sira:i+1}));
+  return {partiKaz,top,sira,toplamEl,macKazanan:sira.find(r=>r.parti>=c.partiHedef)?.id??null,
+          aktifIdx:c.partiler.length-1,aktif:c.partiler[c.partiler.length-1]};
+}
+
+/* ---- ortak ---- */
+function partiAd(c,i){
+  if(c.partiHedef>1&&i>0&&i===c.partiler.length-1){
+    if(c.oyun==='batak'){
+      const sk=[0,0];
+      c.partiler.slice(0,i).forEach(p=>{const k=(p.kazanan!=null)?p.kazanan:batakPartiKazanan(p); if(k!=null)sk[k]++;});
+      if(sk[0]===sk[1]&&sk[0]===c.partiHedef-1) return 'Çıkıştırma';
+    }else{
+      const s={}; c.oyuncular.forEach(id=>s[id]=0);
+      c.partiler.slice(0,i).forEach(p=>(p.kazanan||yzPartiKazanan(p,c)||[]).forEach(id=>{if(s[id]!=null)s[id]++;}));
+      const en=Math.max(...Object.values(s));
+      if(en===c.partiHedef-1&&Object.values(s).filter(x=>x===en).length>1) return 'Çıkıştırma';
+    }
+  }
+  return `${i+1}. Parti`;
+}
+const macDurum=c=>c.oyun==='batak'?batakMac(c):yzMac(c);
+
+/* =========================================================
+   İSTATİSTİK
+   ========================================================= */
+function istatistik(oyun){
+  const s={};
+  const kur=id=>s[id]=s[id]||{id,celse:0,gal:0,son:0,ikinci:0,parti:0,toplamPuan:0,siraTop:0,
+    ihale:0,ihaleBat:0,ihaleTam:0,slem:0,cikisGal:0,cikisKay:0,
+    elBitirdi:0,acamadi:0,cifte:0,enAgirCeza:0,enAgirBatak:0,
+    enIyi:null,enKotu:null,form:[],seri:0,seriTip:''};
+  const list=grupCelseleri().filter(c=>c.oyun===oyun).slice()
+    .sort((a,b)=>(a.tarih+(a._sira||'')).localeCompare(b.tarih+(b._sira||'')));
+
+  for(const c of list){
+    if(oyun==='batak'){
+      const m=batakMac(c); const kz=c.kazanan??m.macKazanan??(m.gTop[0]>=m.gTop[1]?0:1);
+      const cikisti = c.giris==='detay' && partiAd(c,c.partiler.length-1)==='Çıkıştırma';
+      c.takimlar.forEach((tk,ti)=>tk.oyuncular.forEach(id=>{
+        const p=kur(id); p.celse++; p.toplamPuan+=m.gTop[ti]; p.parti+=m.partiSkor[ti];
+        const w=ti===kz; if(w)p.gal++; else p.son++;
+        if(cikisti){ if(w)p.cikisGal++; else p.cikisKay++; }
+        p.form.push(w?'G':'M');
+        if(p.enIyi===null||m.gTop[ti]>p.enIyi) p.enIyi=m.gTop[ti];
+        if(p.enKotu===null||m.gTop[ti]<p.enKotu) p.enKotu=m.gTop[ti];
+      }));
+      for(const el of batakTumEller(c)){
+        const tk=c.takimlar[el.ihaleTakim]; if(!tk) continue;
+        const batti=el.alinan<el.ihale, fark=el.ihale-el.alinan;
+        tk.oyuncular.forEach(id=>{const p=kur(id); p.ihale++;
+          if(batti){p.ihaleBat++; if(fark>p.enAgirBatak)p.enAgirBatak=fark;} else p.ihaleTam++;
+          if(el.alinan===DB.ayar.batak.toplamEl) p.slem++;});
+      }
+    }else{
+      const m=yzMac(c), n=m.sira.length;
+      m.sira.forEach(r=>{
+        const p=kur(r.id); p.celse++; p.toplamPuan+=r.puan; p.siraTop+=r.sira; p.parti+=r.parti;
+        if(r.sira===1)p.gal++; if(r.sira===2)p.ikinci++; if(r.sira===n)p.son++;
+        p.form.push(r.sira===1?'G':(r.sira===n?'M':'–'));
+        if(p.enIyi===null||r.puan<p.enIyi) p.enIyi=r.puan;
+        if(p.enKotu===null||r.puan>p.enKotu) p.enKotu=r.puan;
+      });
+      c.partiler.forEach(pt=>pt.eller.forEach(el=>c.oyuncular.forEach(id=>{
+        const d=el.durum[id]; if(!d) return; const p=kur(id);
+        if(d.tip==='bitirdi')p.elBitirdi++;
+        if(d.tip==='acamadi')p.acamadi++;
+        if(d.tip==='cifte')p.cifte++;
+        const v=yzDurumPuan(d); if(v>p.enAgirCeza)p.enAgirCeza=v;
+      })));
+    }
+  }
+  Object.values(s).forEach(p=>{
+    const f=p.form; let i=f.length-1;
+    if(i>=0){
+      if(f[i]==='G'){let n=0;while(i>=0&&f[i]==='G'){n++;i--;}p.seri=n;p.seriTip='gal';}
+      else{let n=0;while(i>=0&&f[i]!=='G'){n++;i--;}p.seri=n;p.seriTip='hasret';}
+    }
+    p.ortSira=p.celse?p.siraTop/p.celse:0;
+    p.oran   =p.celse?p.gal/p.celse:0;
+    p.ortPuan=p.celse?p.toplamPuan/p.celse:0;
+    p.batOran=p.ihale?p.ihaleBat/p.ihale:0;
+  });
+  return s;
+}
+
+/* =========================================================
+   MÜEYYİDELER  (mizahi ödüller)
+   ========================================================= */
+const SEVIYELER=[
+  {n:0, ad:'Çaylak',          k:'🐣', not:'Masaya yeni oturmuştur. Kimse ciddiye almamaktadır.'},
+  {n:3, ad:'Masa Sakini',     k:'🪑', not:'Artık kendi sandalyesi vardır.'},
+  {n:10,ad:'Kıdemli Üye',     k:'📜', not:'Kurallara itiraz etme hakkı doğmuştur.'},
+  {n:25,ad:'Divan Üyesi',     k:'⚖️', not:'Oyu iki sayılır; ancak kimse saymaz.'},
+  {n:50,ad:'Fahri Başkan',    k:'👑', not:'Masayı o kurmuştur; efsane odur.'}
+];
+const seviye=n=>SEVIYELER.slice().reverse().find(s=>n>=s.n)||SEVIYELER[0];
+
+function muayyideler(oyun){
+  const v=Object.values(istatistik(oyun)).filter(p=>p.celse>0);
+  const out=[]; if(!v.length) return out;
+  const enb=(l,f)=>{const x=l.slice().sort((a,b)=>f(b)-f(a))[0]; return (x&&f(x)>0)?x:null;};
+  const enk=(l,f)=>l.slice().sort((a,b)=>f(a)-f(b))[0];
+  const ek=(k,ad,kim,acik,tip)=>{ if(kim) out.push({k,ad,kim:kim.id||kim,aciklama:acik,tip:tip||'iyi'}); };
+
+  const sampiyon=enb(v,p=>p.gal*1000+p.oran);
+  ek('🏆','Emsal Karar',sampiyon,sampiyon&&`${sampiyon.gal} maç birinciliği. Artık içtihattır.`);
+
+  if(oyun==='batak'){
+    ek('💸','Masanın Sponsoru',enk(v,p=>p.toplamPuan),null,'kotu');
+    const sp=enk(v,p=>p.toplamPuan); if(sp) out[out.length-1].aciklama=`Toplam ${sp.toplamPuan} puan. Masayı fiilen finanse etmektedir.`;
+    const mut=enb(v,p=>p.ihale);
+    ek('🏗️','İhale Müteahhidi',mut,mut&&`${mut.ihale} ihale. İştahı sabittir, sonuçları değişkendir.`);
+    const enkaz=enb(v.filter(p=>p.ihale>=3),p=>p.batOran);
+    ek('💥','Enkaz Ustası',enkaz,enkaz&&`${enkaz.ihale} ihalenin ${enkaz.ihaleBat} tanesini batırdı (%${Math.round(enkaz.batOran*100)}). Yıkım ustasıdır.`,'kotu');
+    const buz=v.filter(p=>p.ihale>=3&&p.ihaleBat===0)[0];
+    ek('🧊','Buzdolabı',buz,buz&&`${buz.ihale} ihale, sıfır batak. Soğukkanlılığı rahatsız edicidir.`);
+    const nisan=enb(v.filter(p=>p.ihale>=3),p=>p.ihaleTam);
+    ek('🎯','Keskin Nişancı',nisan,nisan&&`${nisan.ihaleTam} ihale tutturdu. Ağzından çıkanı kulağı duyuyor.`);
+    const slem=enb(v,p=>p.slem);
+    ek('🧨','Şlemci',slem,slem&&`${slem.slem} kez masaya tek el bırakmadı. Kibri kayda geçirilmiştir.`);
+    const bey=enk(v.filter(p=>p.celse>=2),p=>p.ihale/Math.max(1,p.celse));
+    if(bey&&mut&&bey.id!==mut.id) ek('🎩','Beyefendi',bey,`Maç başına ${(bey.ihale/bey.celse).toFixed(1)} ihale. Riski eşine bırakma sanatı.`);
+    const cik=enb(v,p=>p.cikisGal);
+    ek('🩸','Çıkıştırma Celladı',cik,cik&&`Çıkıştırmada ${cik.cikisGal} galibiyet. Soğukkanlı katildir.`);
+    const kur=enb(v,p=>p.cikisKay);
+    ek('⚰️','Çıkıştırma Kurbanı',kur,kur&&`Çıkıştırmada ${kur.cikisKay} yenilgi. Son virajda direksiyon kilitlenmektedir.`,'kotu');
+  }else{
+    const sp=enb(v,p=>p.toplamPuan);
+    ek('💸','Masanın Sponsoru',sp,sp&&`Toplam ${sp.toplamPuan} ceza puanı. Kendi rekorunu kendisi kırmaktadır.`,'kotu');
+    const bit=enb(v,p=>p.elBitirdi);
+    ek('✂️','İnfaz Memuru',bit,bit&&`${bit.elBitirdi} el bitirdi. Masaya merhameti yoktur.`);
+    const kap=enb(v,p=>p.acamadi);
+    ek('🔒','Kapalı Dosya',kap,kap&&`${kap.acamadi} el açamadı, ${kap.acamadi*DB.ayar.yz.acamayan} puan ceza yazıldı.`,'kotu');
+    const kum=enb(v,p=>p.cifte);
+    ek('🎲','Çifte Kumrusu',kum,kum&&`${kum.cifte} kez çifte gitti. Cesaretin bedeli iki katıdır.`);
+    const agir=enb(v,p=>p.enAgirCeza);
+    ek('🐢','Ağır Ceza',agir,agir&&`Tek elde ${agir.enAgirCeza} puan yedi. Rekor kendisindedir.`,'kotu');
+    const nazar=enb(v,p=>p.ikinci);
+    ek('🧿','Nazar Boncuğu',nazar,nazar&&`${nazar.ikinci} kez ikinci oldu. Kürsüye en yakın uzaklıktır.`);
+    const hesap=enb(v,p=>p.son);
+    ek('🧾','Hesabı Ödeyen',hesap,hesap&&`${hesap.son} kez sonuncu. Garson kendisini tanımaktadır.`,'kotu');
+  }
+  const dus=enb(v.filter(p=>p.seriTip==='hasret'&&p.seri>=2),p=>p.seri);
+  ek('📉','Serbest Düşüş',dus,dus&&`Galibiyet hasreti ${dus.seri}. maça çıktı. Dosya ilgili birime sevk edilmiştir.`,'kotu');
+  const ser=enb(v.filter(p=>p.seriTip==='gal'&&p.seri>=2),p=>p.seri);
+  ek('🔥','Müktesep Hak',ser,ser&&`Üst üste ${ser.seri} maç birinci. Tesadüf savunması reddedilmiştir.`);
+  const dev=enb(v,p=>p.celse);
+  ek('🪑','Kürsü Müdavimi',dev,dev&&`${dev.celse} maç. Masanın demirbaşıdır.`);
+  return out;
+}
+function rozetSahipleri(oyun){
+  const m={}; muayyideler(oyun).forEach(x=>m[x.ad]=x.kim); return m;
+}
+/* oyundan bağımsız unvanlar: iddia + doğum günü */
+function genelMuayyideler(){
+  const out=[];
+  const v=Object.values(iddiaSicil()).filter(p=>p.kazandi+p.kaybetti>0);
+  if(v.length){
+    const laf=v.slice().sort((a,b)=>(b.kaybetti-b.kazandi)-(a.kaybetti-a.kazandi))[0];
+    if(laf&&laf.kaybetti>laf.kazandi) out.push({k:'🎤',ad:'Ağzı Kalabalık',kim:laf.id,tip:'kotu',
+      aciklama:`${laf.kaybetti} iddia kaybetti, ${laf.kazandi} kazandı. Konuşmadan önce düşünmesi tavsiye olunur.`});
+    const er=v.slice().sort((a,b)=>(b.kazandi-b.kaybetti)-(a.kazandi-a.kaybetti))[0];
+    if(er&&er.kazandi>er.kaybetti) out.push({k:'🪙',ad:'Sözünün Eri',kim:er.id,
+      aciklama:`${er.kazandi} iddia tuttu. Beyanı senet hükmündedir.`});
+    const acikci=v.slice().sort((a,b)=>b.acik-a.acik)[0];
+    if(acikci&&acikci.acik>=2) out.push({k:'📿',ad:'Vaatler Bakanı',kim:acikci.id,
+      aciklama:`${acikci.acik} açık iddia. Hepsinin vadesi gelecektir.`});
+  }
+  const dgler=DB.oyuncular.filter(o=>o.dogum&&dgKalan(o.dogum)===0);
+  dgler.forEach(o=>out.push({k:'🎂',ad:'Doğum Günü Çocuğu',kim:o.id,
+    aciklama:`Bugün ${yas(o.dogum)??'?'} yaşına bastı. Masa, kaybetse dahi üzülmemesini kararlaştırmıştır.`}));
+  return out;
+}
+
+/* =========================================================
+   ANLIK KİNAYE
+   ========================================================= */
+function batakElYorum(c,el){
+  const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+  const fark=el.ihale-el.alinan;
+  if(el.alinan===DB.ayar.batak.toplamEl) return `ŞLEM. ${T(el.ihaleTakim)} masaya tek el bırakmadı. Kibir kayda geçirilmiştir.`;
+  if(fark>=4) return rast([
+    `${T(el.ihaleTakim)} ${el.ihale} dedi, ${el.alinan} çıkardı. Aradaki ${fark} el hayal gücüne verilmiştir.`,
+    `${el.ihale} ihaleden ${el.alinan} el. Mahkeme bu beyanı gerçeğe aykırı bulmuştur.`]);
+  if(fark>0) return rast([
+    `Batak. ${fark} el eksik. "Az kalmıştı" savunması dinlenmemiştir.`,
+    `${T(el.ihaleTakim)} ${fark} el eksikle batmıştır. Kayıt düşülmüştür.`]);
+  if(el.alinan-el.ihale>=3) return `${el.ihale} ihaleyle ${el.alinan} el. Mütevazı beyan, cezasız bırakılmıştır.`;
+  return rast(['İhale tutmuştur. Sıradaki.',`${T(el.ihaleTakim)} sözünü tutmuştur; nadir görülen bir hâldir.`]);
+}
+function yzElYorum(c,durum){
+  const bit=c.oyuncular.find(id=>durum[id]?.tip==='bitirdi');
+  const ac =c.oyuncular.filter(id=>durum[id]?.tip==='acamadi');
+  const ci =c.oyuncular.filter(id=>durum[id]?.tip==='cifte');
+  if(ac.length>=2) return `${liste(ac.map(ad))} açamadı. Masanın yarısı seyirci konumundadır.`;
+  if(ci.length)    return `${liste(ci.map(ad))} çifte gitti, bedeli iki katı. Cesaret pahalıdır.`;
+  if(ac.length===1)return `${ad(ac[0])} açamadı: +${DB.ayar.yz.acamayan}. Savunması alınmamıştır.`;
+  if(bit) return rast([`${ad(bit)} eli bitirdi. Masa sessizliğe gömülmüştür.`,
+                       `${ad(bit)} ${DB.ayar.yz.bitiren} yazdı. İtiraz yolu kapalıdır.`]);
+  return 'El kaydedildi.';
+}
+
+/* =========================================================
+   ZABIT
+   ========================================================= */
+function zabitUret(c){
+  const L=[], yer=c.yer?`, ${c.yer} adresinde`:'';
+  const g=grup(c.grupId);
+  L.push(`${trh(c.tarih)} tarihli ${c.oyun==='batak'?'BATAK':'101'} celsesi${yer}${g?` (${g.ad})`:''} açılmış, aşağıdaki hususlar tespit edilmiştir.`);
+  L.push('');
+
+  if(c.oyun==='batak'){
+    const m=batakMac(c), kz=c.kazanan??m.macKazanan??0;
+    const T=i=>liste(c.takimlar[i].oyuncular.map(ad));
+    L.push(`TARAFLAR: ${T(0)} ile ${T(1)}.`);
+    if(c.giris==='hizli'){
+      L.push(`USUL: Özet giriş yapılmıştır; el dökümü tutulmamıştır.`);
+      L.push('');
+      L.push(`HÜKÜM: Parti skoru ${m.partiSkor[kz]}–${m.partiSkor[1-kz]} ile ${T(kz)} lehine karar verilmiştir. İtirazlar dinlenmeksizin reddedilmiştir.`);
+    }else{
+      L.push(`USUL: ${c.partiHedef} parti üzerinden oynanmış, ${c.partiler.length} parti ve toplam ${m.toplamEl} el görülmüştür.`);
+      L.push('');
+      L.push('PARTİ DÖKÜMÜ:');
+      c.partiler.forEach((p,i)=>{
+        const {top}=batakPartiToplam(p), k=(p.kazanan!=null)?p.kazanan:batakPartiKazanan(p);
+        L.push(`  ${partiAd(c,i)} — ${top[0]}–${top[1]}${k!=null?`  (${c.takimlar[k].ad} aldı)`:'  (yarım kaldı)'}`);
+      });
+      L.push('');
+      L.push(`HÜKÜM: Parti skoru ${m.partiSkor[kz]}–${m.partiSkor[1-kz]} ile ${T(kz)} lehine karar verilmiştir. İtirazlar dinlenmeksizin reddedilmiştir.`);
+      if(partiAd(c,c.partiler.length-1)==='Çıkıştırma')
+        L.push('Maç çıkıştırmaya kalmıştır. Tarafların sinir sistemine ilişkin talepleri görev yönünden reddedilmiştir.');
+      if(m.partiSkor[1-kz]===0&&c.partiHedef>1)
+        L.push('Kaybeden taraf tek parti dahi alamamıştır. Bu husus ayrıca kayda geçirilmiştir.');
+      const say=[{a:0,b:0},{a:0,b:0}];
+      batakTumEller(c).forEach(el=>{const t=say[el.ihaleTakim];t.a++;if(el.alinan<el.ihale)t.b++;});
+      [0,1].forEach(i=>{
+        if(say[i].a===0) L.push(`${T(i)} tarafı hiçbir ihaleye girmemiştir. Cesaret eksikliği olarak kayda geçirilmiştir.`);
+        else if(say[i].b>0) L.push(`${T(i)} tarafı ${say[i].a} ihaleye girmiş, ${say[i].b} tanesini batırmıştır. ${say[i].b>=3?'Bu ısrar kasıt olarak değerlendirilmiştir.':'Sonuç öngörülebilir bulunmuştur.'}`);
+        else L.push(`${T(i)} tarafı girdiği ${say[i].a} ihalenin tamamını tutmuştur. Şüphe uyandırıcı bulunmakla birlikte delil elde edilememiştir.`);
+      });
+      const b=batakTumEller(c).map(el=>({f:el.ihale-el.alinan,el})).filter(x=>x.f>0).sort((a,b)=>b.f-a.f)[0];
+      if(b) L.push(`Celsenin en ağır batağı: ${T(b.el.ihaleTakim)} tarafı ${b.el.ihale} ihale alıp ${b.el.alinan} el çıkarmıştır.`);
+    }
+  }else{
+    const m=yzMac(c), sr=m.sira, n=sr.length, a=DB.ayar.yz;
+    L.push(`HAZIR BULUNANLAR: ${liste(sr.map(r=>ad(r.id)))}.`);
+    if(c.giris==='hizli') L.push('USUL: Özet giriş yapılmıştır; el dökümü tutulmamıştır.');
+    else L.push(`USUL: ${c.partiHedef>1?`${c.partiHedef} parti üzerinden, `:''}her parti ${a.elSayisi} el olmak üzere ${c.partiler.length} parti (${m.toplamEl} el) oynanmıştır.`);
+    L.push('');
+    if(c.giris==='detay'&&c.partiHedef>1){
+      L.push('PARTİ DÖKÜMÜ:');
+      c.partiler.forEach((p,i)=>{
+        const k=p.kazanan||yzPartiKazanan(p,c), pt=yzPartiToplam(p,c);
+        L.push(`  ${partiAd(c,i)} — ${k?liste(k.map(ad))+' aldı':'yarım kaldı'}${k?` (${k.map(id=>pt[id]).join('/')})`:''}`);
+      });
+      L.push('');
+    }
+    L.push('SIRALAMA:');
+    sr.forEach(r=>L.push(`  ${r.sira}. ${ad(r.id)}${c.giris==='detay'||r.puan?` — ${r.puan} puan`:''}${c.giris==='detay'&&c.partiHedef>1?` · ${r.parti} parti`:''}`));
+    L.push('');
+    L.push(`HÜKÜM: ${ad(sr[0].id)} birinci sırada yer almıştır. ${ad(sr[n-1].id)} hakkında MASANIN SPONSORU sıfatı tesis edilmiş, katkıları için teşekkür edilmiştir.`);
+    if(n>=4&&(a.muey3||a.muey4)){
+      const p=[];
+      if(a.muey3) p.push(`3. sıradaki ${ad(sr[n-2].id)} hakkında "${a.muey3}"`);
+      if(a.muey4) p.push(`4. sıradaki ${ad(sr[n-1].id)} hakkında "${a.muey4}"`);
+      L.push(`MÜEYYİDE: ${liste(p)} müeyyidesine hükmedilmiştir. İnfaz derhal yapılacaktır.`);
+    }
+    if(c.giris==='detay'){
+      const t={}; c.oyuncular.forEach(id=>t[id]={bit:0,ac:0,cif:0});
+      c.partiler.forEach(pt=>pt.eller.forEach(el=>c.oyuncular.forEach(id=>{
+        const d=el.durum[id]; if(!d)return;
+        if(d.tip==='bitirdi')t[id].bit++; if(d.tip==='acamadi')t[id].ac++; if(d.tip==='cifte')t[id].cif++;})));
+      const eb=c.oyuncular.slice().sort((x,y)=>t[y].bit-t[x].bit)[0];
+      if(eb&&t[eb].bit>0) L.push(`${ad(eb)} ${t[eb].bit} el bitirmiştir. Masanın geri kalanı bu duruma alışmakta güçlük çekmiştir.`);
+      const ea=c.oyuncular.slice().sort((x,y)=>t[y].ac-t[x].ac)[0];
+      if(ea&&t[ea].ac>0) L.push(`${ad(ea)}, ${t[ea].ac} el açamamış, ${t[ea].ac*a.acamayan} puan ceza tahakkuk ettirilmiştir. Savunması alınmamıştır.`);
+      const ec=c.oyuncular.slice().sort((x,y)=>t[y].cif-t[x].cif)[0];
+      if(ec&&t[ec].cif>0) L.push(`${ad(ec)}, ${t[ec].cif} kez çifte gitmiş; cesaretin bedeli iki katı tahsil edilmiştir.`);
+    }
+  }
+
+  const st=istatistik(c.oyun);
+  const ilgili=c.oyun==='batak'?c.takimlar.flatMap(t=>t.oyuncular):c.oyuncular;
+  const notlar=[];
+  ilgili.forEach(id=>{
+    const p=st[id]; if(!p) return;
+    if(p.seriTip==='hasret'&&p.seri>=3) notlar.push(`${ad(id)} için galibiyet hasreti ${p.seri}. maça çıkmıştır`);
+    if(p.seriTip==='gal'&&p.seri>=3)    notlar.push(`${ad(id)} üst üste ${p.seri}. galibiyetini almıştır`);
+  });
+  if(notlar.length){ L.push(''); L.push(`AYRICA: ${liste(notlar)}.`); }
+
+  const dgler=ilgili.filter(id=>dgBugun(id,c.tarih));
+  if(dgler.length){
+    L.push('');
+    L.push(`DOĞUM GÜNÜ: ${liste(dgler.map(id=>{const y=yas(oy(id).dogum,c.tarih); return `${ad(id)}${y!=null?` (${y})`:''}`;}))} bugün doğum günü olmasına rağmen masaya oturmuştur. Mahkeme, bu durumun kendisine herhangi bir puan avantajı sağlamadığını hatırlatır; tebrik eder.`);
+  }
+  const acikIdd=grupIddialari().filter(i=>i.durum==='acik'&&(ilgili.includes(i.kim)||ilgili.includes(i.kime)));
+  if(acikIdd.length){
+    L.push('');
+    L.push('DERDEST İDDİALAR:');
+    acikIdd.slice(0,4).forEach(i=>L.push(`  • ${ad(i.kim)}${i.kime?` ↔ ${ad(i.kime)}`:''}: “${i.metin}”${i.bahis?` — ${i.bahis}`:''}${i.vade?` (vade ${trh(i.vade)})`:''}`));
+  }
+
+  if(c.not){ L.push(''); L.push(`ŞERH: ${c.not}`); }
+  L.push('');
+  L.push(`Tabelayı ${c.tabelaci?ad(c.tabelaci):'masa'} tutmuştur; kayıtlara itiraz süresi dolmuştur.`);
+  L.push('Zabıt okundu, imza altına alındı. Bir sonraki masanın tarihi taraflarca serbestçe belirlenecektir.');
+  return L.join('\n');
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render(){
+  const tb=document.querySelector('nav.tabbar');
+  const v=$('#view');
+  const tam = DURUM==='hazir';
+  tb.style.display = tam?'':'none';
+  document.body.style.paddingBottom = tam?'':'24px';
+
+  if(DURUM==='yukleniyor'){
+    $('#hdrSub').textContent='bağlanıyor…'; $('#hdrRight').innerHTML='';
+    v.innerHTML='<div class="card"><div class="empty"><span class="yukleniyor"></span></div></div>'; return;
+  }
+  if(DURUM==='hata'){
+    $('#hdrSub').textContent='bağlantı yok'; $('#hdrRight').innerHTML='';
+    v.innerHTML=`<div class="card"><div class="empty"><div class="big">⚠️</div>
+      <div class="sm" style="color:var(--ink2)">${esc(HATA)}</div>
+      <button class="btn-p" style="margin-top:14px" onclick="location.reload()">Yeniden dene</button></div></div>`; return;
+  }
+  if(DURUM==='giris'){
+    $('#hdrSub').textContent='Batak & 101 tabelası'; $('#hdrRight').innerHTML='';
+    v.innerHTML=girisEkrani();
+    setTimeout(()=>$(GIRIS_MOD==='kayit'?'#gAdi':'#gKad')?.focus(),60); return;
+  }
+  if(DURUM==='masayok'){
+    $('#hdrSub').textContent=esc(PROFIL?.ad||''); $('#hdrRight').innerHTML='';
+    v.innerHTML=masaYokEkrani(); return;
+  }
+
+  document.querySelectorAll('nav.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.t===TAB));
+  const g=aktifGrup();
+  $('#hdrSub').innerHTML = (DB.ben?`${esc(ad(DB.ben))} · ${seviye(toplamMac(DB.ben)).ad}`:esc(PROFIL?.ad||''))
+    + ` <span id="yazDurum" class="yaziyor"></span>`;
+  $('#hdrRight').innerHTML = `<div class="grupBar" onclick="grupSecici()">
+      <span class="ell">${esc(g?g.emoji+' '+g.ad:'Masa')}</span><span class="dim">▾</span></div>`;
+  if(TAB==='celse') v.innerHTML=viewCelse();
+  if(TAB==='sicil') v.innerHTML=viewSicil();
+  if(TAB==='iddia') v.innerHTML=viewIddia();
+  if(TAB==='arsiv') v.innerHTML=viewArsiv();
+  if(TAB==='rozet') v.innerHTML=viewRozet();
+  if(TAB==='ayar')  v.innerHTML=viewAyar();
+  yazIsigi();
+}
+
+/* =========================================================
+   İDDİA DEFTERİ
+   ========================================================= */
+function grupIddialari(){
+  const g=aktifGrup();
+  return DB.iddialar.filter(i=>!g||i.grupId===g.id);
+}
+function iddiaSicil(){
+  const s={};
+  const kur=id=>s[id]=s[id]||{id,kazandi:0,kaybetti:0,acik:0,toplam:0};
+  grupIddialari().forEach(i=>{
+    const p=kur(i.kim); p.toplam++;
+    if(i.durum==='acik') p.acik++;
+    if(i.durum==='kazandi') p.kazandi++;
+    if(i.durum==='kaybetti') p.kaybetti++;
+    if(i.kime){
+      const r=kur(i.kime); r.toplam++;
+      if(i.durum==='acik') r.acik++;
+      if(i.durum==='kazandi') r.kaybetti++;   // iddia sahibi kazandıysa karşı taraf kaybetti
+      if(i.durum==='kaybetti') r.kazandi++;
+    }
+  });
+  return s;
+}
+function vadeDoldu(i){
+  return i.durum==='acik' && i.vade && i.vade < bugun();
+}
+function viewIddia(){
+  const list=grupIddialari().slice().sort((a,b)=>{
+    const r=(x)=> x.durum==='acik' ? (vadeDoldu(x)?0:1) : 2;
+    return r(a)-r(b) || (a.vade||'9999').localeCompare(b.vade||'9999') || b.tarih.localeCompare(a.tarih);
+  });
+  const acik=list.filter(i=>i.durum==='acik');
+  const kapali=list.filter(i=>i.durum!=='acik');
+  const sc=iddiaSicil();
+  const sicilSat=Object.values(sc).filter(p=>p.kazandi+p.kaybetti>0)
+    .sort((a,b)=>(b.kazandi-b.kaybetti)-(a.kazandi-a.kaybetti));
+
+  const kart=i=>{
+    const doldu=vadeDoldu(i);
+    const renk=i.durum==='kazandi'?'green':(i.durum==='kaybetti'?'red':(doldu?'gold':''));
+    const etiket={acik:doldu?'VADESİ DOLDU':'AÇIK',kazandi:'TUTTU',kaybetti:'TUTMADI',iptal:'İPTAL'}[i.durum];
+    return `<div class="card tight" style="background:var(--panel2);${doldu?'border-color:var(--gold)':''}">
+      <div class="row wrap" style="gap:6px">
+        <span class="pill ${renk}">${etiket}</span>
+        ${i.bahis?`<span class="pill">🎁 ${esc(i.bahis)}</span>`:''}
+        <span class="xs dim">${trh(i.tarih)}${i.vade?` → vade ${trh(i.vade)}`:' → açık uçlu'}</span>
+      </div>
+      <div style="margin-top:7px;font-size:14.5px;font-family:Georgia,serif;line-height:1.5">
+        “${esc(i.metin)}”</div>
+      <div class="row" style="margin-top:7px;gap:7px">
+        ${avatar(i.kim,22)}<span class="sm" style="font-weight:600">${esc(ad(i.kim))}</span>
+        ${i.kime?`<span class="xs dim">↔</span>${avatar(i.kime,22)}<span class="sm" style="font-weight:600">${esc(ad(i.kime))}</span>`
+                :`<span class="xs dim">masaya karşı</span>`}
+      </div>
+      ${i.sonucNot?`<div class="xs muted" style="margin-top:6px;font-style:italic">${esc(i.sonucNot)}</div>`:''}
+      ${i.durum==='acik'?`<div class="row" style="margin-top:9px;gap:6px">
+        <button class="btn-xs" style="flex:1;border-color:#2E5A3A;color:#8CC79B" onclick="iddiaKarar('${i.id}','kazandi')">Tuttu</button>
+        <button class="btn-xs" style="flex:1;border-color:#5a2b2b;color:#C97C7C" onclick="iddiaKarar('${i.id}','kaybetti')">Tutmadı</button>
+        <button class="btn-xs btn-gh" onclick="iddiaSil('${i.id}')">Sil</button>
+      </div>`:`<div class="row" style="margin-top:8px;justify-content:flex-end">
+        <button class="btn-xs btn-gh" onclick="iddiaAc('${i.id}')">Yeniden aç</button>
+        <button class="btn-xs btn-gh" onclick="iddiaSil('${i.id}')">Sil</button></div>`}
+    </div>`;
+  };
+
+  return `
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="serif" style="font-size:17px">İddia Defteri</div>
+        <div class="xs dim">Söylenen söz kayda geçer. Vadesi gelince hüküm verilir.</div></div>
+    </div>
+    <button class="btn-p btn-full" style="margin-top:12px" onclick="iddiaFormu()">+ Yeni İddia Kaydet</button>
+  </div>
+
+  ${acik.length?`<div class="card"><h3>Derdest İddialar (${acik.length})</h3>
+    <div class="stack">${acik.map(kart).join('')}</div></div>`
+   :`<div class="card"><div class="empty"><div class="big">🤝</div>
+      Açık iddia yok.<div class="sm" style="margin-top:6px">Masada laf edilir, buraya yazılır. Kimse unutamaz.</div></div></div>`}
+
+  ${sicilSat.length?`<div class="card"><h3>İddia Sicili</h3>
+    <table><thead><tr><th>Kişi</th><th>Tuttu</th><th>Tutmadı</th><th>Bakiye</th></tr></thead><tbody>
+    ${sicilSat.map(p=>{const d=p.kazandi-p.kaybetti;
+      return `<tr><td><div class="row" style="gap:7px">${avatar(p.id,22)}<span style="font-weight:600">${esc(ad(p.id))}</span></div></td>
+      <td class="pos">${p.kazandi}</td><td class="neg">${p.kaybetti}</td>
+      <td><b class="${snf(d)}">${art(d)}</b></td></tr>`;}).join('')}
+    </tbody></table>
+    <div class="xs dim" style="margin-top:8px">Bakiyesi eksi olanın masada söz hakkı tartışmalıdır.</div></div>`:''}
+
+  ${kapali.length?`<div class="card"><details><summary>Karara bağlanmış iddialar (${kapali.length})</summary>
+    <div class="stack">${kapali.map(kart).join('')}</div></details></div>`:''}`;
+}
+function iddiaFormu(){
+  const oyn=grupOyunculari();
+  if(oyn.length<2) return toast('Önce en az 2 üye ekle');
+  const bahisler=['Çay','Kahve','Akşam yemeği','Hesap','Sadece onur','Tost'];
+  acModal(`
+    <h2 class="serif" style="margin:0 0 4px">Yeni İddia</h2>
+    <div class="xs dim" style="margin-bottom:14px">Masada edilen lafın resmî kaydı. Vade gelince uygulama sorar.</div>
+    <div class="field"><label class="fl">İddia eden</label>
+      <div class="row wrap" id="iKim">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div></div>
+    <div class="field"><label class="fl">Kime karşı <span style="text-transform:none;letter-spacing:0">(boş bırakırsan masaya karşı)</span></label>
+      <div class="row wrap" id="iKime">${oyn.map(o=>`<div class="chip" data-id="${o.id}" onclick="ikiliSec(this)">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div></div>
+    <div class="field"><label class="fl">İddia</label>
+      <textarea id="iMetin" rows="2" placeholder="Bu ay Ahmet'i geçerim / Bir daha çifte gitmem / Bu akşam 3 ihale tutarım"></textarea></div>
+    <div class="field"><label class="fl">Bahis</label>
+      <div class="row wrap" id="iBahis">${bahisler.map((b,k)=>`<div class="chip ${k===0?'on':''}" data-b="${esc(b)}" onclick="tekSec(this)">${esc(b)}</div>`).join('')}</div>
+      <input id="iBahisSerbest" placeholder="ya da kendin yaz..." style="margin-top:8px"></div>
+    <div class="field"><label class="fl">Vade <span style="text-transform:none;letter-spacing:0">(boş = açık uçlu)</span></label>
+      <input type="date" id="iVade"></div>
+    <button class="btn-p btn-full" style="margin-top:16px" onclick="iddiaKaydet()">Deftere Geçir</button>`);
+}
+function ikiliSec(el){
+  const zaten=el.classList.contains('on');
+  el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  if(!zaten) el.classList.add('on');
+}
+async function iddiaKaydet(){
+  const kim=document.querySelector('#iKim .chip.on')?.dataset.id;
+  if(!kim) return toast('İddia edeni seç',true);
+  const kime=document.querySelector('#iKime .chip.on')?.dataset.id||null;
+  if(kime===kim) return toast('Kendine karşı iddia olmaz',true);
+  const metin=$('#iMetin').value.trim();
+  if(!metin) return toast('İddia metnini yaz',true);
+  const bahis=$('#iBahisSerbest').value.trim()||document.querySelector('#iBahis .chip.on')?.dataset.b||'';
+  const {data,error}=await sb.from('iddialar').insert({
+    masa_id:DB.aktifGrup, kim_id:kim, kime_id:kime, metin, bahis:bahis||null,
+    tarih:bugun(), vade:$('#iVade').value||null, durum:'acik', acan_id:OTURUM.id
+  }).select('*').single();
+  if(error) return toast(hataMetni(error),true);
+  DB.iddialar.push({id:data.id,grupId:data.masa_id,tarih:data.tarih,vade:data.vade||'',
+    kim:data.kim_id,kime:data.kime_id,metin:data.metin,bahis:data.bahis||'',
+    durum:data.durum,sonucNot:'',kapanis:''});
+  kapatModal(); render();
+  toast('İddia deftere geçirildi. Geri dönüşü yoktur.',true);
+}
+async function iddiaKarar(id,durum){
+  const i=DB.iddialar.find(x=>x.id===id); if(!i) return;
+  const kaybeden = durum==='kazandi' ? (i.kime||null) : i.kim;
+  const not = durum==='kazandi'
+    ? `${ad(i.kim)} sözünü tutmuştur.${i.bahis&&kaybeden?` ${ad(kaybeden)} "${i.bahis}" borcunu ifa edecektir.`:''}`
+    : `${ad(i.kim)} tutturamamıştır.${i.bahis?` "${i.bahis}" borcu kendisine yüklenmiştir.`:''}`;
+  const {error}=await sb.from('iddialar')
+    .update({durum,sonuc_not:not,kapanis:bugun()}).eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  i.durum=durum; i.sonucNot=not; i.kapanis=bugun();
+  render(); toast(not,true);
+}
+async function iddiaAc(id){
+  const i=DB.iddialar.find(x=>x.id===id); if(!i) return;
+  const {error}=await sb.from('iddialar')
+    .update({durum:'acik',sonuc_not:null,kapanis:null}).eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  i.durum='acik'; i.sonucNot=''; i.kapanis=''; render();
+}
+async function iddiaSil(id){
+  if(!confirm('İddia defterden silinsin mi?')) return;
+  const {error}=await sb.from('iddialar').delete().eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  DB.iddialar=DB.iddialar.filter(x=>x.id!==id); render();
+}
+function git(t){TAB=t;render();window.scrollTo(0,0);}
+function toplamMac(id){
+  return grupCelseleri().filter(c=> c.oyun==='batak'
+    ? c.takimlar.some(t=>t.oyuncular.includes(id)) : (c.oyuncular||[]).includes(id)).length;
+}
+
+/* ---------- CELSE ---------- */
+function viewCelse(){
+  if(DB.aktif&&!tabelaciMiyim()) return canliIzle();
+  if(DB.aktif) return DB.aktif.giris==='hizli' ? hizliEkran() : (DB.aktif.oyun==='batak'?aktifBatak():aktifYz());
+  if(!DB.ben) return karsilama();
+  const oyn=grupOyunculari();
+  if(oyn.length<3) return `<div class="card"><div class="empty">
+      <div class="big">👥</div>
+      <div class="serif" style="font-size:17px;color:var(--ink)">Masa eksik</div>
+      <div class="sm" style="margin-top:8px">${aktifGrup()?'Bu grupta':'Defterde'} en az 3 oyuncu olmalı.</div>
+      <button class="btn-p" style="margin-top:16px" onclick="git('ayar')">Oyuncu Ekle</button></div></div>`;
+
+  const son=grupCelseleri().slice().sort((a,b)=>(b.tarih+(b._sira||'')).localeCompare(a.tarih+(a._sira||'')))[0];
+  return `
+    <div class="card">
+      <h3>Yeni Maç</h3>
+      <div class="two">
+        <button class="btn-p" style="flex-direction:column;padding:20px 10px;gap:5px" onclick="celseBaslat('batak')">
+          <span style="font-size:24px">🂡</span><span>BATAK</span>
+          <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">eşli · ihaleli<br>parti ${DB.ayar.batak.hedef} puan</span></button>
+        <button class="btn-b" style="flex-direction:column;padding:20px 10px;gap:5px" onclick="celseBaslat('101')">
+          <span style="font-size:24px">🀄</span><span>101</span>
+          <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">parti ${DB.ayar.yz.elSayisi} el<br>çok puanlı kaybeder</span></button>
+      </div>
+    </div>
+    ${dogumKart()}
+    ${acikIddiaKart()}
+    ${son?`<div class="card"><h3>Son Maç</h3>${arsivSatir(son,true)}</div>`:''}
+    ${liderKart()}`;
+}
+/* Hesabım var, masadayım — ama hangi oyuncu olduğum belli değil.
+   Sahipsiz bir kaydı kendim üstlenirim; yoksa yeni kayıt açarım. */
+function karsilama(){
+  const bos=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup&&o.aktif&&!o.profilId);
+  return `<div class="card">
+    <div class="empty" style="padding-bottom:10px">
+      <div class="big">§</div>
+      <div class="serif" style="font-size:19px;color:var(--ink)">Sen hangisisin?</div>
+      <div class="sm" style="margin-top:8px;max-width:360px;margin-left:auto;margin-right:auto">
+        Masada kendi sicilini görebilmen için hesabını bir oyuncu kaydına bağlaman gerekiyor.</div>
+    </div>
+    ${bos.length?`<div class="stack" style="margin-top:6px">${bos.map(o=>`
+      <div class="row" style="gap:10px">${avatar(o.id,34)}
+        <div class="grow" style="font-weight:600">${esc(o.ad)}</div>
+        <button class="btn-sm btn-p" onclick="benimOl('${o.id}')">Bu benim</button>
+      </div>`).join('')}</div>`
+     :`<div class="sm dim center">Sahipsiz oyuncu kaydı kalmamış.</div>`}
+    <div class="sep"></div>
+    <button class="btn-b btn-full" onclick="oyuncuAc(null,true)">Kendimi Yeni Oyuncu Olarak Ekle</button>
+    <div class="xs dim center" style="margin-top:8px">Yanlış kaydı seçtiysen masayı kuran geri alabilir.</div>
+  </div>`;
+}
+async function benimOl(id){
+  try{
+    const {error}=await sb.rpc('oyuncu_sahiplen',{p_oyuncu:id});
+    if(error) throw error;
+    await yenile(true); toast(`Hoş geldin ${ad(id)}.`);
+  }catch(e){ toast(hataMetni(e),true); }
+}
+function dogumKart(){
+  const liste2=grupOyunculari().filter(o=>o.dogum)
+    .map(o=>({o,g:dgKalan(o.dogum)})).filter(x=>x.g!=null&&x.g<=30)
+    .sort((a,b)=>a.g-b.g);
+  if(!liste2.length) return '';
+  return `<div class="card"><h3>🎂 Doğum Günleri</h3>${liste2.map(({o,g})=>`
+    <div class="row" style="padding:6px 0;gap:9px${g===0?';background:#2B2410;margin:0 -14px;padding-left:14px;padding-right:14px':''}">
+      ${avatar(o.id,28)}
+      <div class="grow"><div style="font-weight:600;font-size:13.5px">${esc(o.ad)}</div>
+        <div class="xs ${g===0?'':'dim'}" ${g===0?'style="color:var(--gold)"':''}>${
+          g===0?`Bugün ${yas(o.dogum)??''} yaşında — masa affetmez ama tebrik eder`:`${dgMetni(g)} · ${trh(o.dogum).slice(0,5)}`}</div></div>
+      ${g===0?'<span style="font-size:20px">🎂</span>':''}
+    </div>`).join('')}</div>`;
+}
+function acikIddiaKart(){
+  const a=grupIddialari().filter(i=>i.durum==='acik');
+  if(!a.length) return '';
+  const doldu=a.filter(vadeDoldu);
+  return `<div class="card"><h3>🤝 Derdest İddialar (${a.length})</h3>
+    ${doldu.length?`<div class="xs" style="color:var(--gold);margin-bottom:8px">${doldu.length} tanesinin vadesi doldu — hüküm bekliyor.</div>`:''}
+    ${a.slice(0,3).map(i=>`<div style="padding:5px 0">
+      <div class="sm" style="font-family:Georgia,serif">“${esc(i.metin)}”</div>
+      <div class="xs dim">${esc(ad(i.kim))}${i.kime?` ↔ ${esc(ad(i.kime))}`:''}${i.bahis?` · ${esc(i.bahis)}`:''}${i.vade?` · vade ${trh(i.vade)}`:''}</div>
+    </div>`).join('')}
+    <button class="btn-sm btn-gh" style="width:100%;margin-top:8px" onclick="git('iddia')">İddia Defteri</button></div>`;
+}
+function liderKart(){
+  const b=Object.values(istatistik('batak')).filter(p=>p.celse>0).sort((a,b)=>b.oran-a.oran||b.gal-a.gal).slice(0,3);
+  const y=Object.values(istatistik('101')).filter(p=>p.celse>0).sort((a,b)=>a.ortSira-b.ortSira).slice(0,3);
+  if(!b.length&&!y.length) return '';
+  const sat=(p,i,oyun)=>`<div class="row" style="padding:5px 0">
+    <span class="rank ${i===0?'r1':''}">${i+1}</span>${avatar(p.id,24)}
+    <span class="grow" style="font-weight:600;font-size:13.5px;margin-left:7px">${esc(ad(p.id))}</span>
+    <span class="sm dim">${p.gal}/${p.celse} · %${Math.round(p.oran*100)}</span></div>`;
+  return `<div class="card">
+    ${b.length?`<h3>Kürsü · Batak</h3>${b.map((p,i)=>sat(p,i,'batak')).join('')}`:''}
+    ${y.length?`<h3 style="margin-top:${b.length?14:0}px">Kürsü · 101</h3>${y.map((p,i)=>sat(p,i,'101')).join('')}`:''}
+  </div>`;
+}
+
+/* --- kurulum --- */
+function celseBaslat(oyun){
+  const varP=oyun==='batak'?DB.ayar.batak.partiHedef:DB.ayar.yz.partiHedef;
+  const oyn=grupOyunculari();
+  acModal(`
+    <h2 class="serif" style="margin:0 0 4px">${oyun==='batak'?'Batak Maçı':'101 Maçı'}</h2>
+    <div class="xs dim" style="margin-bottom:14px">${oyun==='batak'
+      ? `Dört oyuncu seç; seçim sırası eşleri belirler. Her parti ${DB.ayar.batak.hedef} puana koşulur.`
+      : `Masadaki oyuncuları seç (3–6). Her parti ${DB.ayar.yz.elSayisi} eldir.`}</div>
+
+    <div class="field"><label class="fl">Giriş şekli</label>
+      <div class="seg" id="mGiris">
+        <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">⚡ Hızlı</button>
+        <button data-g="detay" onclick="segSec(this);girisNotu()">📋 Detaylı</button>
+      </div>
+      <div class="xs dim" id="mGirisNot" style="margin-top:6px"></div>
+    </div>
+
+    <div class="two" style="margin-top:10px">
+      <div><label class="fl">Tarih</label><input type="date" id="mTarih" value="${bugun()}"></div>
+      <div><label class="fl">Yer</label><input id="mYer" placeholder="Ofis, kahve..."></div>
+    </div>
+
+    <div class="field" id="mPartiKap"><label class="fl">Maç kaç parti üzerinden?</label>
+      <div class="seg" id="mParti">${[1,2,3].map(n=>`<button class="${n===varP?'on':''}" data-p="${n}" onclick="segSec(this)">${n===1?'Tek parti':n+' parti alan'}</button>`).join('')}</div>
+      ${oyun==='batak'?'<div class="xs dim" style="margin-top:6px">1–1 olursa son parti otomatik "Çıkıştırma" adını alır.</div>':''}
+    </div>
+
+    ${oyun==='101'?`<div class="field"><label class="fl">Oynanış</label>
+      <div class="seg" id="mMod">
+        <button class="on" data-m="tek" onclick="segSec(this)">Herkes tek</button>
+        <button data-m="esli" onclick="segSec(this)">Eşli</button></div></div>`:''}
+
+    <div class="field"><label class="fl">Oyuncular <span id="mSayac" class="dim" style="text-transform:none;letter-spacing:0">(0 seçildi)</span></label>
+      <div class="row wrap" id="mOyuncular">
+        ${oyn.map(o=>`<div class="chip" data-id="${o.id}" onclick="chipSec(this,${oyun==='batak'?4:6})">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}
+      </div>
+    </div>
+    <div id="mEsler" style="margin-top:10px"></div>
+
+    <div class="field"><label class="fl">Tabelayı kim tutuyor?</label>
+      <div class="row wrap" id="mTabelaci">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div>
+      <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar. Masada âdet böyledir.</div></div>
+
+    <button class="btn-p btn-full" style="margin-top:16px" id="mKurBtn" onclick="celseKur('${oyun}')">Tabelayı Aç</button>`);
+  girisNotu();
+}
+function girisNotu(){
+  const g=document.querySelector('#mGiris .on')?.dataset.g;
+  const n=$('#mGirisNot'); if(!n) return;
+  n.textContent = g==='hizli'
+    ? 'Tek ekran: kim kazandı, kim kaybetti. Kuralları bilmeyen de girebilir.'
+    : 'El el giriş: ihale/ceza puanları otomatik hesaplanır, istatistikler zenginleşir.';
+  const pk=$('#mPartiKap'); if(pk) pk.style.display = g==='hizli' ? 'none' : '';
+}
+function segSec(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
+function chipSec(el,max){
+  const kap=el.parentElement;
+  if(!el.classList.contains('on')&&kap.querySelectorAll('.chip.on').length>=max){toast(`En fazla ${max} oyuncu`);return;}
+  el.classList.toggle('on');
+  el.dataset.sira=el.classList.contains('on')?String(Date.now()):'';
+  const s=secililer();
+  $('#mSayac').textContent=`(${s.length} seçildi)`;
+  const ek=$('#mEsler');
+  if(ek&&max===4) ek.innerHTML = s.length===4?`
+    <div class="card tight" style="margin:0;background:var(--panel2)">
+      <div class="row" style="justify-content:space-between;gap:8px">
+        <div class="sm"><span class="pill red">A</span> ${esc(ad(s[0]))} &amp; ${esc(ad(s[1]))}</div>
+        <div class="sm"><span class="pill blue">B</span> ${esc(ad(s[2]))} &amp; ${esc(ad(s[3]))}</div>
+      </div></div>`:'';
+}
+const secililer=()=>[...document.querySelectorAll('#mOyuncular .chip.on')]
+  .sort((a,b)=>Number(a.dataset.sira||0)-Number(b.dataset.sira||0)).map(e=>e.dataset.id);
+
+async function celseKur(oyun){
+  const s=secililer();
+  const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
+  const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
+  const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
+  const c={oyun,giris,tarih:$('#mTarih').value||bugun(),yer:$('#mYer').value.trim(),
+           tabelaci,partiHedef,not:'',partiler:[{eller:[],kazanan:null}]};
+  if(oyun==='batak'){
+    if(s.length!==4) return toast('Batak için tam 4 oyuncu gerekli',true);
+    c.takimlar=[{ad:'A',oyuncular:[s[0],s[1]]},{ad:'B',oyuncular:[s[2],s[3]]}];
+    c.hizli={partiSkor:[0,0],puan:[0,0]};
+  }else{
+    if(s.length<3) return toast('En az 3 oyuncu gerekli',true);
+    c.mod=document.querySelector('#mMod .on')?.dataset.m||'tek';
+    if(c.mod==='esli'&&s.length!==4) return toast('Eşli 101 için tam 4 oyuncu gerekli',true);
+    c.oyuncular=s; c.esler=c.mod==='esli'?[[s[0],s[2]],[s[1],s[3]]]:null;
+    c.hizli={sira:s.slice(),puan:{}};
+  }
+  const btn=$('#mKurBtn'); if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
+  try{
+    const {data,error}=await sb.from('maclar').insert({
+      masa_id:DB.aktifGrup, oyun, giris, tarih:c.tarih, yer:c.yer||null,
+      tabelaci_id:OTURUM.id, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
+      mod:oyun==='101'?c.mod:null, celse:c, bitti:false
+    }).select('id').single();
+    if(error) throw error;
+    DB.aktif=Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:OTURUM.id});
+    if(giris==='detay'&&kurucuMu()){
+      DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
+      ayarYaz(true);
+    }
+    kapatModal(); git('celse');
+  }catch(e){
+    toast(hataMetni(e),true);
+    if(btn){btn.disabled=false;btn.textContent='Tabelayı Aç';}
+  }
+}
+
+/* =========================================================
+   HIZLI GİRİŞ EKRANI
+   ========================================================= */
+function hizliEkran(){
+  const c=DB.aktif;
+  if(c.oyun==='batak'){
+    const h=c.hizli, T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+    const kz = h.partiSkor[0]===h.partiSkor[1] ? null : (h.partiSkor[0]>h.partiSkor[1]?0:1);
+    return `
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div><div class="serif" style="font-size:17px">⚡ Batak · Hızlı Giriş</div>
+          <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
+      <div class="sep"></div>
+      <div class="xs dim center" style="margin-bottom:12px">Her takım kaç parti aldı? Dokunarak arttır.</div>
+      ${[0,1].map(i=>`
+        <div class="row" style="padding:8px 0;gap:10px">
+          <span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+          <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
+          <button class="btn-sm" onclick="hzParti(${i},-1)">−</button>
+          <div class="serif" style="font-size:24px;min-width:28px;text-align:center;color:${kz===i?'var(--gold)':'var(--ink)'}">${h.partiSkor[i]}</div>
+          <button class="btn-sm" onclick="hzParti(${i},1)">+</button>
+        </div>`).join('')}
+      <div class="sep"></div>
+      <details><summary>Puanı da yazayım (isteğe bağlı)</summary><div class="two">
+        <div><label class="fl">A toplam</label><input type="number" value="${h.puan[0]||''}" onchange="hzPuan(0,this.value)" placeholder="61"></div>
+        <div><label class="fl">B toplam</label><input type="number" value="${h.puan[1]||''}" onchange="hzPuan(1,this.value)" placeholder="43"></div>
+      </div></details>
+      <button class="btn-g btn-full" style="margin-top:14px" onclick="celseKapat()" ${kz===null?'disabled':''}>
+        ${kz===null?'Önce kazanan takımı yaz':'Tabelayı Kapat → Zabıt'}</button>
+    </div>
+    <div class="card tight center xs dim">Detaylı istatistik (ihale, batak, şlem) için bir dahaki sefere "Detaylı" seç.</div>`;
+  }
+  /* 101 hızlı: sıraya diz */
+  const h=c.hizli, s=h.sira;
+  return `
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="serif" style="font-size:17px">⚡ 101 · Hızlı Giriş</div>
+        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
+      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+    </div>
+    <div class="sep"></div>
+    <div class="xs dim center" style="margin-bottom:10px">Sıralamayı düzenle: en az puanlı en üstte, kaybeden en altta.</div>
+    ${s.map((id,i)=>`
+      <div class="row" style="padding:7px 0;gap:9px">
+        <div class="rank ${i===0?'r1':(i===s.length-1?'rs':'')}">${i+1}</div>
+        ${avatar(id,30)}
+        <div class="grow" style="margin-left:4px">
+          <div style="font-weight:600;font-size:14px">${esc(ad(id))}</div>
+          <div class="xs dim">${i===0?'🏆 birinci':(i===s.length-1?'💸 Masanın Sponsoru':(i===s.length-2?'🧾 '+esc(DB.ayar.yz.muey3):''))}</div>
+        </div>
+        <input type="number" style="width:78px" placeholder="puan" value="${h.puan[id]??''}" onchange="hzYzPuan('${id}',this.value)">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button class="btn-xs" onclick="hzTasi(${i},-1)" ${i===0?'disabled':''}>▲</button>
+          <button class="btn-xs" onclick="hzTasi(${i},1)" ${i===s.length-1?'disabled':''}>▼</button>
+        </div>
+      </div>`).join('')}
+    <div class="sep"></div>
+    <button class="btn-g btn-full" onclick="celseKapat()">Tabelayı Kapat → Zabıt</button>
+  </div>
+  <div class="card tight center xs dim">Puan alanı boş kalabilir — sıralama yeterlidir.</div>`;
+}
+function hzParti(i,d){
+  const h=DB.aktif.hizli;
+  h.partiSkor[i]=Math.max(0,Math.min(9,h.partiSkor[i]+d));
+  kaydet(); render();
+}
+function hzPuan(i,v){ DB.aktif.hizli.puan[i]=Number(v)||0; kaydet(); }
+function hzYzPuan(id,v){ DB.aktif.hizli.puan[id]= v===''?null:(Number(v)||0); kaydet(); }
+function hzTasi(i,d){
+  const s=DB.aktif.hizli.sira, j=i+d;
+  if(j<0||j>=s.length) return;
+  [s[i],s[j]]=[s[j],s[i]]; kaydet(); render();
+}
+
+/* --- maç şeridi --- */
+function macSerit(c){
+  if(c.partiHedef<=1) return '';
+  if(c.oyun==='batak'){
+    const m=batakMac(c);
+    return `<div class="card tight" style="background:var(--panel2)">
+      <div class="row" style="justify-content:space-between">
+        <div class="sm ell"><span class="pill red">A</span> ${esc(c.takimlar[0].oyuncular.map(ad).join(' & '))}</div>
+        <div class="serif" style="font-size:18px">${m.partiSkor[0]} – ${m.partiSkor[1]}</div>
+        <div class="sm right ell"><span class="pill blue">B</span> ${esc(c.takimlar[1].oyuncular.map(ad).join(' & '))}</div>
+      </div>
+      <div class="row" style="justify-content:space-between;margin-top:7px">
+        ${dots(m.partiSkor[0],c.partiHedef)}<span class="xs dim">${c.partiHedef} parti alan kazanır</span>${dots(m.partiSkor[1],c.partiHedef)}
+      </div></div>`;
+  }
+  const m=yzMac(c);
+  return `<div class="card tight" style="background:var(--panel2)">
+    <div class="xs dim" style="margin-bottom:7px">MAÇ · ${c.partiHedef} parti alan kazanır</div>
+    <div class="row wrap" style="gap:12px">${m.sira.map(r=>`<div class="row" style="gap:5px">${avatar(r.id,20)}
+      <span class="sm" style="font-weight:600">${esc(ad(r.id))}</span>${dots(r.parti,c.partiHedef)}</div>`).join('')}
+    </div></div>`;
+}
+
+/* --- aktif BATAK (detay) --- */
+function aktifBatak(){
+  const c=DB.aktif,a=DB.ayar.batak,m=batakMac(c);
+  const parti=m.aktif,pIdx=m.aktifIdx,{top,seyir}=batakPartiToplam(parti);
+  const pKz=batakPartiKazanan(parti),pAd=partiAd(c,pIdx),cikis=pAd==='Çıkıştırma';
+  const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+  const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
+  return `
+  ${macSerit(c)}
+  <div class="card ${cikis?'cikis':''}">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
+        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · hedef ${a.hedef} · ${parti.eller.length} el</div></div>
+      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+    </div>
+    <div class="sep"></div>
+    ${[0,1].map(i=>`<div style="margin-bottom:${i?0:12}px">
+      <div class="row" style="justify-content:space-between;margin-bottom:5px">
+        <div class="row" style="gap:6px"><span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+          <span style="font-weight:600;font-size:13.5px">${esc(T(i))}</span></div>
+        <div class="serif" style="font-size:22px;color:${pKz===i?'var(--gold)':'var(--ink)'}">${top[i]}</div>
+      </div>
+      <div class="bar"><i style="width:${yuz(i)}%;background:${i?'var(--blue)':'var(--accent2)'}"></i></div></div>`).join('')}
+    ${pKz!==null?`<div class="sep"></div><div class="center">
+      <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
+      ${m.partiSkor[pKz]+1>=c.partiHedef
+        ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
+      </div>`:''}
+  </div>
+
+  ${pKz===null?`<div class="card">
+    <h3>El Yaz · ${parti.eller.length+1}. El</h3>
+    <div class="field"><label class="fl">İhaleyi alan takım</label>
+      <div class="seg" id="bTakim">
+        <button class="on" data-v="0" onclick="segSec(this)">A · ${esc(T(0))}</button>
+        <button data-v="1" onclick="segSec(this)">B · ${esc(T(1))}</button></div></div>
+    <div class="two" style="margin-top:10px">
+      <div><label class="fl">İhale</label><select id="bIhale">
+        ${Array.from({length:a.toplamEl-a.minIhale+1},(_,k)=>a.minIhale+k).map(n=>`<option value="${n}">${n}</option>`).join('')}
+      </select></div>
+      <div><label class="fl">Koz</label><select id="bKoz"><option value="">—</option>
+        <option>♠ Maça</option><option>♥ Kupa</option><option>♦ Karo</option><option>♣ Sinek</option><option>Kozsuz</option></select></div>
+    </div>
+    <div class="field"><label class="fl">İhaleyi alan takımın çıkardığı el</label>
+      <div class="row wrap" id="bAlinan" style="gap:5px">
+        ${Array.from({length:a.toplamEl+1},(_,k)=>`<div class="chip" data-v="${k}" style="flex:1;min-width:34px;justify-content:center;padding:9px 0" onclick="tekSec(this)">${k}</div>`).join('')}
+      </div>
+      <div class="xs dim" style="margin-top:6px">Karşı takım kalanı yazar (toplam ${a.toplamEl} el).</div></div>
+    <button class="btn-p btn-full" style="margin-top:14px" onclick="batakElEkle()">Eli Yaz</button>
+  </div>`:''}
+
+  ${parti.eller.length?`<div class="card">
+    <h3>${pAd} · Tabela</h3>
+    <table><thead><tr><th>El</th><th>İhale</th><th>Çıkan</th><th>A</th><th>B</th><th>Skor</th></tr></thead><tbody>
+    ${parti.eller.map((el,i)=>{const p=batakElPuan(el,a),b=el.alinan<el.ihale;return `<tr>
+      <td>${i+1}${el.koz?` <span class="xs dim">${esc(el.koz.split(' ')[0])}</span>`:''}</td>
+      <td><span class="pill ${el.ihaleTakim?'blue':'red'}">${c.takimlar[el.ihaleTakim].ad} ${el.ihale}</span></td>
+      <td class="${b?'neg':''}">${el.alinan}${b?' ✕':''}</td>
+      <td class="${snf(p[0])}">${art(p[0])}</td><td class="${snf(p[1])}">${art(p[1])}</td>
+      <td class="dim xs">${seyir[i][0]}–${seyir[i][1]}</td></tr>`;}).join('')}
+    </tbody></table>
+    <button class="btn-sm btn-dn" style="margin-top:10px;width:100%" onclick="elSil()">Son Eli Boz</button>
+  </div>`:''}
+  ${gecmisPartiler(c)}
+  ${pKz===null?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
+}
+function tekSec(el){el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
+function batakElEkle(){
+  const c=DB.aktif,parti=batakMac(c).aktif;
+  const al=document.querySelector('#bAlinan .chip.on');
+  if(!al) return toast('Çıkan el sayısını seç');
+  const el={ihaleTakim:Number(document.querySelector('#bTakim .on').dataset.v),
+            ihale:Number($('#bIhale').value),koz:$('#bKoz').value,alinan:Number(al.dataset.v)};
+  parti.eller.push(el); kaydet(); render(); toast(batakElYorum(c,el),true);
+}
+
+/* --- aktif 101 (detay) --- */
+function aktifYz(){
+  const c=DB.aktif,a=DB.ayar.yz,m=yzMac(c),N=a.elSayisi||11;
+  const parti=m.aktif,pIdx=m.aktifIdx,pAd=partiAd(c,pIdx),cikis=pAd==='Çıkıştırma';
+  const oynanan=parti.eller.length,doldu=oynanan>=N,sr=yzPartiSira(parti,c);
+  const pKz=doldu?yzPartiKazanan(parti,c):null;
+  const sonParti=doldu&&pKz&&((m.partiKaz[pKz[0]]||0)>=c.partiHedef);
+  return `
+  ${macSerit(c)}
+  <div class="card ${cikis?'cikis':''}">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
+        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · ${c.mod==='esli'?'eşli':'herkes tek'}</div></div>
+      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+    </div>
+    <div class="row" style="margin-top:10px;gap:9px">
+      <div class="grow bar"><i style="width:${Math.min(100,oynanan/N*100)}%;background:${doldu?'var(--gold)':'var(--blue)'}"></i></div>
+      <div class="xs" style="${doldu?'color:var(--gold);font-weight:700':'color:var(--ink3)'}">${oynanan} / ${N} el</div>
+    </div>
+    <div class="sep"></div>
+    ${sr.map(r=>`<div class="row" style="padding:6px 0">
+      <div class="rank ${r.sira===1?'r1':(r.sira===sr.length?'rs':'')}">${r.sira}</div>${avatar(r.id,26)}
+      <div class="grow" style="font-weight:600;font-size:14px;margin-left:8px">${esc(ad(r.id))}${
+        c.mod==='esli'&&c.esler?` <span class="xs dim">${c.esler[0].includes(r.id)?'·A':'·B'}</span>`:''}</div>
+      <div class="serif" style="font-size:19px;color:${r.sira===1?'var(--gold)':(r.sira===sr.length?'var(--red)':'var(--ink)')}">${r.puan}</div>
+    </div>`).join('')}
+    <div class="xs dim center" style="margin-top:6px">Düşük puan iyidir. Sonuncu, sponsordur.</div>
+    ${doldu?`<div class="sep"></div><div class="center">
+      <div class="serif" style="color:var(--gold);font-size:16px">${esc(liste((pKz||[]).map(ad)))} partiyi aldı</div>
+      ${c.partiHedef<=1||sonParti
+        ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
+      </div>`:''}
+  </div>
+
+  ${!doldu?`<div class="card">
+    <h3>El Yaz · ${oynanan+1}. El</h3>
+    <div class="xs dim" style="margin-bottom:10px">Bitiren <b>${a.bitiren}</b> · açamayan <b>+${a.acamayan}</b> · çifte <b>×${a.cifteCarpan}</b></div>
+    ${c.oyuncular.map(id=>`<div class="el-card" data-oy="${id}">
+      <div class="row" style="margin-bottom:8px">${avatar(id,24)}<div style="font-weight:700;font-size:14px">${esc(ad(id))}</div></div>
+      <div class="row wrap" style="gap:6px">
+        <div class="chip" data-d="bitirdi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Bitirdi</div>
+        ${c.mod==='esli'?`<div class="chip" data-d="es" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Eşi bitirdi (yazmaz)</div>`:''}
+        <div class="chip" data-d="acamadi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Açamadı</div>
+        <div class="chip" data-d="kaldi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Açtı, elinde kaldı</div>
+        <div class="chip" data-d="cifte" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Çifte gitti, kaldı</div>
+      </div>
+      <div class="ek" style="margin-top:8px;display:none"></div></div>`).join('')}
+    <button class="btn-p btn-full" style="margin-top:6px" onclick="yzElEkle()">Eli Yaz</button>
+  </div>`:''}
+
+  ${parti.eller.length?`<div class="card">
+    <h3>${pAd} · Tabela</h3>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>El</th>${c.oyuncular.map(id=>`<th>${esc(ad(id))}</th>`).join('')}</tr></thead>
+      <tbody>${parti.eller.map((el,i)=>`<tr><td>${i+1}</td>${c.oyuncular.map(id=>{
+        const p=yzDurumPuan(el.durum[id]),d=el.durum[id]||{};
+        const ip={bitirdi:'B',es:'E',acamadi:'A',kaldi:'',cifte:'Ç'}[d.tip]||'';
+        return `<td class="${snf(-p)}">${art(p)}${ip?` <span class="xs dim">${ip}</span>`:''}</td>`;}).join('')}</tr>`).join('')}
+      <tr style="border-top:2px solid var(--line)"><td><b>Toplam</b></td>${
+        c.oyuncular.map(id=>`<td><b>${yzPartiToplam(parti,c)[id]}</b></td>`).join('')}</tr></tbody></table></div>
+    <button class="btn-sm btn-dn" style="margin-top:10px;width:100%" onclick="elSil()">Son Eli Boz</button>
+  </div>`:''}
+  ${gecmisPartiler(c)}
+  ${!doldu&&parti.eller.length?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
+}
+function yzDurumSec(el){
+  const kart=el.closest('.el-card');
+  kart.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  const tip=el.dataset.d,ek=kart.querySelector('.ek'),a=DB.ayar.yz;
+  if(tip==='kaldi'||tip==='cifte'){
+    ek.style.display='block';
+    ek.innerHTML=`<label class="fl">Elinde kalan sayı${tip==='cifte'?` (×${a.cifteCarpan} yazılır)`:''}</label>
+      <input type="number" inputmode="numeric" class="say" placeholder="örn. 48">`;
+    ek.querySelector('.say').focus();
+  }else if(tip==='bitirdi'&&a.okeyAktif){
+    ek.style.display='block';
+    ek.innerHTML=`<label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+      <input type="checkbox" class="okey" style="width:18px;height:18px"> Okeyle bitirdi (×${a.okeyCarpan})</label>`;
+  }else{ek.style.display='none';ek.innerHTML='';}
+}
+function yzElEkle(){
+  const c=DB.aktif,parti=yzMac(c).aktif,durum={},eksik=[];
+  let bitiren=null;
+  for(const id of c.oyuncular){
+    const kart=document.querySelector(`.el-card[data-oy="${id}"]`),s=kart.querySelector('.chip.on');
+    if(!s){eksik.push(ad(id));continue;}
+    const tip=s.dataset.d,d={tip};
+    if(tip==='kaldi'||tip==='cifte'){
+      const v=kart.querySelector('.say')?.value;
+      if(v===''||v==null) return toast(`${ad(id)} için kalan sayıyı gir`);
+      d.sayi=Number(v);
+    }
+    if(tip==='bitirdi'){bitiren=id;d.okey=!!kart.querySelector('.okey')?.checked;}
+    durum[id]=d;
+  }
+  if(eksik.length) return toast(`Durum seçilmedi: ${eksik.join(', ')}`);
+  if(!bitiren) return toast('El bitiren oyuncuyu işaretle');
+  if(c.mod==='esli'&&c.esler){
+    const pr=c.esler.find(p=>p.includes(bitiren)), es=pr&&pr.find(x=>x!==bitiren);
+    if(es&&durum[es]&&durum[es].tip!=='es') durum[es]={tip:'es'};
+  }
+  parti.eller.push({durum}); kaydet(); render();
+  const N=DB.ayar.yz.elSayisi||11;
+  toast(parti.eller.length>=N?`${N}. el girildi — parti tamamlandı`:yzElYorum(c,durum),true);
+}
+
+function gecmisPartiler(c){
+  if(c.partiler.length<2) return '';
+  const eski=c.partiler.slice(0,-1);
+  return `<div class="card"><details><summary>Önceki partiler (${eski.length})</summary><div class="stack">
+    ${eski.map((p,i)=>{
+      if(c.oyun==='batak'){
+        const {top}=batakPartiToplam(p),k=(p.kazanan!=null)?p.kazanan:batakPartiKazanan(p);
+        return `<div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
+          <span class="sm"><b>${top[0]} – ${top[1]}</b> <span class="dim">· ${p.eller.length} el</span>
+          ${k!=null?`<span class="pill gold">${c.takimlar[k].ad} aldı</span>`:''}</span></div>`;
+      }
+      const pt=yzPartiToplam(p,c),k=p.kazanan||yzPartiKazanan(p,c);
+      const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]);
+      return `<div><div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
+        ${k?`<span class="pill gold">${esc(liste(k.map(ad)))} aldı</span>`:''}</div>
+        <div class="xs dim" style="margin-top:3px">${sr.map(id=>`${esc(ad(id))} ${pt[id]}`).join(' · ')}</div></div>`;
+    }).join('')}</div></details></div>`;
+}
+
+/* --- kapatma --- */
+function partiKapat(bitir){
+  const c=DB.aktif,m=macDurum(c),parti=m.aktif;
+  parti.kazanan = c.oyun==='batak'?batakPartiKazanan(parti):yzPartiKazanan(parti,c);
+  if(bitir){kaydet();celseKapat();return;}
+  c.partiler.push({eller:[],kazanan:null}); kaydet(); render(); window.scrollTo(0,0);
+  toast(`${partiAd(c,c.partiler.length-1)} başladı. Taraflar yerlerini almıştır.`,true);
+}
+function elSil(){
+  const m=macDurum(DB.aktif);
+  if(!m.aktif.eller.length) return;
+  m.aktif.eller.pop(); m.aktif.kazanan=null; kaydet(); render();
+}
+function celseKapat(){
+  const c=DB.aktif;
+  if(c.giris==='detay'&&!c.partiler.some(p=>p.eller.length)) return toast('Hiç el girilmemiş');
+  acModal(`<h2 class="serif" style="margin:0 0 10px">Zabıt Kapanışı</h2>
+    <div class="field"><label class="fl">Şerh <span style="text-transform:none;letter-spacing:0">(isteğe bağlı)</span></label>
+      <textarea id="zNot" rows="2" placeholder="Masaya dair bir not..."></textarea></div>
+    <button class="btn-g btn-full" style="margin-top:14px" onclick="celseKesinlestir()">Zabtı Üret</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+async function celseKesinlestir(){
+  const c=DB.aktif; if(!c) return;
+  clearTimeout(_yazZaman);          // bekleyen gecikmeli yazma kapanışın üstüne binmesin
+  const oncekiRozet=rozetSahipleri(c.oyun);
+  c.not=$('#zNot').value.trim();
+  if(c.giris==='detay'){
+    const son=c.partiler[c.partiler.length-1];
+    if(son&&son.eller.length&&son.kazanan==null)
+      son.kazanan=c.oyun==='batak'?batakPartiKazanan(son):yzPartiKazanan(son,c);
+    if(son&&!son.eller.length&&c.partiler.length>1) c.partiler.pop();
+  }
+  const m=macDurum(c);
+  c.kazanan = c.oyun==='batak' ? (m.macKazanan??(m.partiSkor[0]>=m.partiSkor[1]?0:1)) : (m.macKazanan??m.sira[0].id);
+  c.zabit=zabitUret(c);
+  const btn=document.querySelector('#modalHost .btn-g');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
+  try{
+    await aktifYaz();                       // bekleyen yazma varsa önce o insin
+    const {error}=await sb.from('maclar').update({
+      celse:aktifBelge(c), bitti:true, kazanan:c.kazanan??null,
+      zabit:c.zabit, aciklama:c.not||null, tarih:c.tarih
+    }).eq('id',c.id);
+    if(error) throw error;
+  }catch(e){
+    if(btn){btn.disabled=false;btn.textContent='Zabtı Üret';}
+    return toast(hataMetni(e),true);
+  }
+  c.bitti=true;
+  DB.celseler.unshift(c); DB.aktif=null;
+  const sonra=rozetSahipleri(c.oyun), yeni=[];
+  muayyideler(c.oyun).forEach(r=>{ if(oncekiRozet[r.ad]!==sonra[r.ad]) yeni.push(r); });
+  kapatModal(); zabitGoster(c,yeni);
+}
+async function celseIptal(){
+  const c=DB.aktif; if(!c) return;
+  if(!confirm('Bu tabela kaydedilmeden silinsin mi?')) return;
+  clearTimeout(_yazZaman); _bekleyenYazi=false;
+  const {error}=await sb.from('maclar').delete().eq('id',c.id);
+  if(error) return toast(hataMetni(error),true);
+  DB.aktif=null; render(); toast('Tabela silindi');
+}
+function zabitGoster(c,yeni){
+  acModal(`
+    <h2 class="serif" style="margin:0 0 10px">${trh(c.tarih)} · ${c.oyun==='batak'?'Batak':'101'} Zabtı</h2>
+    ${yeni&&yeni.length?`<div style="margin-bottom:12px">
+      <h3 style="color:var(--gold)">🏅 El Değiştiren Müeyyideler</h3>
+      <div class="stack">${yeni.map(r=>`<div class="rozet yeni"><div class="k">${r.k}</div>
+        <div><div style="font-weight:700;font-size:13.5px">${esc(r.ad)} — <span style="color:var(--gold)">${esc(ad(r.kim))}</span></div>
+        <div class="xs muted">${esc(r.aciklama||'')}</div></div></div>`).join('')}</div></div>`:''}
+    <div class="zabit" id="zMetin">${esc(c.zabit)}</div>
+    <button class="btn-g btn-full" style="margin-top:12px" onclick="kopyala(document.getElementById('zMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal();git('rozet')">Müeyyidelere Bak</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+
+/* ---------- SİCİL ---------- */
+function viewSicil(){
+  const oyun=SICIL_OYUN;
+  const secim=`<div class="seg" style="margin-bottom:12px">
+    <button class="${oyun==='batak'?'on':''}" onclick="SICIL_OYUN='batak';render()">Batak</button>
+    <button class="${oyun==='101'?'on':''}" onclick="SICIL_OYUN='101';render()">101</button></div>`;
+  if(SABIKA_ID) return secim+sabikaGorunum(SABIKA_ID,oyun);
+  const v=Object.values(istatistik(oyun)).filter(p=>p.celse>0);
+  if(!v.length) return secim+`<div class="card"><div class="empty"><div class="big">📊</div>
+    Bu oyundan kapanmış maç yok.<div class="sm" style="margin-top:6px">İlk tabelayı kapat, sicil kendiliğinden dolar.</div></div></div>`;
+  const sirali= oyun==='batak'
+    ? v.slice().sort((a,b)=>b.oran-a.oran||b.gal-a.gal||b.toplamPuan-a.toplamPuan)
+    : v.slice().sort((a,b)=>a.ortSira-b.ortSira||a.ortPuan-b.ortPuan);
+  const form=f=>f.slice(-5).map(x=>{const r=x==='G'?'var(--green)':(x==='M'?'var(--red)':'var(--ink3)');
+    return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${r};margin-right:3px"></span>`;}).join('');
+  return secim+`
+  <div class="card">
+    <h3>Genel Sicil · ${oyun==='batak'?'Batak':'101'}</h3>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Oyuncu</th><th>Maç</th><th>1.</th><th>%</th><th>Parti</th>
+        <th>${oyun==='batak'?'Puan':'Ort.'}</th><th>Form</th></tr></thead>
+      <tbody>${sirali.map((p,i)=>`<tr onclick="SABIKA_ID='${p.id}';render()" style="cursor:pointer">
+        <td><div class="row" style="gap:8px"><span class="rank ${i===0?'r1':''}">${i+1}</span>${avatar(p.id,24)}
+          <span style="font-weight:600">${esc(ad(p.id))}</span></div></td>
+        <td>${p.celse}</td><td>${p.gal}</td><td class="${p.oran>=.5?'pos':''}">${Math.round(p.oran*100)}</td>
+        <td class="dim">${p.parti}</td><td>${oyun==='batak'?p.toplamPuan:Math.round(p.ortPuan)}</td>
+        <td>${form(p.form)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="xs dim" style="margin-top:8px">Satıra dokun → sabıka kaydı.${oyun==='101'?" 101'de düşük ceza puanı iyidir.":''}</div>
+  </div>
+  ${oyun==='batak'?`<div class="card"><h3>İhale Karnesi</h3>
+    <table><thead><tr><th>Oyuncu</th><th>İhale</th><th>Tuttu</th><th>Battı</th><th>Bat %</th></tr></thead><tbody>
+    ${v.slice().sort((a,b)=>b.ihale-a.ihale).map(p=>`<tr><td>${esc(ad(p.id))}</td><td>${p.ihale}</td>
+      <td class="${p.ihaleTam?'pos':''}">${p.ihaleTam}</td><td class="${p.ihaleBat?'neg':''}">${p.ihaleBat}</td>
+      <td>${p.ihale?Math.round(p.batOran*100):'–'}</td></tr>`).join('')}</tbody></table></div>`:`
+  <div class="card"><h3>El Karnesi</h3>
+    <table><thead><tr><th>Oyuncu</th><th>Bitirdi</th><th>Açamadı</th><th>Çifte</th><th>En ağır</th></tr></thead><tbody>
+    ${v.slice().sort((a,b)=>b.elBitirdi-a.elBitirdi).map(p=>`<tr><td>${esc(ad(p.id))}</td>
+      <td class="${p.elBitirdi?'pos':''}">${p.elBitirdi}</td><td class="${p.acamadi?'neg':''}">${p.acamadi}</td>
+      <td>${p.cifte}</td><td class="dim">${p.enAgirCeza||'–'}</td></tr>`).join('')}</tbody></table></div>`}`;
+}
+function sabikaGorunum(id,oyun){
+  const p=istatistik(oyun)[id], o=oy(id), sv=seviye(toplamMac(id));
+  const kut=(b,e,r)=>`<div style="flex:1;min-width:76px;text-align:center;padding:9px 4px;background:var(--panel2);border-radius:10px">
+    <div class="serif" style="font-size:19px;color:${r||'var(--ink)'}">${b}</div><div class="xs dim">${e}</div></div>`;
+  const rozetleri=muayyideler(oyun).filter(r=>r.kim===id);
+  return `<button class="btn-sm btn-gh" style="margin-bottom:10px" onclick="SABIKA_ID=null;render()">‹ Sicile dön</button>
+  <div class="card tight"><div class="row" style="gap:12px">${avatar(id,48)}
+    <div class="grow"><div class="serif" style="font-size:19px">${esc(o.ad)}${
+      dgKalan(o.dogum)===0?' <span class="pill gold">🎂 bugün</span>':''}</div>
+      <div class="xs dim">${sv.k} ${sv.ad} · ${toplamMac(id)} maç${
+        o.dogum?` · ${yas(o.dogum)} yaşında${dgKalan(o.dogum)>0&&dgKalan(o.dogum)<=45?` · doğum günü ${dgMetni(dgKalan(o.dogum))}`:''}`:''}</div></div></div>
+    <div class="xs dim" style="margin-top:8px;font-style:italic">${esc(sv.not)}</div></div>
+  ${!p||!p.celse?`<div class="card tight"><div class="sm dim">${oyun==='batak'?'Batak':'101'} kaydı yok.</div></div>`:`
+  <div class="card">
+    <h3>${oyun==='batak'?'Batak':'101'}</h3>
+    <div class="row wrap" style="gap:7px">
+      ${kut(p.celse,'Maç')}${kut(p.gal,'Birincilik','var(--gold)')}${kut('%'+Math.round(p.oran*100),'Oran')}${kut(p.parti,'Parti')}
+      ${oyun==='batak'?kut(art(p.toplamPuan),'Net puan',p.toplamPuan>=0?'var(--green)':'var(--red)'):kut(Math.round(p.ortPuan),'Ort. ceza')}
+      ${oyun==='batak'?kut(p.ihale,'İhale'):kut(p.elBitirdi,'El bitirdi')}
+      ${oyun==='batak'?kut(p.ihaleBat,'Battı',p.ihaleBat?'var(--red)':''):kut(p.acamadi,'Açamadı',p.acamadi?'var(--red)':'')}
+    </div>
+    <div class="sep"></div>
+    <div class="sm stack">
+      <div><span class="dim">Son 5:</span> ${p.form.slice(-5).map(x=>x==='G'?'<b class="pos">G</b>':(x==='M'?'<b class="neg">M</b>':'<span class="dim">–</span>')).join(' ')}</div>
+      <div><span class="dim">Seri:</span> ${p.seriTip==='gal'?`<b class="pos">${p.seri} maçtır kazanıyor</b>`:`<b class="neg">${p.seri} maçtır kazanamıyor</b>`}</div>
+      <div><span class="dim">En iyi:</span> ${p.enIyi} &nbsp; <span class="dim">En kötü:</span> ${p.enKotu}</div>
+    </div>
+    ${h2h(id,oyun)}
+  </div>`}
+  ${rozetleri.length?`<div class="card"><h3>Üzerindeki Müeyyideler</h3><div class="stack">
+    ${rozetleri.map(r=>`<div class="rozet"><div class="k">${r.k}</div><div>
+      <div style="font-weight:700;font-size:13.5px">${esc(r.ad)}</div>
+      <div class="xs muted">${esc(r.aciklama||'')}</div></div></div>`).join('')}</div></div>`:''}`;
+}
+function h2h(id,oyun){
+  const skor={};
+  for(const c of grupCelseleri().filter(c=>c.oyun===oyun)){
+    if(oyun==='batak'){
+      const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
+      const ben=c.takimlar.findIndex(t=>t.oyuncular.includes(id)); if(ben<0) continue;
+      c.takimlar.forEach((t,ti)=>{ if(ti===ben) return;
+        t.oyuncular.forEach(o=>{skor[o]=skor[o]||{g:0,m:0}; if(ben===kz)skor[o].g++; else skor[o].m++;});});
+    }else{
+      const sr=yzMac(c).sira, ben=sr.find(r=>r.id===id); if(!ben) continue;
+      sr.forEach(r=>{if(r.id===id)return; skor[r.id]=skor[r.id]||{g:0,m:0};
+        if(ben.sira<r.sira)skor[r.id].g++; else skor[r.id].m++;});
+    }
+  }
+  const rows=Object.entries(skor).filter(([,s])=>s.g+s.m>0).sort((a,b)=>(b[1].g-b[1].m)-(a[1].g-a[1].m));
+  if(!rows.length) return '';
+  return `<div class="sep"></div><h3>Karşılaştırmalı Sicil</h3><table><tbody>
+    ${rows.map(([o,s])=>{const d=s.g-s.m;
+      const y=d>2?'konuşma hakkı vardır':(d<-2?'sessiz kalması tavsiye edilir':'başa baş');
+      return `<tr><td>${esc(ad(o))}</td><td><b class="${d>0?'pos':(d<0?'neg':'zero')}">${s.g}–${s.m}</b></td>
+        <td class="xs dim">${y}</td></tr>`;}).join('')}</tbody></table>`;
+}
+
+/* ---------- MÜEYYİDE (rozet) ---------- */
+function viewRozet(){
+  const oyun=ROZET_OYUN;
+  const secim=`<div class="seg" style="margin-bottom:12px">
+    <button class="${oyun==='batak'?'on':''}" onclick="ROZET_OYUN='batak';render()">Batak</button>
+    <button class="${oyun==='101'?'on':''}" onclick="ROZET_OYUN='101';render()">101</button></div>`;
+  const r=muayyideler(oyun);
+  if(!r.length && !genelMuayyideler().length) return secim+`<div class="card"><div class="empty"><div class="big">🏅</div>
+    Henüz unvan dağıtılmadı.<div class="sm" style="margin-top:6px">Birkaç maç oyna, unvanlar sahiplerini bulsun.</div></div></div>`;
+  const gen=genelMuayyideler();
+  const iyi=r.filter(x=>x.tip!=='kotu').concat(gen.filter(x=>x.tip!=='kotu'));
+  const kotu=r.filter(x=>x.tip==='kotu').concat(gen.filter(x=>x.tip==='kotu'));
+  const kart=x=>`<div class="rozet"><div class="k">${x.k}</div><div class="grow">
+    <div style="font-weight:700;font-size:13.5px">${esc(x.ad)}</div>
+    <div class="xs muted" style="margin-top:1px">${esc(x.aciklama||'')}</div></div>
+    <div class="row" style="gap:6px;flex-shrink:0">${avatar(x.kim,26)}</div></div>`;
+  const svTablo=DB.oyuncular.map(o=>({o,n:toplamMac(o.id)})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
+  return secim+`
+  ${iyi.length?`<div class="card"><h3>🏆 Şeref Levhası</h3><div class="stack">${iyi.map(kart).join('')}</div></div>`:''}
+  ${kotu.length?`<div class="card"><h3>⚠️ Utanç Duvarı</h3><div class="stack">${kotu.map(kart).join('')}</div></div>`:''}
+  ${svTablo.length?`<div class="card"><h3>Kıdem</h3>${svTablo.map(({o,n})=>{const s=seviye(n);
+    const sonra=SEVIYELER.find(x=>x.n>n);
+    return `<div class="row" style="padding:7px 0;gap:9px">${avatar(o.id,28)}
+      <div class="grow"><div style="font-weight:600;font-size:13.5px">${esc(o.ad)}</div>
+        <div class="xs dim">${s.k} ${s.ad}${sonra?` · ${sonra.n-n} maç sonra ${sonra.ad}`:' · zirve'}</div></div>
+      <div class="serif dim" style="font-size:16px">${n}</div></div>`;}).join('')}</div>`:''}`;
+}
+
+/* ---------- ARŞİV ---------- */
+function viewArsiv(){
+  let list=grupCelseleri().slice().sort((a,b)=>(b.tarih+(b._sira||'')).localeCompare(a.tarih+(a._sira||'')));
+  if(ARSIV_FILTRE!=='hepsi') list=list.filter(c=>c.oyun===ARSIV_FILTRE);
+  const f=`<div class="seg" style="margin-bottom:12px">${['hepsi','batak','101'].map(x=>
+    `<button class="${ARSIV_FILTRE===x?'on':''}" onclick="ARSIV_FILTRE='${x}';render()">${x==='hepsi'?'Hepsi':(x==='batak'?'Batak':'101')}</button>`).join('')}</div>`;
+  if(!list.length) return f+`<div class="card"><div class="empty"><div class="big">📚</div>Arşiv boş.</div></div>`;
+  return f+`<div class="card">${list.map(c=>arsivSatir(c)).join('<div class="sep"></div>')}</div>`;
+}
+function arsivSatir(c,sade){
+  norm(c);
+  let basrol,ozet;
+  if(c.oyun==='batak'){
+    const m=batakMac(c),kz=c.kazanan??m.macKazanan??0;
+    basrol=c.takimlar[kz].oyuncular.map(ad).join(' & ');
+    ozet= c.giris==='hizli'
+      ? `parti ${m.partiSkor[kz]}–${m.partiSkor[1-kz]}${m.gTop[0]||m.gTop[1]?` · puan ${m.gTop[kz]}–${m.gTop[1-kz]}`:''}`
+      : `${c.partiHedef>1?`parti ${m.partiSkor[kz]}–${m.partiSkor[1-kz]} · `:''}puan ${m.gTop[kz]}–${m.gTop[1-kz]} · ${m.toplamEl} el`;
+  }else{
+    const m=yzMac(c),s=m.sira;
+    basrol=ad(s[0].id);
+    ozet= c.giris==='hizli'
+      ? `sonuncu ${ad(s[s.length-1].id)}`
+      : `${s[0].puan} puan · sonuncu ${ad(s[s.length-1].id)} (${s[s.length-1].puan}) · ${c.partiler.length} parti / ${m.toplamEl} el`;
+  }
+  const g=grup(c.grupId);
+  return `<div class="row" style="gap:10px;align-items:flex-start">
+    <div class="grow">
+      <div class="row wrap" style="gap:6px">
+        <span class="pill ${c.oyun==='batak'?'red':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
+        ${c.giris==='hizli'?'<span class="pill">⚡</span>':''}
+        ${g?`<span class="pill">${g.emoji} ${esc(g.ad)}</span>`:''}
+        <span class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</span>
+      </div>
+      <div style="font-weight:700;font-size:14px;margin-top:5px">🏆 ${esc(basrol)}</div>
+      <div class="xs muted">${esc(ozet)}</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <button class="btn-xs" onclick="zabitAc('${c.id}')">Zabıt</button>
+      ${sade||!kurucuMu()?'':`<button class="btn-xs btn-dn" onclick="celseSil('${c.id}')">Sil</button>`}
+    </div></div>`;
+}
+function zabitAc(id){const c=DB.celseler.find(x=>x.id===id); if(c) zabitGoster(c);}
+async function celseSil(id){
+  if(!confirm('Bu maç arşivden silinsin mi? Sicil yeniden hesaplanır.')) return;
+  const {error}=await sb.from('maclar').delete().eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  DB.celseler=DB.celseler.filter(c=>c.id!==id); render(); toast('Maç silindi');
+}
+
+/* ---------- AYARLAR ---------- */
+function viewAyar(){
+  const a=DB.ayar, k=kurucuMu(), g=aktifGrup()||{};
+  const kilit=k?'':'disabled';
+  const masaOyn=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup);
+  const aktifOyn=masaOyn.filter(o=>o.aktif), pasifOyn=masaOyn.filter(o=>!o.aktif);
+  const hesapAdi=pid=>MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller?.ad||'bir hesap';
+  const bagsizHesaplar=MASA_UYELERI.filter(u=>!masaOyn.some(o=>o.profilId===u.profil_id));
+
+  return `
+  <div class="card">
+    <div class="row">
+      <div style="font-size:26px">${g.emoji||'🍀'}</div>
+      <div class="grow"><div class="serif" style="font-size:18px">${esc(g.ad||'')}</div>
+        <div class="xs dim">${aktifOyn.length} oyuncu · ${MASA_UYELERI.length} hesap · kod <b style="color:var(--gold)">${esc(g.kod||'')}</b></div></div>
+      <button class="btn-xs btn-gh" onclick="grupAc('${DB.aktifGrup}')">Düzenle</button>
+    </div>
+    <button class="btn-sm btn-gh btn-full" style="margin-top:10px" onclick="kodPaylas(grup('${DB.aktifGrup}'))">📋 Davet Kodunu Paylaş</button>
+    <div class="xs dim" style="margin-top:8px">Kodu bilen katılma isteği gönderir; ${k?'onayı sen verirsin':'masayı kuran onaylar'}.</div>
+  </div>
+
+  ${BEKLEYENLER.length?`<div class="card" style="border-color:var(--gold)">
+    <h3 style="color:var(--gold)">Onay Bekleyenler (${BEKLEYENLER.length})</h3>
+    <div class="stack">${BEKLEYENLER.map(b=>`
+      <div class="row" style="gap:9px">
+        <div class="avatar" style="background:${esc(b.profiller?.renk||'#5a524c')};width:30px;height:30px;font-size:13px">${esc(bas(b.profiller?.ad))}</div>
+        <div class="grow" style="font-weight:600;font-size:13.5px">${esc(b.profiller?.ad||'?')}</div>
+        <button class="btn-xs" style="border-color:#2E5A3A;color:#8CC79B" onclick="uyeKarar('${b.profil_id}','onayli')">Al</button>
+        <button class="btn-xs btn-dn" onclick="uyeKarar('${b.profil_id}','reddedildi')">Alma</button>
+      </div>`).join('')}</div>
+    <div class="xs dim" style="margin-top:9px">Onaylamadığın kişi masanın hiçbir verisini göremez.</div>
+  </div>`:''}
+
+  <div class="card">
+    <h3>Oyuncular</h3>
+    <div class="xs dim" style="margin-bottom:10px">Oyuncu olmak için hesap şart değil — masaya oturan herkesi ekle.</div>
+    ${aktifOyn.length?aktifOyn.map(o=>{const sv=seviye(toplamMac(o.id));
+      const benimMi=o.profilId===OTURUM.id;
+      const duzenleyebilir=k||benimMi;
+      return `<div class="row" style="padding:7px 0;gap:10px">${avatar(o.id,34)}
+        <div class="grow" style="min-width:0">
+          <div style="font-weight:600" class="ell">${esc(o.ad)}${benimMi?' <span class="pill gold">sen</span>':''}</div>
+          <div class="xs dim">${sv.k} ${sv.ad} · ${toplamMac(o.id)} maç${o.profilId?` · 🔗 ${esc(hesapAdi(o.profilId))}`:' · hesapsız'}</div></div>
+        ${duzenleyebilir?`<button class="btn-xs btn-gh" onclick="oyuncuAc('${o.id}')">Düzenle</button>`:''}
+        ${k?`<button class="btn-xs btn-dn" onclick="oyuncuPasif('${o.id}')">Kaldır</button>`:''}
+      </div>`;}).join('')
+      :'<div class="sm dim">Henüz oyuncu yok.</div>'}
+    <button class="btn-p btn-full" style="margin-top:12px" onclick="oyuncuAc(null)">+ Yeni Oyuncu</button>
+    ${pasifOyn.length?`<details style="margin-top:12px"><summary>Kaldırılanlar (${pasifOyn.length})</summary><div>
+      ${pasifOyn.map(o=>`<div class="row" style="padding:6px 0;gap:9px">${avatar(o.id,26)}
+        <div class="grow sm dim ell">${esc(o.ad)}</div>
+        ${k?`<button class="btn-xs btn-gh" onclick="oyuncuPasif('${o.id}',true)">Geri al</button>`:''}</div>`).join('')}
+      <div class="xs dim" style="margin-top:7px">Eski maçlarda adları durur; sicil bozulmaz.</div>
+    </div></details>`:''}
+  </div>
+
+  ${k&&(bagsizHesaplar.length||masaOyn.some(o=>o.profilId))?`<div class="card">
+    <h3>Hesap ↔ Oyuncu Eşleşmesi</h3>
+    <div class="xs dim" style="margin-bottom:10px">Kim hangi oyuncu? Yanlış eşleşmeyi buradan düzeltirsin.</div>
+    ${MASA_UYELERI.map(u=>{
+      const bagli=masaOyn.find(o=>o.profilId===u.profil_id);
+      const bos=aktifOyn.filter(o=>!o.profilId);
+      return `<div class="row" style="padding:7px 0;gap:9px">
+        <div class="avatar" style="background:${esc(u.profiller?.renk||'#5a524c')};width:28px;height:28px;font-size:12px">${esc(bas(u.profiller?.ad))}</div>
+        <div class="grow" style="min-width:0"><div class="sm ell" style="font-weight:600">${esc(u.profiller?.ad||'?')}${u.rol==='kurucu'?' <span class="xs dim">kurucu</span>':''}</div>
+          <div class="xs dim">${bagli?'→ '+esc(bagli.ad):'oyuncuya bağlı değil'}</div></div>
+        ${bagli?`<button class="btn-xs btn-gh" onclick="oyuncuCoz('${bagli.id}')">Çöz</button>`
+               :(bos.length?`<select style="width:auto;padding:6px 8px;font-size:12px"
+                  onchange="if(this.value)hesabaBagla(this.value,'${u.profil_id}')">
+                  <option value="">bağla…</option>
+                  ${bos.map(o=>`<option value="${o.id}">${esc(o.ad)}</option>`).join('')}</select>`:'')}
+        ${u.profil_id!==OTURUM.id?`<button class="btn-xs btn-dn" onclick="uyeCikar('${u.profil_id}')">Çıkar</button>`:''}
+      </div>`;}).join('')}
+  </div>`:''}
+
+  <div class="card">
+    <h3>Batak Kuralları</h3>
+    ${k?'':'<div class="uyari" style="margin-bottom:12px">Kuralları yalnız masayı kuran değiştirebilir. Sen görüyorsun, değiştiremiyorsun.</div>'}
+    <div class="two">
+      <div><label class="fl">Parti hedef puanı</label><input type="number" value="${a.batak.hedef}" ${kilit} onchange="ayarSet('batak','hedef',this.value,1)"></div>
+      <div><label class="fl">En düşük ihale</label><input type="number" value="${a.batak.minIhale}" ${kilit} onchange="ayarSet('batak','minIhale',this.value,1)"></div>
+    </div>
+    <div class="field"><label class="fl">Varsayılan parti sayısı</label>
+      <div class="seg">${[1,2,3].map(n=>`<button class="${a.batak.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('batak','partiHedef',${n},1).then(render)">${n===1?'Tek':n+' parti'}</button>`).join('')}</div></div>
+    <div class="field"><label class="fl">İhale tutunca yazılan</label>
+      <select ${kilit} onchange="ayarSet('batak','tutunca',this.value)">
+        <option value="alinan" ${a.batak.tutunca==='alinan'?'selected':''}>Aldığı el sayısı</option>
+        <option value="ihale" ${a.batak.tutunca==='ihale'?'selected':''}>Sadece ihale miktarı</option></select></div>
+    <div class="field"><label class="fl">İhale batınca karşı takım</label>
+      <select ${kilit} onchange="ayarSet('batak','batinca',this.value)">
+        <option value="alinan" ${a.batak.batinca==='alinan'?'selected':''}>Aldığı elleri yazar</option>
+        <option value="onuc" ${a.batak.batinca==='onuc'?'selected':''}>${a.batak.toplamEl} yazar</option>
+        <option value="ihale" ${a.batak.batinca==='ihale'?'selected':''}>İhale miktarı kadar yazar</option></select></div>
+  </div>
+
+  <div class="card">
+    <h3>101 Kuralları</h3>
+    <div class="two">
+      <div><label class="fl">Partide el sayısı</label><input type="number" value="${a.yz.elSayisi}" ${kilit} onchange="ayarSet('yz','elSayisi',this.value,1)"></div>
+      <div><label class="fl">Çifte çarpanı</label><input type="number" value="${a.yz.cifteCarpan}" ${kilit} onchange="ayarSet('yz','cifteCarpan',this.value,1)"></div>
+    </div>
+    <div class="two" style="margin-top:10px">
+      <div><label class="fl">El bitiren</label><input type="number" value="${a.yz.bitiren}" ${kilit} onchange="ayarSet('yz','bitiren',this.value)"></div>
+      <div><label class="fl">Açamayan cezası</label><input type="number" value="${a.yz.acamayan}" ${kilit} onchange="ayarSet('yz','acamayan',this.value)"></div>
+    </div>
+    <div class="field" style="margin-top:10px"><label class="fl">Varsayılan parti sayısı</label>
+      <div class="seg">${[1,2,3].map(n=>`<button class="${a.yz.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('yz','partiHedef',${n},1).then(render)">${n===1?'Tek':n+' parti'}</button>`).join('')}</div></div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13.5px;cursor:pointer">
+      <input type="checkbox" style="width:18px;height:18px" ${a.yz.okeyAktif?'checked':''} ${kilit}
+        onchange="ayarSet('yz','okeyAktif',this.checked).then(render)">
+      Okeyle bitirme çarpanı kullanılsın (×${a.yz.okeyCarpan})</label>
+    <div class="sep"></div>
+    <h3>Son İki Sıranın Müeyyidesi</h3>
+    <div class="field"><label class="fl">3. sıra</label><input value="${esc(a.yz.muey3)}" ${kilit} onchange="ayarSet('yz','muey3',this.value)" placeholder="Çay ısmarlar"></div>
+    <div class="field"><label class="fl">4. sıra</label><input value="${esc(a.yz.muey4)}" ${kilit} onchange="ayarSet('yz','muey4',this.value)" placeholder="Hesabı öder"></div>
+  </div>
+
+  <div class="card">
+    <h3>Masalarım</h3>
+    ${DB.gruplar.map(x=>`<div class="row" style="padding:7px 0;gap:10px">
+      <div style="font-size:20px;width:26px;text-align:center">${x.emoji}</div>
+      <div class="grow"><div style="font-weight:600">${esc(x.ad)}${x.id===DB.aktifGrup?' <span class="pill gold">aktif</span>':''}</div>
+        <div class="xs dim">${x.uyeler.length} oyuncu · ${DB.celseler.filter(c=>c.grupId===x.id).length} maç${x.rol==='kurucu'?' · kurucu':''}</div></div>
+      ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
+    </div>`).join('')}
+    <button class="btn-b btn-full" style="margin-top:12px" onclick="grupSecici()">Masa Değiştir / Katıl / Kur</button>
+  </div>
+
+  <div class="card">
+    <h3>Defter</h3>
+    <div class="sm muted" style="margin-bottom:10px">Bu masada ${DB.celseler.filter(c=>c.grupId===DB.aktifGrup).length} kapanmış maç var.
+      Kayıtlar bulutta; cihazını kaybetsen de durur. Yine de arada bir yedek al.</div>
+    <div class="two">
+      <button onclick="yedekAl()">⬇ Yedek Al</button>
+      <button ${kilit} onclick="document.getElementById('yedekDosya').click()">⬆ Eski Defteri Aktar</button>
+    </div>
+    <input type="file" id="yedekDosya" accept="application/json" style="display:none" onchange="yedekYukle(this)">
+    <div class="xs dim" style="margin-top:8px">Aktarma, tek dosya prototipin yedeğini bu masaya EKLER; mevcut kayıtları silmez.</div>
+    <div class="sep"></div>
+    <div class="row">
+      <div class="grow"><div class="sm" style="font-weight:600">${esc(PROFIL?.ad||'')}</div>
+        <div class="xs dim">@${esc(postaToKad(OTURUM.email))}</div></div>
+      <button class="btn-xs btn-gh" onclick="hesapAc()">Hesabım</button>
+      <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
+    </div>
+  </div>
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.0 · bulut</div>`;
+}
+async function ayarSet(g,k,v,tam){
+  if(!kurucuMu()) return toast('Kuralları yalnız masayı kuran değiştirebilir',true);
+  if(typeof v==='boolean') DB.ayar[g][k]=v;
+  else if(typeof DB.ayar[g][k]==='number') DB.ayar[g][k]=tam?(parseInt(v,10)||0):(Number(v)||0);
+  else DB.ayar[g][k]=String(v);
+  await ayarYaz();
+}
+async function ayarYaz(sessiz){
+  const {error}=await sb.from('masalar').update({ayar:DB.ayar}).eq('id',DB.aktifGrup);
+  if(error) return toast(hataMetni(error),true);
+  const g=grup(DB.aktifGrup); if(g) g.ayar=JSON.parse(JSON.stringify(DB.ayar));
+  if(!sessiz) toast('Kural güncellendi — masadaki herkes için');
+}
+
+/* ---------- OYUNCU (masaya ait kayıt; hesap gerektirmez) ---------- */
+let _foto=null, _fotoBlob=null;
+function oyuncuAc(id,benimIcin){
+  const o=id?oy(id):null;
+  _foto=o?.foto||null; _fotoBlob=null;
+  acModal(`
+    <h2 class="serif" style="margin:0 0 4px">${o?'Oyuncuyu Düzenle':'Yeni Oyuncu'}</h2>
+    <div class="xs dim" style="margin-bottom:14px">${benimIcin
+      ? 'Bu kayıt senin hesabına bağlanacak.'
+      : 'Hesabı olmayan da oyuncu olarak eklenir; sonradan kendi hesabıyla üstlenebilir.'}</div>
+    <div class="row" style="gap:14px;align-items:center">
+      <div class="fotoSec" id="fotoBtn" style="${_foto?`background-image:url('${_foto}');border-style:solid`:''}"
+        onclick="document.getElementById('fotoInp').click()">${_foto?'':'Fotoğraf<br>ekle'}</div>
+      <div class="grow">
+        <label class="fl">Ad</label>
+        <input id="pAd" value="${esc(o?.ad||(benimIcin?(PROFIL?.ad||''):''))}" placeholder="Adı" maxlength="24">
+        ${_foto?`<button class="btn-xs btn-dn" style="margin-top:8px" onclick="fotoSil()">Fotoğrafı kaldır</button>`:''}
+      </div>
+    </div>
+    <div class="field" style="margin-top:14px"><label class="fl">Doğum günü <span style="text-transform:none;letter-spacing:0">(isteğe bağlı)</span></label>
+      <input type="date" id="pDogum" value="${esc(o?.dogum||'')}" max="${bugun()}">
+      <div class="xs dim" style="margin-top:5px">Masa unutmasın diye. O gün oynanan celsede zabta işlenir.</div></div>
+    <input type="file" id="fotoInp" accept="image/*" style="display:none" onchange="fotoSec(this)">
+    <button class="btn-p btn-full" id="pBtn" style="margin-top:16px"
+      onclick="oyuncuKaydet('${id||''}',${benimIcin?'true':'false'})">${o?'Kaydet':'Ekle'}</button>`);
+}
+function fotoSec(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const B=320, cv=document.createElement('canvas'); cv.width=B; cv.height=B;
+      const g=cv.getContext('2d'), k=Math.min(im.width,im.height);
+      g.drawImage(im,(im.width-k)/2,(im.height-k)/2,k,k,0,0,B,B);
+      _foto=cv.toDataURL('image/jpeg',.8);
+      cv.toBlob(b=>{_fotoBlob=b;},'image/jpeg',.8);
+      const b=$('#fotoBtn'); if(b){b.style.backgroundImage=`url('${_foto}')`;b.style.borderStyle='solid';b.innerHTML='';}
+    };
+    im.src=r.result;
+  };
+  r.readAsDataURL(f); inp.value='';
+}
+function fotoSil(){
+  _foto=null; _fotoBlob=null;
+  const b=$('#fotoBtn');
+  if(b){b.style.backgroundImage='';b.style.borderStyle='dashed';b.innerHTML='Fotoğraf<br>ekle';}
+}
+async function oyuncuKaydet(id,benimIcin){
+  const n=$('#pAd').value.trim();
+  if(!n) return toast('Ad gerekli',true);
+  const cak=DB.oyuncular.some(o=>o.masaId===DB.aktifGrup&&o.id!==id&&o.aktif&&
+                                 o.ad.toLocaleLowerCase('tr-TR')===n.toLocaleLowerCase('tr-TR'));
+  if(cak) return toast('Bu isim masada zaten var',true);
+  const dg=$('#pDogum')?.value||null;
+  const btn=$('#pBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  try{
+    let foto_url = id ? (oy(id).foto||null) : null;
+    if(_fotoBlob){
+      const yol=`masa/${DB.aktifGrup}/${(id||yid())}_${Date.now()}.jpg`;
+      const {error:ye}=await sb.storage.from('avatarlar')
+        .upload(yol,_fotoBlob,{contentType:'image/jpeg',upsert:true});
+      if(ye) throw ye;
+      foto_url=sb.storage.from('avatarlar').getPublicUrl(yol).data.publicUrl;
+    }else if(_foto===null&&id){ foto_url=null; }
+
+    if(id){
+      const {error}=await sb.from('oyuncular').update({ad:n,foto_url,dogum:dg}).eq('id',id);
+      if(error) throw error;
+    }else{
+      await oyuncuEkle(n,foto_url,dg,!!benimIcin);
+    }
+    _foto=null; _fotoBlob=null;
+    await verileriGetir(); kapatModal(); render(); toast('Kaydedildi');
+  }catch(e){ toast(hataMetni(e),true); btn.disabled=false; btn.textContent='Kaydet'; }
+}
+async function oyuncuEkle(adi,foto_url,dogum,benim){
+  const n=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup).length;
+  const {data,error}=await sb.from('oyuncular').insert({
+    masa_id:DB.aktifGrup, ad:adi, foto_url:foto_url||null, dogum:dogum||null,
+    renk:RENKLER[n%RENKLER.length], profil_id: benim?OTURUM.id:null
+  }).select('id').single();
+  if(error) throw error;
+  return data.id;
+}
+/* Sicili korumak için kayıt silinmez, PASİFLEŞTİRİLİR: eski maçlarda adı
+   görünmeye devam eder, yeni maça seçilemez. */
+async function oyuncuPasif(id,geri){
+  const o=oy(id);
+  if(!geri&&!confirm(`${o.ad} masadan kaldırılsın mı? Eski maçlarda adı kalır, yeni maça seçilemez.`)) return;
+  const {error}=await sb.from('oyuncular').update({aktif:!!geri}).eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true); toast(geri?'Geri alındı':'Masadan kaldırıldı');
+}
+async function oyuncuCoz(id){
+  if(!confirm(`${ad(id)} kaydının hesap bağı koparılsın mı?`)) return;
+  const {error}=await sb.rpc('oyuncu_coz',{p_oyuncu:id});
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true); toast('Bağ koparıldı');
+}
+
+/* ---------- GRUPLAR ---------- */
+/* ---------- MASA ---------- */
+function grupAc(id){
+  const g=id?grup(id):null;
+  if(!g){
+    return acModal(`<h2 class="serif" style="margin:0 0 4px">Yeni Masa</h2>
+      <div class="xs dim" style="margin-bottom:14px">Perşembe akşamı kimlerle oynuyorsan o. Sicil bu masaya özel tutulur.</div>
+      <div class="field"><label class="fl">Masa adı</label>
+        <input id="yMAd" placeholder="Parkverde" maxlength="40"></div>
+      <div class="field"><label class="fl">Simge</label>
+        <div class="row wrap" id="yMEmoji">${GRUP_EMOJI.map((e,i)=>
+          `<div class="chip ${i===0?'on':''}" data-e="${e}" style="font-size:19px;padding:7px 11px" onclick="tekSec(this)">${e}</div>`).join('')}</div></div>
+      <button class="btn-p btn-full" style="margin-top:16px" onclick="masaKur()">Masayı Kur</button>`);
+  }
+  const k=kurucuMu();
+  acModal(`<h2 class="serif" style="margin:0 0 4px">${esc(g.ad)}</h2>
+    <div class="xs dim" style="margin-bottom:14px">${k?'Masayı sen kurdun; adını ve kurallarını sen belirlersin.':'Masayı kuran değişiklik yapabilir.'}</div>
+    <div class="field"><label class="fl">Masa adı</label>
+      <input id="gAdi" value="${esc(g.ad)}" maxlength="40" ${k?'':'disabled'}></div>
+    <div class="field"><label class="fl">Simge</label>
+      <div class="row wrap" id="gEmoji">${GRUP_EMOJI.map(e=>
+        `<div class="chip ${g.emoji===e?'on':''}" data-e="${e}" style="font-size:19px;padding:7px 11px"
+          ${k?`onclick="tekSec(this)"`:''}>${e}</div>`).join('')}</div></div>
+    <div class="field"><label class="fl">Davet kodu</label>
+      <div class="row"><input value="${esc(g.kod)}" disabled style="letter-spacing:.2em;font-weight:700">
+        <button class="btn-b" onclick="kodPaylas(grup('${g.id}'))">Paylaş</button></div></div>
+    ${k?`<button class="btn-p btn-full" style="margin-top:16px" onclick="grupKaydet('${g.id}')">Kaydet</button>
+        <button class="btn-dn btn-full btn-sm" style="margin-top:8px" onclick="grupSil('${g.id}')">Masayı Sil</button>`
+       :`<button class="btn-dn btn-full btn-sm" style="margin-top:16px" onclick="masadanCik()">Masadan Ayrıl</button>`}`);
+}
+async function grupKaydet(id){
+  const adi=$('#gAdi').value.trim();
+  if(!adi) return toast('Masa adı gerekli',true);
+  const emoji=document.querySelector('#gEmoji .chip.on')?.dataset.e||GRUP_EMOJI[0];
+  const {error}=await sb.from('masalar').update({ad:adi,emoji}).eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  await verileriGetir(); kapatModal(); render(); toast('Masa güncellendi');
+}
+async function grupSil(id){
+  const n=DB.celseler.filter(c=>c.grupId===id).length;
+  if(!confirm(`Masa ve İÇİNDEKİ HER ŞEY silinsin mi?${n?` ${n} maç, sicil, iddia defteri — hepsi gider.`:''}`)) return;
+  if(!confirm('Bu geri alınamaz. Emin misin?')) return;
+  const {error}=await sb.from('masalar').delete().eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  if(DB.aktifGrup===id){ DB.aktifGrup=null; localStorage.removeItem('kkd_aktif_masa'); }
+  await verileriGetir();
+  DURUM=DB.gruplar.length?'hazir':'masayok';
+  kanalKur(); kapatModal(); render(); toast('Masa silindi');
+}
+async function masadanCik(){
+  if(!confirm('Bu masadan ayrılırsan sicilini göremezsin. Devam?')) return;
+  const {error}=await sb.from('masa_uyeleri').delete()
+    .eq('masa_id',DB.aktifGrup).eq('profil_id',OTURUM.id);
+  if(error) return toast(hataMetni(error),true);
+  DB.aktifGrup=null; localStorage.removeItem('kkd_aktif_masa');
+  await verileriGetir();
+  DURUM=DB.gruplar.length?'hazir':'masayok';
+  kanalKur(); kapatModal(); render(); toast('Masadan ayrıldın');
+}
+function grupSecici(){
+  acModal(`<h2 class="serif" style="margin:0 0 12px">Masa Değiştir</h2>
+    <div class="stack">
+      ${DB.gruplar.map(g=>`<div class="chip ${DB.aktifGrup===g.id?'on':''}" style="width:100%;justify-content:flex-start"
+        onclick="grupGec('${g.id}')"><span style="font-size:18px">${g.emoji}</span> ${esc(g.ad)}
+        <span class="xs dim">· ${g.uyeler.length} oyuncu${g.rol==='kurucu'?' · kurucu':''}</span></div>`).join('')}
+    </div>
+    <div class="sep"></div>
+    <div class="field"><label class="fl">Kodla başka masaya katıl</label>
+      <div class="row"><input id="kKod2" placeholder="ABC123" maxlength="6"
+        style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+        <button class="btn-b" onclick="kodlaKatil()">Katıl</button></div></div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="kapatModal();grupAc(null)">+ Yeni Masa Kur</button>`);
+}
+async function grupGec(id){
+  if(id===DB.aktifGrup) return kapatModal();
+  DB.aktifGrup=id; SABIKA_ID=null;
+  localStorage.setItem('kkd_aktif_masa',id);
+  kapatModal();
+  await yenile(true);
+  kanalKur();
+}
+
+/* ---------- yedek ---------- */
+function yedekAl(){
+  const g=aktifGrup();
+  const veri={v:4,kaynak:'bulut',masa:g?{ad:g.ad,emoji:g.emoji,kod:g.kod}:null,
+    ben:DB.ben,ayar:DB.ayar,
+    oyuncular:DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup),
+    celseler:DB.celseler.filter(c=>c.grupId===DB.aktifGrup),
+    iddialar:DB.iddialar.filter(i=>i.grupId===DB.aktifGrup)};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(veri,null,2)],{type:'application/json'}));
+  a.download=`${(g?.ad||'masa').replace(/[^\wğüşıöçĞÜŞİÖÇ ]/g,'')}-${bugun()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); toast('Yedek indirildi');
+}
+/* Eski tek-dosya prototipin (localStorage) yedeğini bu masaya taşır.
+   Oyuncular ADA göre eşlenir; masada olmayan ad yeni oyuncu olarak açılır. */
+function yedekYukle(inp){
+  const f=inp.files[0]; if(!f) return;
+  if(!kurucuMu()){ inp.value=''; return toast('İçe aktarmayı yalnız masayı kuran yapabilir',true); }
+  const r=new FileReader();
+  r.onload=async()=>{
+    let d;
+    try{ d=JSON.parse(r.result); }catch(e){ return toast('Dosya okunamadı',true); }
+    if(!d||!Array.isArray(d.oyuncular)||!Array.isArray(d.celseler)) return toast('Bu bir defter yedeği değil',true);
+    const gelen=d.celseler.filter(c=>c.bitti);
+    if(!confirm(`Yedekte ${d.oyuncular.length} oyuncu, ${gelen.length} kapanmış maç var.\nBu masaya EKLENECEK (mevcut kayıtlar silinmez). Devam?`)) return;
+    try{
+      const harita={};
+      for(const o of d.oyuncular){
+        const varOlan=DB.oyuncular.find(x=>x.masaId===DB.aktifGrup&&
+          x.ad.toLocaleLowerCase('tr-TR')===String(o.ad||'').toLocaleLowerCase('tr-TR'));
+        harita[o.id]= varOlan ? varOlan.id : await oyuncuEkle(o.ad||'Oyuncu',null,o.dogum||null,false);
+      }
+      let n=0;
+      for(const c of gelen){
+        const y=celseHaritala(JSON.parse(JSON.stringify(c)),harita);
+        const {error}=await sb.from('maclar').insert({
+          masa_id:DB.aktifGrup, oyun:y.oyun, giris:y.giris||'detay', tarih:y.tarih||bugun(),
+          yer:y.yer||null, tabelaci_id:OTURUM.id, parti_hedef:Math.min(5,Math.max(1,y.partiHedef||1)),
+          mod:y.oyun==='101'?(y.mod||'tek'):null, celse:y, bitti:true,
+          kazanan:y.kazanan??null, zabit:y.zabit||null, aciklama:y.not||null });
+        if(error) throw error;
+        n++;
+      }
+      await yenile(true);
+      toast(`${n} maç içeri alındı.`,true);
+    }catch(e){ toast(hataMetni(e),true); }
+  };
+  r.readAsText(f); inp.value='';
+}
+function celseHaritala(c,h){
+  const m=id=>h[id]||id;
+  ['id','grupId','_hesap'].forEach(k=>delete c[k]);
+  if(c.tabelaci) c.tabelaci=m(c.tabelaci);
+  if(c.takimlar) c.takimlar.forEach(t=>t.oyuncular=t.oyuncular.map(m));
+  if(c.oyuncular) c.oyuncular=c.oyuncular.map(m);
+  if(c.esler) c.esler=c.esler.map(p=>p.map(m));
+  if(c.oyun==='101'&&typeof c.kazanan==='string') c.kazanan=m(c.kazanan);
+  if(c.hizli){
+    if(Array.isArray(c.hizli.sira)) c.hizli.sira=c.hizli.sira.map(m);
+    if(c.hizli.puan&&!Array.isArray(c.hizli.puan)){
+      const p={}; Object.keys(c.hizli.puan).forEach(k=>p[m(k)]=c.hizli.puan[k]); c.hizli.puan=p;
+    }
+  }
+  (c.partiler||[]).forEach(pt=>{
+    if(Array.isArray(pt.kazanan)) pt.kazanan=pt.kazanan.map(m);
+    (pt.eller||[]).forEach(el=>{
+      if(el.durum){ const d={}; Object.keys(el.durum).forEach(k=>d[m(k)]=el.durum[k]); el.durum=d; }
+    });
+  });
+  return c;
+}
+async function uyeKarar(profilId,durum){
+  const {error}=await sb.from('masa_uyeleri').update({durum})
+    .eq('masa_id',DB.aktifGrup).eq('profil_id',profilId);
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true);
+  toast(durum==='onayli'?'Masaya alındı. Şimdi hangi oyuncu olduğunu seçecek.':'Reddedildi');
+}
+async function uyeCikar(profilId){
+  if(!confirm('Bu kişi masadan çıkarılsın mı? Oyuncu kaydı ve sicili kalır.')) return;
+  const {error}=await sb.from('masa_uyeleri').delete()
+    .eq('masa_id',DB.aktifGrup).eq('profil_id',profilId);
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true); toast('Çıkarıldı');
+}
+async function hesabaBagla(oyuncuId,profilId){
+  const {error}=await sb.rpc('oyuncu_bagla',{p_oyuncu:oyuncuId,p_profil:profilId});
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true); toast('Bağlandı');
+}
+
+/* =========================================================
+   GİRİŞ · KAYIT · MASA KURMA
+   ========================================================= */
+let GIRIS_MOD='giris';
+function girisEkrani(){
+  const k=GIRIS_MOD==='kayit';
+  return `<div class="orta"><div style="max-width:400px;margin:0 auto;width:100%">
+    <div class="center" style="margin-bottom:20px">
+      <div class="serif" style="font-size:22px">Kara Kaplı Defter</div>
+      <div class="xs dim" style="margin-top:4px">Batak &amp; 101 masa sicili</div>
+    </div>
+    <div class="card">
+      <div class="seg" style="margin-bottom:14px">
+        <button class="${k?'':'on'}" onclick="GIRIS_MOD='giris';render()">Giriş</button>
+        <button class="${k?'on':''}" onclick="GIRIS_MOD='kayit';render()">Kayıt Ol</button>
+      </div>
+      ${k?`<div class="field"><label class="fl">Adın</label>
+        <input id="gAdi" placeholder="Mustafa" maxlength="24" autocomplete="name"></div>`:''}
+      <div class="field"><label class="fl">Kullanıcı adı</label>
+        <input id="gKad" placeholder="mustafa" autocapitalize="none" autocomplete="username"
+               oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
+        ${k?'<div class="xs dim" style="margin-top:5px">Küçük harf, rakam, alt çizgi. Bu sadece senin girişin.</div>':''}</div>
+      <div class="field"><label class="fl">Şifre</label>
+        <input id="gSifre" type="password" placeholder="••••••" autocomplete="${k?'new-password':'current-password'}"
+               onkeydown="if(event.key==='Enter')girisYap()">
+        ${k?'<div class="xs dim" style="margin-top:5px">En az 6 karakter.</div>':''}</div>
+      <button class="btn-p btn-full" id="gBtn" style="margin-top:14px" onclick="girisYap()">${k?'Hesabı Aç':'Gir'}</button>
+    </div>
+    <div class="xs dim center">Şifreyi biz saklamıyoruz; Supabase'in kimlik sistemi tutuyor.</div>
+  </div></div>`;
+}
+async function girisYap(){
+  const kad=$('#gKad').value.trim(), sifre=$('#gSifre').value;
+  const kayit=GIRIS_MOD==='kayit', adi=kayit?$('#gAdi').value.trim():'';
+  if(kayit&&!adi) return toast('Adını yaz',true);
+  if(!kad) return toast('Kullanıcı adı gerekli',true);
+  if(!sifre||sifre.length<6) return toast('Şifre en az 6 karakter olmalı',true);
+  const btn=$('#gBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  try{
+    if(kayit){
+      const {error}=await sb.auth.signUp({email:kadToPosta(kad),password:sifre,options:{data:{ad:adi}}});
+      if(error) throw error;
+      const {error:e2}=await sb.auth.signInWithPassword({email:kadToPosta(kad),password:sifre});
+      if(e2) throw e2;
+    }else{
+      const {error}=await sb.auth.signInWithPassword({email:kadToPosta(kad),password:sifre});
+      if(error) throw error;
+    }
+    const {data:{session}}=await sb.auth.getSession();
+    OTURUM=session.user;
+    await verileriGetir();
+    if(kayit&&PROFIL&&adi&&PROFIL.ad!==adi){
+      await sb.from('profiller').update({ad:adi,renk:RENKLER[Math.floor(Math.random()*RENKLER.length)]}).eq('id',OTURUM.id);
+      PROFIL.ad=adi;
+    }
+    kanalKur();
+    DURUM=DB.gruplar.length?'hazir':'masayok';
+    render();
+    toast(kayit?`Hoş geldin ${adi}.`:`Tekrar hoş geldin ${PROFIL?.ad||''}.`);
+  }catch(e){
+    toast(hataMetni(e),true);
+    btn.disabled=false; btn.textContent=kayit?'Hesabı Aç':'Gir';
+  }
+}
+async function cikisYap(){
+  if(!confirm('Çıkış yapılsın mı?')) return;
+  if(KANAL){ sb.removeChannel(KANAL); KANAL=null; }
+  await sb.auth.signOut();
+  OTURUM=null; PROFIL=null; UYELIKLER=[];
+  DB.gruplar=[]; DB.oyuncular=[]; DB.celseler=[]; DB.iddialar=[]; DB.aktif=null; DB.ben=null;
+  localStorage.removeItem('kkd_aktif_masa');
+  DURUM='giris'; kapatModal(); render();
+}
+
+/* --------- masası olmayan --------- */
+function masaYokEkrani(){
+  const bekleyen=UYELIKLER.filter(u=>u.durum==='bekliyor');
+  const red=UYELIKLER.filter(u=>u.durum==='reddedildi');
+  return `
+  <div class="row" style="margin-bottom:14px">
+    <div class="grow"><div class="serif" style="font-size:18px">${esc(PROFIL.ad)}</div>
+      <div class="xs dim">@${esc(postaToKad(OTURUM.email))}</div></div>
+    <button class="btn-xs btn-gh" onclick="hesapAc()">Hesabım</button>
+    <button class="btn-xs btn-gh" onclick="cikisYap()">Çıkış</button>
+  </div>
+  ${bekleyen.length?`<div class="uyari" style="margin-bottom:12px">
+    <b>${esc(bekleyen.map(b=>b.masalar.ad).join(', '))}</b> masasına katılma isteğin gönderildi.
+    Masayı kuran onaylayınca içeri girersin.
+    <button class="btn-xs btn-gh" style="margin-top:9px" onclick="yenile()">Kontrol et</button></div>`:''}
+  ${red.length?`<div class="card tight"><div class="sm dim">${esc(red.map(b=>b.masalar.ad).join(', '))} isteğin kabul edilmedi.</div></div>`:''}
+  <div class="card"><div class="empty">
+    <div class="big">🍀</div>
+    <div class="serif" style="font-size:17px;color:var(--ink)">Henüz bir masan yok</div>
+    <div class="sm" style="margin-top:6px">Ya kendi masanı kur, ya arkadaşının verdiği kodla katıl.</div></div></div>
+  <div class="card">
+    <h3>Kodla Katıl</h3>
+    <div class="row">
+      <input id="kKod" placeholder="ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"
+             oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+             onkeydown="if(event.key==='Enter')kodlaKatil()">
+      <button class="btn-b" onclick="kodlaKatil()">Katıl</button></div>
+    <div class="xs dim" style="margin-top:7px">Kodu masayı kuran verir. İstek ona düşer, o onaylar.</div>
+  </div>
+  <div class="card">
+    <h3>Masa Kur</h3>
+    <div class="field"><label class="fl">Masa adı</label>
+      <input id="yMAd" placeholder="Parkverde" maxlength="40"></div>
+    <div class="field"><label class="fl">Simge</label>
+      <div class="row wrap" id="yMEmoji">${GRUP_EMOJI.map((e,i)=>
+        `<div class="chip ${i===0?'on':''}" data-e="${e}" style="font-size:19px;padding:7px 11px" onclick="tekSec(this)">${e}</div>`).join('')}</div></div>
+    <button class="btn-p btn-full" style="margin-top:14px" onclick="masaKur()">Masayı Kur</button>
+  </div>`;
+}
+async function masaKur(){
+  const adi=$('#yMAd').value.trim();
+  if(!adi) return toast('Masa adı gerekli',true);
+  const emoji=document.querySelector('#yMEmoji .chip.on')?.dataset.e||GRUP_EMOJI[0];
+  try{
+    /* Masa kurma sunucudaki masa_kur() ile yapılır: masa ve kurucu üyeliği
+       aynı işlemde oluşur. Doğrudan insert edilirse RETURNING okuma kuralına
+       takılır (üyelik henüz görünmediği için). Bkz. yama 01. */
+    const {data,error}=await sb.rpc('masa_kur',{p_ad:adi,p_emoji:emoji});
+    if(error) throw error;
+    const yeni=Array.isArray(data)?data[0]:data;
+    if(!yeni) throw new Error('Masa kurulamadı');
+    localStorage.setItem('kkd_aktif_masa',yeni.id);
+    DB.aktifGrup=yeni.id;
+    await verileriGetir();
+    /* kuran kişi kendi oyuncu kaydını da alsın — yoksa maça giremez */
+    if(!DB.ben&&PROFIL?.ad) await oyuncuEkle(PROFIL.ad,null,null,true);
+    await verileriGetir(); kanalKur();
+    DURUM='hazir'; kapatModal(); render();
+    kodPaylas(grup(yeni.id));
+  }catch(e){ toast(hataMetni(e),true); }
+}
+async function kodlaKatil(){
+  const kod=($('#kKod')||$('#kKod2'))?.value.trim()||'';
+  if(kod.length<4) return toast('Kodu tam yaz',true);
+  try{
+    const {data,error}=await sb.rpc('masaya_katil',{p_kod:kod});
+    if(error) throw error;
+    const r=Array.isArray(data)?data[0]:data;
+    await verileriGetir();
+    DURUM=DB.gruplar.length?'hazir':'masayok';
+    kapatModal(); render();
+    if(r?.durum==='onayli') toast(`${r.masa_ad} masasındasın.`);
+    else toast(`${r?.masa_ad||'Masa'} için istek gönderildi. Kurucu onaylayacak.`,true);
+  }catch(e){ toast(hataMetni(e),true); }
+}
+function kodPaylas(m){
+  if(!m) return;
+  const metin=`${m.emoji} ${m.ad} masasına katıl.\nKod: ${m.kod}\n${location.origin+location.pathname}`;
+  acModal(`<div class="center">
+    <div style="font-size:34px">${m.emoji}</div>
+    <div class="serif" style="font-size:20px;margin-top:6px">${esc(m.ad)}</div>
+    <div class="sm dim" style="margin-top:8px">Arkadaşların bu kodla katılacak. İstek sana düşecek, sen onaylayacaksın.</div>
+    <div style="margin:16px 0;padding:16px;background:var(--panel2);border:1px solid var(--line);border-radius:12px">
+      <div class="kod">${esc(m.kod)}</div></div>
+    <button class="btn-g btn-full" onclick='kopyala(${JSON.stringify(metin)})'>📋 Daveti Kopyala</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>
+  </div>`);
+}
+
+/* --------- hesabım (oyuncu değil, giriş hesabı) --------- */
+function hesapAc(){
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Hesabım</h2>
+    <div class="xs dim" style="margin-bottom:14px">Bu senin giriş hesabın. Masadaki adın ve fotoğrafın her masada ayrı tutulur.</div>
+    <div class="field"><label class="fl">Görünen ad</label>
+      <input id="hAd" value="${esc(PROFIL?.ad||'')}" maxlength="24"></div>
+    <div class="field"><label class="fl">Kullanıcı adı</label>
+      <input value="${esc(postaToKad(OTURUM.email))}" disabled></div>
+    <button class="btn-p btn-full" style="margin-top:14px" onclick="hesapKaydet()">Kaydet</button>
+    <button class="btn-dn btn-full btn-sm" style="margin-top:8px" onclick="cikisYap()">Çıkış Yap</button>`);
+}
+async function hesapKaydet(){
+  const adi=$('#hAd').value.trim();
+  if(!adi) return toast('Ad gerekli',true);
+  const {error}=await sb.from('profiller').update({ad:adi}).eq('id',OTURUM.id);
+  if(error) return toast(hataMetni(error),true);
+  PROFIL.ad=adi; kapatModal(); render(); toast('Kaydedildi');
+}
+
+/* Tabelacı ben değilim: yazamam, canlı izlerim. */
+function canliIzle(){
+  const c=DB.aktif, m=macDurum(c);
+  const kim = DB.oyuncular.find(o=>o.profilId===c._hesap&&o.masaId===c.grupId)
+           || MASA_UYELERI.find(u=>u.profil_id===c._hesap)?.profiller;
+  const bas2=`<div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div><div class="serif" style="font-size:17px"><span class="canli"></span>${c.oyun==='batak'?'Batak':'101'} · canlı</div>
+        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''} · ✍️ ${esc(kim?.ad||'tabelacı')}</div></div>
+      <button class="btn-xs btn-gh" onclick="yenile()">Yenile</button>
+    </div><div class="sep"></div>`;
+
+  if(c.oyun==='batak'){
+    const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+    return bas2+`
+      ${[0,1].map(i=>`<div class="row" style="padding:7px 0">
+        <span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+        <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
+        <div class="serif" style="font-size:22px;${m.macKazanan===i?'color:var(--gold)':''}">${m.gTop[i]}</div>
+      </div>`).join('')}
+      <div class="xs dim center" style="margin-top:6px">Parti ${m.partiSkor[0]}–${m.partiSkor[1]} · ${c.partiHedef} parti üzerinden</div>
+      </div>
+      ${gecmisPartiler(c)}
+      <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+  }
+  const sr=m.sira;
+  return bas2+`
+    ${sr.map((r,i)=>`<div class="row" style="padding:6px 0;gap:9px">
+      <div class="rank ${i===0?'r1':(i===sr.length-1?'rs':'')}">${i+1}</div>
+      ${avatar(r.id,30)}
+      <div class="grow" style="margin-left:4px;font-weight:600;font-size:14px">${esc(ad(r.id))}</div>
+      <div class="serif" style="font-size:19px">${r.puan}</div></div>`).join('')}
+    </div>
+    ${gecmisPartiler(c)}
+    <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+}
+
+/* ---------- modal ---------- */
+function acModal(html){
+  $('#modalHost').innerHTML=`<div class="modal" onclick="if(event.target===this)kapatModal()">
+    <div class="sheet"><div class="grip"></div>${html}</div></div>`;
+}
+function kapatModal(){ $('#modalHost').innerHTML=''; }
+
+/* ---------- başlat ---------- */
+document.querySelectorAll('nav.tabbar button').forEach(b=>b.onclick=()=>{ if(b.dataset.t!=='sicil') SABIKA_ID=null; git(b.dataset.t); });
+baslat().catch(e=>{ DURUM='hata'; HATA=hataMetni(e); render(); });
+/* PWA: ana ekrana eklendiğinde tam ekran açılsın, ağ yokken kabuk gelsin.
+   Veri önbelleğe alınmaz — sw.js'deki nedenler. */
+if('serviceWorker' in navigator && location.protocol!=='file:')
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
