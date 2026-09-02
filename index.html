@@ -1483,8 +1483,9 @@ function celseBaslat(oyun){
     <div id="mEsler" style="margin-top:10px"></div>
 
     <div class="field"><label class="fl">Tabelayı kim tutuyor?</label>
-      <div class="row wrap" id="mTabelaci">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div>
-      <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar. Masada âdet böyledir.</div></div>
+      <div class="row wrap" id="mTabelaci">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}${o.profilId?'':'<span class="xs dim" style="font-weight:500">· hesapsız</span>'}</div>`).join('')}</div>
+      <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar; yazma yetkisi fiilen ona geçer.
+        "Hesapsız" işaretli birini seçersen kalem sende kalır — telefonunu uzatman gerekir.</div></div>
 
     <button class="btn-p btn-full" style="margin-top:16px" id="mKurBtn" onclick="celseKur('${oyun}')">Tabelayı Aç</button>`);
   girisNotu();
@@ -1521,6 +1522,11 @@ async function celseKur(oyun){
   const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
   const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
+  /* Tabela FİİLEN devredilir: seçilen kişinin hesabı varsa yazma yetkisi
+     ona geçer (yama 07). Hesabı yoksa kalem açanda kalır — yoksa kimse
+     yazamaz duruma düşer. */
+  const tHesap=oy(tabelaci)?.profilId || null;
+  const kalemBende=!tHesap || tHesap===OTURUM.id;
   const masaAd=($('#mMasaAd')?.value||'').trim()||varsayilanMasaAd();
   const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:yerOku(),
            tabelaci,partiHedef,not:'',bahis:bahisOku(),partiler:[{eller:[],kazanan:null}]};
@@ -1541,19 +1547,24 @@ async function celseKur(oyun){
 
   const btn=$('#mKurBtn'); if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
   try{
+    const yazanHesap = kalemBende ? OTURUM.id : tHesap;
     const {data,error}=await sb.from('maclar').insert({
       masa_id:DB.aktifGrup, oyun, giris, tarih:c.tarih, yer:c.yer||null,
-      tabelaci_id:OTURUM.id, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
+      tabelaci_id:yazanHesap, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
       mod:oyun==='101'?c.mod:null, celse:c, bitti:false
     }).select('id,olusturma').single();
     if(error) throw error;
-    Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:OTURUM.id,_sira:data.olusturma});
+    Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:yazanHesap,_sira:data.olusturma});
     DB.acik.push(c); SECILI_MAC=c.id; DB.aktif=c;
     if(giris==='detay'&&kurucuMu()){
       DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
       ayarYaz(true);
     }
     kapatModal(); git('celse');
+    if(!kalemBende)
+      toast(`Tabela ${ad(tabelaci)}'e devredildi. Yazma yetkisi artık onda; sen izliyorsun.`,true);
+    else if(!tHesap && tabelaci!==DB.ben)
+      toast(`${ad(tabelaci)}'in hesabı yok, tabelayı sen yazıyorsun. Hesap açınca devredebilirsin.`,true);
   }catch(e){
     toast(hataMetni(e),true);
     if(btn){btn.disabled=false;btn.textContent='Tabelayı Aç';}
@@ -4079,7 +4090,11 @@ function batakTabela(){
     <div class="row" style="justify-content:space-between;align-items:flex-start">
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
 
     <div class="sep"></div>
@@ -4179,7 +4194,11 @@ function yzTabela(){
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}
           ${c.mod==='esli'?' · eşli':''}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
 
     <div class="sep"></div>
@@ -4337,6 +4356,72 @@ function tbSonSatirSil(){
   if(!parti.eller.length) return;
   parti.eller.pop(); parti.kazanan=null;
   kaydet(); render();
+}
+
+/* =========================================================
+   TABELAYI DEVRETMEK — masada telefon elden ele geçsin
+   Yazma yetkisi maclar.tabelaci_id'de duruyor. Devretmek onu masanın
+   başka bir ONAYLI üyesine yazmak demek (kural: yama 07).
+   Hesabı olmayan oyuncuya devredilemez — yoksa tabelayı kimse yazamaz.
+   ========================================================= */
+
+/* Devredilebilecek kişiler: masanın onaylı üyeleri, ben hariç */
+function devirAdaylari(){
+  const c=DB.aktif; if(!c) return [];
+  return DB.oyuncular
+    .filter(o=>o.masaId===c.grupId && o.profilId && o.profilId!==c._hesap)
+    .map(o=>({...o, masada:macOyunculari(c).includes(o.id)}))
+    /* masada oturanlar önce: tabela genelde oyunculardan birine geçer */
+    .sort((a,b)=>(b.masada-a.masada)||a.ad.localeCompare(b.ad,'tr'));
+}
+
+function devretAc(){
+  const c=DB.aktif;
+  if(!c) return;
+  if(!tabelaciMiyim()&&!kurucuMu()) return toast('Tabelayı yalnız tutan kişi veya kurucu devredebilir',true);
+  if(c.bitti) return toast('Kapanmış tabela devredilemez',true);
+
+  const aday=devirAdaylari();
+  const hesapsiz=DB.oyuncular.filter(o=>o.masaId===c.grupId&&!o.profilId&&macOyunculari(c).includes(o.id));
+
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Tabelayı Devret</h2>
+    <div class="xs dim" style="margin-bottom:14px">Yazma yetkisi seçilen kişiye geçer; sen izlemeye düşersin.
+      Girilmiş eller yerinde kalır.</div>
+    ${aday.length?`<div class="row wrap" id="dvKim">${aday.map(o=>
+      `<div class="chip" data-h="${o.profilId}" data-o="${o.id}" onclick="tekSecChip(this)">
+        ${avatar(o.id,20)}${esc(o.ad)}${o.masada?'':'<span class="xs dim" style="font-weight:500">· masada değil</span>'}
+      </div>`).join('')}</div>
+      <button class="btn-p btn-full" id="dvBtn" style="margin-top:16px" onclick="devret()">Devret</button>`
+     :`<div class="uyari">Devredebileceğin kimse yok: masadaki diğer oyuncuların hesabı açılmamış.
+        Ayarlar → Davet Linkleri'nden kendi linklerini gönder, hesap açtıklarında devredebilirsin.</div>`}
+    ${hesapsiz.length?`<div class="xs dim" style="margin-top:10px">Hesabı olmayanlar:
+      ${hesapsiz.map(o=>esc(o.ad)).join(', ')}. Onlara devredilemez — telefonu uzatman gerekir.</div>`:''}
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+
+async function devret(){
+  const c=DB.aktif; if(!c) return;
+  const sec=document.querySelector('#dvKim .chip.on');
+  if(!sec) return toast('Kimi seçtiğini söyle',true);
+  const hesap=sec.dataset.h, oyuncuId=sec.dataset.o;
+  const btn=$('#dvBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  try{
+    /* Bekleyen yazı varsa önce onu bitir; yoksa devirden sonra yazamayız. */
+    await aktifYaz();
+    /* Zabıtta görünen tabelacı adı da devredilen kişi olsun */
+    const yeniCelse=Object.assign({},aktifBelge(c),{tabelaci:oyuncuId});
+    const {error}=await sb.from('maclar')
+      .update({tabelaci_id:hesap, celse:yeniCelse}).eq('id',c.id);
+    if(error) throw error;
+    c.tabelaci=oyuncuId; c._hesap=hesap;
+    await akisEkle('mesaj',`Tabela ${ad(oyuncuId)}'e devredilmiştir. Kayıtların sıhhati bundan sonra kendisine aittir.`,
+                   {devir:{mac:c.id,kim:oyuncuId}});
+    kapatModal(); await yenile(true);
+    toast(`Tabela ${ad(oyuncuId)}'e geçti. Artık o yazıyor.`,true);
+  }catch(e){
+    toast(hataMetni(e),true);
+    if(btn){ btn.disabled=false; btn.textContent='Devret'; }
+  }
 }
 
 /* =========================================================

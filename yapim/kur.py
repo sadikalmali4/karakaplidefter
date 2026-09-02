@@ -243,7 +243,7 @@ s = s.replace('/* ---------- modal ---------- */',
               F('f_giris.js') + '\n' + F('f_akis.js') + '\n' + F('f_kadro.js') + '\n'
               + F('f_gecmis.js') + '\n' + F('f_yonerge.js') + '\n' + F('f_aramizda.js') + '\n'
               + F('f_efsane.js') + '\n' + F('f_lakap.js') + '\n' + F('f_yer.js') + '\n'
-              + F('f_tabela.js') + '\n'
+              + F('f_tabela.js') + '\n' + F('f_devret.js') + '\n'
               + F('f_borc.js') + '\n' + F('f_hesap.js') + '\n'
               + F('f_rekor.js') + '\n' + F('f_hafta.js') + '\n' + F('f_devir.js') + '\n'
               + '\n\n'.join(yeniler) + '\n\n/* ---------- modal ---------- */', 1)

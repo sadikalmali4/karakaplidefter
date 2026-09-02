@@ -998,8 +998,9 @@ function celseBaslat(oyun){
     <div id="mEsler" style="margin-top:10px"></div>
 
     <div class="field"><label class="fl">Tabelayı kim tutuyor?</label>
-      <div class="row wrap" id="mTabelaci">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div>
-      <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar. Masada âdet böyledir.</div></div>
+      <div class="row wrap" id="mTabelaci">${oyn.map(o=>`<div class="chip ${o.id===DB.ben?'on':''}" data-id="${o.id}" onclick="tekSec(this)">${avatar(o.id,20)}${esc(o.ad)}${o.profilId?'':'<span class="xs dim" style="font-weight:500">· hesapsız</span>'}</div>`).join('')}</div>
+      <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar; yazma yetkisi fiilen ona geçer.
+        "Hesapsız" işaretli birini seçersen kalem sende kalır — telefonunu uzatman gerekir.</div></div>
 
     <button class="btn-p btn-full" style="margin-top:16px" onclick="celseKur('${oyun}')">Tabelayı Aç</button>`);
   girisNotu();

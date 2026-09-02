@@ -69,7 +69,11 @@ function batakTabela(){
     <div class="row" style="justify-content:space-between;align-items:flex-start">
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
 
     <div class="sep"></div>
@@ -169,7 +173,11 @@ function yzTabela(){
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}
           ${c.mod==='esli'?' · eşli':''}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
 
     <div class="sep"></div>

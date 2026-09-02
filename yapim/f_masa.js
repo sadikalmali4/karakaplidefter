@@ -87,6 +87,11 @@ async function celseKur(oyun){
   const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
   const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
+  /* Tabela FİİLEN devredilir: seçilen kişinin hesabı varsa yazma yetkisi
+     ona geçer (yama 07). Hesabı yoksa kalem açanda kalır — yoksa kimse
+     yazamaz duruma düşer. */
+  const tHesap=oy(tabelaci)?.profilId || null;
+  const kalemBende=!tHesap || tHesap===OTURUM.id;
   const masaAd=($('#mMasaAd')?.value||'').trim()||varsayilanMasaAd();
   const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:yerOku(),
            tabelaci,partiHedef,not:'',bahis:bahisOku(),partiler:[{eller:[],kazanan:null}]};
@@ -107,19 +112,24 @@ async function celseKur(oyun){
 
   const btn=$('#mKurBtn'); if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
   try{
+    const yazanHesap = kalemBende ? OTURUM.id : tHesap;
     const {data,error}=await sb.from('maclar').insert({
       masa_id:DB.aktifGrup, oyun, giris, tarih:c.tarih, yer:c.yer||null,
-      tabelaci_id:OTURUM.id, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
+      tabelaci_id:yazanHesap, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
       mod:oyun==='101'?c.mod:null, celse:c, bitti:false
     }).select('id,olusturma').single();
     if(error) throw error;
-    Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:OTURUM.id,_sira:data.olusturma});
+    Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:yazanHesap,_sira:data.olusturma});
     DB.acik.push(c); SECILI_MAC=c.id; DB.aktif=c;
     if(giris==='detay'&&kurucuMu()){
       DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
       ayarYaz(true);
     }
     kapatModal(); git('celse');
+    if(!kalemBende)
+      toast(`Tabela ${ad(tabelaci)}'e devredildi. Yazma yetkisi artık onda; sen izliyorsun.`,true);
+    else if(!tHesap && tabelaci!==DB.ben)
+      toast(`${ad(tabelaci)}'in hesabı yok, tabelayı sen yazıyorsun. Hesap açınca devredebilirsin.`,true);
   }catch(e){
     toast(hataMetni(e),true);
     if(btn){btn.disabled=false;btn.textContent='Tabelayı Aç';}
