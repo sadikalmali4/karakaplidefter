@@ -1,0 +1,55 @@
+{
+  "aciklama": "Masanın kayda geçmiş hafızası. 'adlar' iki kişiyse, o ikili Batak'ta eş düştüğünde maç kurulumunda uyarı olarak çıkar.",
+  "efsaneler": [
+    {
+      "baslik": "Şansın Tecellisi",
+      "metin": "Hüseyin'in eline assız el geçmediği masa teamülüyle sabittir. Kağıdın kendisini bulmasına ilişkin bu hâl defalarca tespit edilmiş olup, tesadüf savunması dinlenmemiştir.",
+      "adlar": [
+        "Hüseyin"
+      ],
+      "tip": "efsane"
+    },
+    {
+      "baslik": "Kredi Meselesi",
+      "metin": "Hüseyin ile Volkan bir dönem eş oynamışlar; Hüseyin'in yukarıda tescilli şansına rağmen aralıksız yenilmişlerdir. Volkan, o döneme ilişkin hesapları ifa edebilmek için kredi çektiğini beyan etmiş, beyanı zabta geçirilmiştir.",
+      "adlar": [
+        "Hüseyin",
+        "Volkan"
+      ],
+      "tip": "uyari"
+    },
+    {
+      "baslik": "Unutkan Üstat",
+      "metin": "Tuğrul her şeyi unutur; buna rağmen şanslıdır ve iyi oynar. Mahkeme, hafıza ile kabiliyet arasında zorunlu bir bağ bulunmadığını bu vesileyle tespit etmiştir.",
+      "adlar": [
+        "Tuğrul"
+      ],
+      "tip": "efsane"
+    },
+    {
+      "baslik": "Kart Sayan Adam",
+      "metin": "Mustafa bütün kartları takip eder, masanın en düzgün oyununu oynar. Buna rağmen tarihin en ağır farklı yenilgisi de kendisine aittir; Tuğrul ile eş düştüğü o celse kayıtlarda durmaktadır. Mahkeme, iyi oynamanın tek başına sonuç doğurmadığını hatırlatır.",
+      "adlar": [
+        "Mustafa"
+      ],
+      "tip": "efsane"
+    },
+    {
+      "baslik": "Anunnakilerden",
+      "metin": "Emre abi, masanın kadim kuşağındandır — Anunnakilerden sayılır. O da kart takibini sever; masada iki kişi aynı anda kart sayıyorsa biri mutlaka kendisidir.",
+      "adlar": [
+        "Emre"
+      ],
+      "tip": "efsane"
+    },
+    {
+      "baslik": "62'ye Eksi 14",
+      "metin": "Masa tarihinin en ağır farkı: Tuğrul ile Mustafa, Sadık ve Volkan karşısında 62'ye EKSİ 14 yenilmişlerdir. Sonuç dillere destan olmuş, aradaki fark bugüne kadar aşılamamıştır.",
+      "adlar": [
+        "Tuğrul",
+        "Mustafa"
+      ],
+      "tip": "uyari"
+    }
+  ]
+}

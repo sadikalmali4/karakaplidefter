@@ -187,7 +187,7 @@ textarea{font-family:inherit;font-size:15px;line-height:1.5}
   <button data-t="akis"><span class="ic">💬</span>Akış</button>
   <button data-t="sicil"><span class="ic">📊</span>Sicil</button>
   <button data-t="iddia"><span class="ic">🤝</span>İddia</button>
-  <button data-t="rozet"><span class="ic">🏅</span>Unvan</button>
+  <button data-t="rozet"><span class="ic">⚖️</span>Divan</button>
   <button data-t="arsiv"><span class="ic">📚</span>Arşiv</button>
   <button data-t="ayar"><span class="ic">⚙️</span>Ayarlar</button>
 </nav>
@@ -226,6 +226,7 @@ const RENKLER=['#C9A227','#4A8FA8','#A85C4A','#6E9B5C','#9B6EA8','#C4784A','#5C8
 const GRUP_EMOJI=['🍀','🂡','🀄','☕','🔥','🐺','🦅','🎩','⚔️','🧿'];
 
 const VARSAYILAN_AYAR={
+  bahis:'Cin', efsaneler:[],
   batak:{hedef:61,minIhale:7,toplamEl:13,tutunca:'alinan',batinca:'alinan',partiHedef:2,slem:'ihale'},
   yz:{elSayisi:11,partiHedef:1,bitiren:-101,acamayan:200,cifteCarpan:2,okeyAktif:false,okeyCarpan:2,silme:-202,
       muey3:'Çay ısmarlar',muey4:'Hesabı öder'}
@@ -382,7 +383,9 @@ async function verileriGetir(){
 
   const g=grup(DB.aktifGrup)||{};
   DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
-            yz:   Object.assign({},VARSAYILAN_AYAR.yz,   (g.ayar||{}).yz   ||{}) };
+            yz:   Object.assign({},VARSAYILAN_AYAR.yz,   (g.ayar||{}).yz   ||{}),
+            bahis:(g.ayar||{}).bahis||VARSAYILAN_AYAR.bahis,
+            efsaneler:(g.ayar||{}).efsaneler||[] };
   DB.ben = DB.oyuncular.find(o=>o.masaId===DB.aktifGrup&&o.profilId===OTURUM.id)?.id || null;
 
   BEKLEYENLER=[]; MASA_UYELERI=[];
@@ -1014,6 +1017,10 @@ function zabitUret(c){
     acikIdd.slice(0,4).forEach(i=>L.push(`  • ${ad(i.kim)}${i.kime?` ↔ ${ad(i.kime)}`:''}: “${i.metin}”${i.bahis?` — ${i.bahis}`:''}${i.vade?` (vade ${trh(i.vade)})`:''}`));
   }
 
+  const bh=bahisNotu(c);
+  if(bh){ L.push(''); L.push(bh); }
+  const rk=aramizdaNotu(c);
+  if(rk){ L.push(''); L.push(`REKABET: ${rk}`); }
   if(c.not){ L.push(''); L.push(`ŞERH: ${c.not}`); }
   L.push('');
   L.push(`Tabelayı ${c.tabelaci?ad(c.tabelaci):'masa'} tutmuştur; kayıtlara itiraz süresi dolmuştur.`);
@@ -1397,6 +1404,8 @@ function celseBaslat(oyun){
       <input id="mMasaAd" value="${varsayilanMasaAd()}" maxlength="24" placeholder="1. Masa">
       <div class="xs dim" style="margin-top:5px">Aynı anda birden çok masa açıksa hangisi olduğu buradan ayırt edilir.</div></div>
 
+    ${bahisSecici(DB.ayar.bahis)}
+
     <div class="field"><label class="fl">Giriş şekli</label>
       <div class="seg" id="mGiris">
         <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">⚡ Hızlı</button>
@@ -1456,7 +1465,7 @@ function chipSec(el,max){
       <div class="row" style="justify-content:space-between;gap:8px">
         <div class="sm"><span class="pill red">A</span> ${esc(ad(s[0]))} &amp; ${esc(ad(s[1]))}</div>
         <div class="sm"><span class="pill blue">B</span> ${esc(ad(s[2]))} &amp; ${esc(ad(s[3]))}</div>
-      </div></div>`:'';
+      </div></div>`+efsaneUyari([[s[0],s[1]],[s[2],s[3]]]):'';
 }
 const secililer=()=>[...document.querySelectorAll('#mOyuncular .chip.on')]
   .sort((a,b)=>Number(a.dataset.sira||0)-Number(b.dataset.sira||0)).map(e=>e.dataset.id);
@@ -1468,7 +1477,7 @@ async function celseKur(oyun){
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
   const masaAd=($('#mMasaAd')?.value||'').trim()||varsayilanMasaAd();
   const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:$('#mYer').value.trim(),
-           tabelaci,partiHedef,not:'',partiler:[{eller:[],kazanan:null}]};
+           tabelaci,partiHedef,not:'',bahis:bahisOku(),partiler:[{eller:[],kazanan:null}]};
   if(oyun==='batak'){
     if(s.length!==4) return toast('Batak için tam 4 oyuncu gerekli',true);
     c.takimlar=[{ad:'A',oyuncular:[s[0],s[1]]},{ad:'B',oyuncular:[s[2],s[3]]}];
@@ -2041,8 +2050,10 @@ function viewRozet(){
     <button class="${oyun==='batak'?'on':''}" onclick="ROZET_OYUN='batak';render()">Batak</button>
     <button class="${oyun==='101'?'on':''}" onclick="ROZET_OYUN='101';render()">101</button></div>`;
   const r=muayyideler(oyun);
-  if(!r.length && !genelMuayyideler().length) return secim+`<div class="card"><div class="empty"><div class="big">🏅</div>
-    Henüz unvan dağıtılmadı.<div class="sm" style="margin-top:6px">Birkaç maç oyna, unvanlar sahiplerini bulsun.</div></div></div>`;
+  if(!r.length && !genelMuayyideler().length)
+    return secim+`<div class="card"><div class="empty"><div class="big">🏅</div>
+    Henüz unvan dağıtılmadı.<div class="sm" style="margin-top:6px">Birkaç maç oyna, unvanlar sahiplerini bulsun.</div></div></div>`
+    + borcKart() + efsaneKart();
   const gen=genelMuayyideler();
   const iyi=r.filter(x=>x.tip!=='kotu').concat(gen.filter(x=>x.tip!=='kotu'));
   const kotu=r.filter(x=>x.tip==='kotu').concat(gen.filter(x=>x.tip==='kotu'));
@@ -2059,6 +2070,9 @@ function viewRozet(){
   return secim+`
   ${iyi.length?`<div class="card"><h3>🏆 Şeref Levhası</h3><div class="stack">${iyi.map(kart).join('')}</div></div>`:''}
   ${kotu.length?`<div class="card"><h3>⚠️ Utanç Duvarı</h3><div class="stack">${kotu.map(kart).join('')}</div></div>`:''}
+  ${borcKart()}
+  ${aramizdaKart(oyun)}
+  ${efsaneKart()}
   ${oyun==='batak'?`<div class="card tight xs dim">Batak'ta ihale ve puan takıma aittir; eşler
     başa başsa unvanı <b>ortak</b> taşır. Farklı eşlerle oynadıkça sayılar ayrışır, unvan tek kişiye döner.</div>`:''}
   ${svTablo.length?`<div class="card"><h3>Kıdem</h3>${svTablo.map(({o,n})=>{const s=seviye(n);
@@ -2300,7 +2314,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 5.0 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -3107,25 +3121,27 @@ function davetHepsi(){
 }
 
 /* =========================================================
-   GEÇMİŞ MAÇ — uygulamadan önce oynanmışları deftere geçir
-   Tabela açıp kapatmaya gerek yok: tek form, doğrudan arşive
-   kapanmış maç olarak yazılır. Zabıt da üretilir.
-   Ayrıntılı (el el) girmek istersen normal akışta tarihi geriye
-   alarak Detaylı giriş yapabilirsin; bu form özet giriş içindir.
+   GEÇMİŞ MAÇ — eski defterdeki maçları deftere geçir
+   Tasarım kuralı: seçim SIRASI hiçbir şey belirlemez.
+   Batak'ta A takımı ve B takımı ayrı ayrı seçilir.
+   101'de kimlerin oynadığı seçilir, sıralama ▲▼ ile dizilir.
    ========================================================= */
 let GECMIS_OYUN='batak';
+let GC_A=[], GC_B=[], GC_SIRA=[], GC_PUAN={};
 
 function gecmisAc(oyun){
+  if(oyun&&oyun!==GECMIS_OYUN){ GC_A=[];GC_B=[];GC_SIRA=[];GC_PUAN={}; }
   if(oyun) GECMIS_OYUN=oyun;
   const o=GECMIS_OYUN, oyn=grupOyunculari();
   if(oyn.length<3) return toast('Önce oyuncuları ekle',true);
+
   acModal(`
     <h2 class="serif" style="margin:0 0 4px">Geçmiş Maç Ekle</h2>
     <div class="xs dim" style="margin-bottom:14px">Daha önce oynanmış bir maçı deftere geçirir.
       Sicil, unvanlar ve kürsü buna göre yeniden hesaplanır.</div>
 
     <div class="field"><label class="fl">Oyun</label>
-      <div class="seg" id="gcOyun">
+      <div class="seg">
         <button class="${o==='batak'?'on':''}" onclick="gecmisAc('batak')">🂡 Batak</button>
         <button class="${o==='101'?'on':''}" onclick="gecmisAc('101')">🀄 101</button>
       </div></div>
@@ -3135,113 +3151,196 @@ function gecmisAc(oyun){
       <div><label class="fl">Yer</label><input id="gcYer" placeholder="Ofis, kahve..."></div>
     </div>
 
-    <div class="field"><label class="fl">
-      ${o==='batak'?'Oyuncular — SIRAYLA seç: ilk ikisi A takımı, sonraki ikisi B'
-                   :'Oyuncular — BİTİŞ SIRASINA göre seç: ilk seçtiğin birinci, son seçtiğin sonuncu'}
-      <span id="gcSayac" class="dim" style="text-transform:none;letter-spacing:0">(0 seçildi)</span></label>
-      <div class="row wrap" id="mOyuncular">
-        ${oyn.map(p=>`<div class="chip" data-id="${p.id}" onclick="gcSec(this,${o==='batak'?4:6})">${avatar(p.id,20)}${esc(p.ad)}</div>`).join('')}
-      </div>
-      <div id="gcDizi" style="margin-top:10px"></div>
-    </div>
+    <div id="gcGovde" style="margin-top:12px"></div>
 
-    ${o==='batak'?`
-      <div class="field"><label class="fl">Kazanan takım</label>
-        <div class="seg" id="gcKazanan">
-          <button class="on" data-t="0" onclick="segSec(this)">A takımı</button>
-          <button data-t="1" onclick="segSec(this)">B takımı</button></div></div>
-      <details style="margin-top:10px"><summary>Parti ve puanı da yazayım (isteğe bağlı)</summary><div>
-        <div class="two"><div><label class="fl">A parti</label><input type="number" id="gcPA" placeholder="2" min="0" max="9"></div>
-          <div><label class="fl">B parti</label><input type="number" id="gcPB" placeholder="1" min="0" max="9"></div></div>
-        <div class="two" style="margin-top:10px"><div><label class="fl">A toplam puan</label><input type="number" id="gcSA" placeholder="61"></div>
-          <div><label class="fl">B toplam puan</label><input type="number" id="gcSB" placeholder="43"></div></div>
-      </div></details>`
-    :`<div class="xs dim" id="gcYzNot">Seçim sırası sıralamadır. Puanları da yazmak istersen aşağıda çıkar.</div>`}
+    ${bahisSecici(DB.ayar.bahis)}
 
     <div class="field" style="margin-top:12px"><label class="fl">Şerh <span style="text-transform:none;letter-spacing:0">(isteğe bağlı)</span></label>
       <textarea id="gcNot" rows="2" placeholder="Masaya dair bir not..."></textarea></div>
 
     <button class="btn-g btn-full" id="gcBtn" style="margin-top:14px" onclick="gecmisKaydet()">Deftere Geçir</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
-  gcDizi();
+  gcCiz();
 }
 
-/* seçim: sırayı koru (chipSec'in eş takım kutusunu göstermesini istemiyoruz) */
-function gcSec(el,max){
-  const kap=el.parentElement;
-  if(!el.classList.contains('on')&&kap.querySelectorAll('.chip.on').length>=max)
-    return toast(`En fazla ${max} oyuncu`,true);
-  el.classList.toggle('on');
-  el.dataset.sira=el.classList.contains('on')?String(++SEC_NO):'';
-  gcDizi();
+/* --------- gövde: oyuna göre --------- */
+function gcCiz(){
+  const k=$('#gcGovde'); if(!k) return;
+  k.innerHTML = GECMIS_OYUN==='batak' ? gcBatakGovde() : gcYzGovde();
 }
-function gcDizi(){
-  const s=secililer(), n=$('#gcSayac'), k=$('#gcDizi');
-  if(n) n.textContent=`(${s.length} seçildi)`;
-  if(!k) return;
-  if(GECMIS_OYUN==='batak'){
-    k.innerHTML = s.length===4?`<div class="card tight" style="margin:0;background:var(--panel2)">
-      <div class="row" style="justify-content:space-between;gap:8px">
-        <div class="sm"><span class="pill red">A</span> ${esc(ad(s[0]))} &amp; ${esc(ad(s[1]))}</div>
-        <div class="sm"><span class="pill blue">B</span> ${esc(ad(s[2]))} &amp; ${esc(ad(s[3]))}</div>
-      </div></div>`:'';
-    return;
+
+/* ---------------- BATAK ---------------- */
+function gcBatakGovde(){
+  const oyn=grupOyunculari();
+  const cip=(takim)=>oyn.map(p=>{
+    const bende=(takim==='A'?GC_A:GC_B).includes(p.id);
+    const otekide=(takim==='A'?GC_B:GC_A).includes(p.id);
+    return `<div class="chip ${bende?'on':''}" style="${otekide?'opacity:.3;pointer-events:none':''}"
+      onclick="gcTakim('${takim}','${p.id}')">${avatar(p.id,20)}${esc(p.ad)}</div>`;
+  }).join('');
+
+  const pa=GC_PUAN.A, pb=GC_PUAN.B;
+  const kz = (Number.isFinite(pa)&&Number.isFinite(pb)&&pa!==pb) ? (pa>pb?0:1)
+           : (GC_PUAN.kazanan!=null?GC_PUAN.kazanan:null);
+  const T=l=>l.length?l.map(ad).join(' & '):'—';
+
+  return `
+  <div class="field"><label class="fl"><span class="pill red">A</span> A takımı — 2 kişi
+    <span class="dim" style="text-transform:none;letter-spacing:0">(${GC_A.length}/2)</span></label>
+    <div class="row wrap">${cip('A')}</div></div>
+
+  <div class="field" style="margin-top:12px"><label class="fl"><span class="pill blue">B</span> B takımı — 2 kişi
+    <span class="dim" style="text-transform:none;letter-spacing:0">(${GC_B.length}/2)</span></label>
+    <div class="row wrap">${cip('B')}</div></div>
+
+  <div class="card tight" style="margin:12px 0 0;background:var(--panel2)">
+    <div class="row" style="justify-content:space-between;gap:8px">
+      <div class="sm"><span class="pill red">A</span> ${esc(T(GC_A))}</div>
+      <div class="sm"><span class="pill blue">B</span> ${esc(T(GC_B))}</div>
+    </div></div>
+
+  <div class="field" style="margin-top:12px"><label class="fl">Toplam puan</label>
+    <div class="two">
+      <div><input type="number" inputmode="numeric" placeholder="A puanı" value="${pa??''}"
+        onchange="gcPuan('A',this.value)"></div>
+      <div><input type="number" inputmode="numeric" placeholder="B puanı" value="${pb??''}"
+        onchange="gcPuan('B',this.value)"></div>
+    </div>
+    <div class="xs dim" style="margin-top:5px">Eski defterdeki toplamı yaz. Kazanan buradan anlaşılır.</div></div>
+
+  ${kz!=null?`<div class="uyari" style="margin-top:12px">🏆 Kazanan: <b>${esc(T(kz===0?GC_A:GC_B))}</b>
+    ${(Number.isFinite(pa)&&Number.isFinite(pb))?`(${pa}–${pb})`:''}</div>`
+   :`<div class="field" style="margin-top:12px"><label class="fl">Kazanan takım</label>
+      <div class="seg">
+        <button class="${GC_PUAN.kazanan===0?'on':''}" onclick="gcPuan('kazanan',0)">A takımı</button>
+        <button class="${GC_PUAN.kazanan===1?'on':''}" onclick="gcPuan('kazanan',1)">B takımı</button></div>
+      <div class="xs dim" style="margin-top:5px">Puanı hatırlamıyorsan sadece kazananı seç, yeter.</div></div>`}
+
+  <details style="margin-top:10px"><summary>Parti skorunu da yazayım</summary><div class="two">
+    <div><label class="fl">A parti</label><input type="number" min="0" max="9" placeholder="2"
+      value="${GC_PUAN.pA??''}" onchange="gcPuan('pA',this.value)"></div>
+    <div><label class="fl">B parti</label><input type="number" min="0" max="9" placeholder="1"
+      value="${GC_PUAN.pB??''}" onchange="gcPuan('pB',this.value)"></div>
+  </div></details>`;
+}
+function gcTakim(takim,id){
+  const bu = takim==='A'?GC_A:GC_B;
+  const i=bu.indexOf(id);
+  if(i>=0) bu.splice(i,1);
+  else{
+    if(bu.length>=2) return toast('Takımda 2 kişi olur — birini çıkar',true);
+    bu.push(id);
   }
-  k.innerHTML = s.length?`<div class="card tight" style="margin:0;background:var(--panel2)">
-    ${s.map((id,i)=>`<div class="row" style="padding:5px 0;gap:8px">
-      <div class="rank ${i===0?'r1':(i===s.length-1?'rs':'')}">${i+1}</div>
-      ${avatar(id,26)}
-      <div class="grow" style="font-weight:600;font-size:13.5px;margin-left:3px">${esc(ad(id))}
-        <span class="xs dim">${i===0?'🏆 birinci':(i===s.length-1?'💸 sonuncu':'')}</span></div>
-      <input type="number" id="gcP_${id}" placeholder="puan" style="width:82px">
-    </div>`).join('')}</div>`:'';
+  gcCiz();
+}
+function gcPuan(alan,v){
+  if(alan==='kazanan') GC_PUAN.kazanan=Number(v);
+  else{
+    const n=parseInt(v,10);
+    GC_PUAN[alan]=Number.isFinite(n)?n:undefined;
+  }
+  gcCiz();
 }
 
+/* ---------------- 101 ---------------- */
+function gcYzGovde(){
+  const oyn=grupOyunculari();
+  const cip=oyn.map(p=>`<div class="chip ${GC_SIRA.includes(p.id)?'on':''}"
+      onclick="gcYzSec('${p.id}')">${avatar(p.id,20)}${esc(p.ad)}</div>`).join('');
+  return `
+  <div class="field"><label class="fl">Kimler oynadı?
+    <span class="dim" style="text-transform:none;letter-spacing:0">(${GC_SIRA.length} kişi)</span></label>
+    <div class="row wrap">${cip}</div></div>
+
+  ${GC_SIRA.length?`<div class="field" style="margin-top:12px">
+    <label class="fl">Sıralama — ▲▼ ile diz</label>
+    <div class="card tight" style="margin:0;background:var(--panel2)">
+      ${GC_SIRA.map((id,i)=>`<div class="row" style="padding:6px 0;gap:8px">
+        <div class="rank ${i===0?'r1':(i===GC_SIRA.length-1?'rs':'')}">${i+1}</div>
+        ${avatar(id,28)}
+        <div class="grow" style="min-width:0;margin-left:3px">
+          <div style="font-weight:600;font-size:13.5px" class="ell">${esc(ad(id))}</div>
+          <div class="xs dim">${i===0?'🏆 birinci':(i===GC_SIRA.length-1?'💸 sonuncu':'')}</div></div>
+        <input type="number" inputmode="numeric" placeholder="puan" style="width:78px"
+          value="${GC_PUAN[id]??''}" onchange="gcYzPuan('${id}',this.value)">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <button class="btn-xs" onclick="gcTasi(${i},-1)" ${i===0?'disabled':''}>▲</button>
+          <button class="btn-xs" onclick="gcTasi(${i},1)" ${i===GC_SIRA.length-1?'disabled':''}>▼</button>
+        </div></div>`).join('')}
+    </div>
+    <div class="xs dim" style="margin-top:6px">En üstteki birinci, en alttaki sonuncu.
+      Puanı hatırlamıyorsan boş bırak — sıralama yeter.</div></div>`:''}`;
+}
+function gcYzSec(id){
+  const i=GC_SIRA.indexOf(id);
+  if(i>=0) GC_SIRA.splice(i,1);
+  else{
+    if(GC_SIRA.length>=6) return toast('En fazla 6 oyuncu',true);
+    GC_SIRA.push(id);
+  }
+  gcCiz();
+}
+function gcYzPuan(id,v){
+  const n=Number(v);
+  GC_PUAN[id]= (v===''||v==null)?undefined:(Number.isFinite(n)?n:0);
+}
+function gcTasi(i,d){
+  const j=i+d;
+  if(j<0||j>=GC_SIRA.length) return;
+  [GC_SIRA[i],GC_SIRA[j]]=[GC_SIRA[j],GC_SIRA[i]];
+  gcCiz();
+}
+
+/* ---------------- kaydet ---------------- */
 async function gecmisKaydet(){
-  const s=secililer(), o=GECMIS_OYUN;
-  const tarih=$('#gcTarih').value;
+  const o=GECMIS_OYUN, tarih=$('#gcTarih').value;
   if(!tarih) return toast('Tarih gerekli',true);
   if(tarih>bugun()) return toast('İleri tarihli maç olmaz',true);
-  if(o==='batak'&&s.length!==4) return toast('Batak için tam 4 oyuncu gerekli',true);
-  if(o==='101'&&s.length<3)     return toast('101 için en az 3 oyuncu gerekli',true);
 
   const c={oyun:o,giris:'hizli',masaAd:'Geçmiş',tarih,yer:$('#gcYer').value.trim(),
-           tabelaci:DB.ben||s[0],partiHedef:o==='batak'?2:1,not:$('#gcNot').value.trim(),
-           partiler:[{eller:[],kazanan:null}]};
+           tabelaci:DB.ben||null,partiHedef:o==='batak'?2:1,not:$('#gcNot').value.trim(),
+           bahis:bahisOku(),partiler:[{eller:[],kazanan:null}]};
 
   if(o==='batak'){
-    const kz=Number(document.querySelector('#gcKazanan .on')?.dataset.t||0);
-    let pa=parseInt($('#gcPA')?.value,10), pb=parseInt($('#gcPB')?.value,10);
-    if(!Number.isFinite(pa)||!Number.isFinite(pb)||pa===pb){   // parti yazılmadıysa kazanana göre uydur
-      pa = kz===0?2:1; pb = kz===0?1:2;
-    }else if((pa>pb)!==(kz===0)){
-      return toast('Parti skoru kazanan takımla çelişiyor',true);
-    }
-    c.takimlar=[{ad:'A',oyuncular:[s[0],s[1]]},{ad:'B',oyuncular:[s[2],s[3]]}];
-    c.hizli={partiSkor:[pa,pb],
-             puan:[Number($('#gcSA')?.value)||0,Number($('#gcSB')?.value)||0]};
+    if(GC_A.length!==2||GC_B.length!==2) return toast('Her takımda 2 kişi olmalı',true);
+    const pa=GC_PUAN.A, pb=GC_PUAN.B;
+    let kz;
+    if(Number.isFinite(pa)&&Number.isFinite(pb)&&pa!==pb) kz = pa>pb?0:1;
+    else if(GC_PUAN.kazanan===0||GC_PUAN.kazanan===1) kz = GC_PUAN.kazanan;
+    else return toast('Kazanan takımı seç ya da puanları yaz',true);
+
+    let sA=GC_PUAN.pA, sB=GC_PUAN.pB;
+    if(!Number.isFinite(sA)||!Number.isFinite(sB)||sA===sB){ sA=kz===0?2:1; sB=kz===0?1:2; }
+    else if((sA>sB)!==(kz===0)) return toast('Parti skoru kazanan takımla çelişiyor',true);
+
+    c.takimlar=[{ad:'A',oyuncular:GC_A.slice()},{ad:'B',oyuncular:GC_B.slice()}];
+    c.hizli={partiSkor:[sA,sB],puan:[Number.isFinite(pa)?pa:0,Number.isFinite(pb)?pb:0]};
     c.kazanan=kz;
+    if(!c.tabelaci) c.tabelaci=GC_A[0];
   }else{
+    if(GC_SIRA.length<3) return toast('101 için en az 3 oyuncu gerekli',true);
     const puan={};
-    s.forEach(id=>{ const v=$('#gcP_'+id)?.value; puan[id]= v===''||v==null?null:(Number(v)||0); });
-    c.mod='tek'; c.oyuncular=s.slice(); c.esler=null;
-    c.hizli={sira:s.slice(),puan};
-    c.kazanan=s[0];
+    GC_SIRA.forEach(id=>{ puan[id]= GC_PUAN[id]===undefined?null:GC_PUAN[id]; });
+    c.mod='tek'; c.oyuncular=GC_SIRA.slice(); c.esler=null;
+    c.hizli={sira:GC_SIRA.slice(),puan};
+    c.kazanan=GC_SIRA[0];
+    if(!c.tabelaci) c.tabelaci=GC_SIRA[0];
   }
 
   const btn=$('#gcBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
   try{
     c.zabit=zabitUret(c);
-    const belge=JSON.parse(JSON.stringify(c));
     const {data,error}=await sb.from('maclar').insert({
       masa_id:DB.aktifGrup, oyun:o, giris:'hizli', tarih, yer:c.yer||null,
       tabelaci_id:OTURUM.id, parti_hedef:c.partiHedef, mod:o==='101'?'tek':null,
-      celse:belge, bitti:true, kazanan:c.kazanan??null, zabit:c.zabit, aciklama:c.not||null
+      celse:JSON.parse(JSON.stringify(c)), bitti:true,
+      kazanan:c.kazanan??null, zabit:c.zabit, aciklama:c.not||null
     }).select('id,olusturma').single();
     if(error) throw error;
     Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:true,_hesap:OTURUM.id,_sira:data.olusturma});
     DB.celseler.push(c);
     /* Geçmiş maçlar akışa DÜŞMEZ: arka arkaya 20 tane girilince akış çöp olur. */
+    GC_A=[];GC_B=[];GC_SIRA=[];GC_PUAN={};
     kapatModal(); ARSIV_FILTRE='hepsi'; git('arsiv');
     toast(`${trh(tarih)} maçı deftere geçti. Sicil yeniden hesaplandı.`,true);
   }catch(e){
@@ -3341,6 +3440,389 @@ function yonergeAc(){
     <button class="btn-g btn-full" style="margin-top:12px"
       onclick="kopyala(document.getElementById('ynMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+
+/* =========================================================
+   ARAMIZDA — ikili sicil, kabuslar, eş uyumu
+   "Kim kime karşı ne durumda" masada en çok konuşulan şey;
+   burada kayda geçer ve kimse hafızasına güvenemez.
+   ========================================================= */
+
+/* Her İKİLİ için karşılıklı sicil: a, b'ye karşı kaç kazandı/kaybetti */
+function ikiliSicil(oyun){
+  const m={};                                  // "a|b" (a<b) → {a:kazanma, b:kazanma}
+  const anahtar=(x,y)=>x<y?`${x}|${y}`:`${y}|${x}`;
+  const kur=(x,y)=>{const k=anahtar(x,y); return m[k]=m[k]||{k,x:(x<y?x:y),y:(x<y?y:x),xg:0,yg:0};};
+
+  for(const c of grupCelseleri().filter(c=>c.oyun===oyun)){
+    if(oyun==='batak'){
+      const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
+      const A=c.takimlar[0].oyuncular, B=c.takimlar[1].oyuncular;
+      A.forEach(a=>B.forEach(b=>{
+        const r=kur(a,b);
+        const aKazandi = kz===0;
+        if((r.x===a)===aKazandi) r.xg++; else r.yg++;
+      }));
+    }else{
+      const sr=yzMac(c).sira;
+      for(let i=0;i<sr.length;i++) for(let j=i+1;j<sr.length;j++){
+        const p=sr[i], q=sr[j], r=kur(p.id,q.id);       // p daha iyi sırada
+        if(r.x===p.id) r.xg++; else r.yg++;
+      }
+    }
+  }
+  return Object.values(m).filter(r=>r.xg+r.yg>0);
+}
+
+/* Batak: EŞ olarak birlikte oynayan ikililerin uyumu */
+function esSicil(){
+  const m={};
+  const kur=(x,y)=>{const k=x<y?`${x}|${y}`:`${y}|${x}`; return m[k]=m[k]||{x,y,g:0,mgl:0};};
+  for(const c of grupCelseleri().filter(c=>c.oyun==='batak')){
+    const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
+    c.takimlar.forEach((t,ti)=>{
+      if(t.oyuncular.length<2) return;
+      const r=kur(t.oyuncular[0],t.oyuncular[1]);
+      if(ti===kz) r.g++; else r.mgl++;
+    });
+  }
+  return Object.values(m).filter(r=>r.g+r.mgl>0);
+}
+
+const husumetLafi=f=>
+  f>=4 ? 'artık sahibi sayılır'
+: f===3 ? 'üstünlük tescillidir'
+: f===2 ? 'ağırlığını koymuştur'
+: f===1 ? 'kıl payı önde'
+: 'kimse öne geçemedi, husumet sürüyor';
+
+function aramizdaKart(oyun){
+  const ik=ikiliSicil(oyun);
+  if(!ik.length) return '';
+
+  /* en çok karşı karşıya gelenler */
+  const ezeli=ik.slice().sort((a,b)=>(b.xg+b.yg)-(a.xg+a.yg)).slice(0,5);
+
+  /* herkesin kabusu: en çok kaybettiği rakip (en az 3 karşılaşma) */
+  const kabus={};
+  ik.forEach(r=>{
+    const ekle=(kim,rakip,g,mg)=>{
+      if(g+mg<3||mg<=g) return;
+      const f=mg-g;
+      if(!kabus[kim]||f>kabus[kim].f) kabus[kim]={rakip,g,mg,f};
+    };
+    ekle(r.x,r.y,r.xg,r.yg);
+    ekle(r.y,r.x,r.yg,r.xg);
+  });
+  const kabusList=Object.entries(kabus).sort((a,b)=>b[1].f-a[1].f).slice(0,5);
+
+  /* batak eş uyumu */
+  const es=oyun==='batak'?esSicil().filter(r=>r.g+r.mgl>=2):[];
+  const kanka=es.slice().sort((a,b)=>(b.g-b.mgl)-(a.g-a.mgl))[0];
+  const ugursuz=es.slice().sort((a,b)=>(a.g-a.mgl)-(b.g-b.mgl))[0];
+
+  const satir=r=>{
+    const one=r.xg>=r.yg, ilk=one?r.x:r.y, son=one?r.y:r.x;
+    const g=one?r.xg:r.yg, mg=one?r.yg:r.xg;
+    return `<div class="row" style="padding:7px 0;gap:8px">
+      ${avatar(ilk,26)}
+      <div class="grow" style="min-width:0">
+        <div style="font-size:13.5px;font-weight:600" class="ell">${esc(ad(ilk))} <span class="dim">vs</span> ${esc(ad(son))}</div>
+        <div class="xs dim">${g+mg} karşılaşma · ${esc(husumetLafi(g-mg))}</div></div>
+      ${avatar(son,26)}
+      <div class="serif" style="font-size:16px;min-width:52px;text-align:right">
+        <b class="${g>mg?'pos':'zero'}">${g}</b><span class="dim">–</span><b class="${mg>g?'neg':'zero'}">${mg}</b></div>
+    </div>`;
+  };
+
+  return `
+  <div class="card">
+    <h3>⚔️ Aramızda · ${oyun==='batak'?'Batak':'101'}</h3>
+    <div class="xs dim" style="margin-bottom:8px">En çok karşı karşıya gelenler. Rakamlar hafızadan güçlüdür.</div>
+    ${ezeli.map(satir).join('<div class="sep" style="margin:0 -14px"></div>')}
+  </div>
+
+  ${kabusList.length?`<div class="card">
+    <h3>😰 Kabuslar</h3>
+    <div class="xs dim" style="margin-bottom:8px">Karşısına oturunca eli titreyenler. En az 3 karşılaşma şartı vardır.</div>
+    ${kabusList.map(([kim,k])=>`<div class="row" style="padding:7px 0;gap:9px">
+      ${avatar(kim,28)}
+      <div class="grow" style="min-width:0">
+        <div style="font-size:13.5px;font-weight:600" class="ell">${esc(ad(kim))}</div>
+        <div class="xs" style="color:#DD8A8A">kabusu: <b>${esc(ad(k.rakip))}</b> · ${k.g}–${k.mg}</div></div>
+      ${avatar(k.rakip,28)}
+    </div>`).join('')}
+  </div>`:''}
+
+  ${(kanka&&kanka.g>kanka.mgl)||(ugursuz&&ugursuz.mgl>ugursuz.g)?`<div class="card">
+    <h3>🤝 Eş Uyumu</h3>
+    ${(kanka&&kanka.g>kanka.mgl)?`<div class="rozet" style="margin-bottom:8px"><div class="k">🫂</div>
+      <div class="grow"><div style="font-weight:700;font-size:13.5px">Kanka</div>
+        <div style="font-size:12.5px;color:var(--gold)">${esc(ad(kanka.x))} &amp; ${esc(ad(kanka.y))}</div>
+        <div class="xs muted">Eş olarak ${kanka.g} galibiyet, ${kanka.mgl} yenilgi. Birbirini gözünden anlamaktadırlar.</div></div></div>`:''}
+    ${(ugursuz&&ugursuz.mgl>ugursuz.g)?`<div class="rozet"><div class="k">🪦</div>
+      <div class="grow"><div style="font-weight:700;font-size:13.5px">Uğursuz Eşleşme</div>
+        <div style="font-size:12.5px;color:#DD8A8A">${esc(ad(ugursuz.x))} &amp; ${esc(ad(ugursuz.y))}</div>
+        <div class="xs muted">Eş olarak ${ugursuz.g} galibiyet, ${ugursuz.mgl} yenilgi. Bu ikilinin bir daha eş düşmemesi masanın yararınadır.</div></div></div>`:''}
+  </div>`:''}`;
+}
+
+/* Zabıta iliştirilen rekabet notu: bu maç ikili siciller ne yaptı */
+function aramizdaNotu(c){
+  const ik=ikiliSicil(c.oyun);
+  if(!ik.length) return '';
+  const ilgili = c.oyun==='batak' ? c.takimlar.flatMap(t=>t.oyuncular) : (c.oyuncular||[]);
+  const bizim=ik.filter(r=>ilgili.includes(r.x)&&ilgili.includes(r.y));
+  const carpici=bizim.filter(r=>Math.abs(r.xg-r.yg)>=3)
+    .sort((a,b)=>Math.abs(b.xg-b.yg)-Math.abs(a.xg-a.yg))[0];
+  if(!carpici) return '';
+  const one=carpici.xg>carpici.yg;
+  const ilk=one?carpici.x:carpici.y, son=one?carpici.y:carpici.x;
+  const g=one?carpici.xg:carpici.yg, mg=one?carpici.yg:carpici.xg;
+  return `${ad(ilk)}, ${ad(son)} karşısında ${g}-${mg} öne geçmiştir. ${ad(son)}'in bu husustaki beyanları kayda geçirilmemiştir.`;
+}
+
+/* =========================================================
+   MASA EFSANELERİ — masanın kayda geçmiş hafızası
+   Kurucu yazar, masa okur. 'adlar' dolu olan bir efsane, o kişiler
+   AYNI TAKIMDA eş düştüğünde maç kurulumunda uyarı olarak çıkar.
+   Ayarda tutulur (masalar.ayar.efsaneler) → değiştiren yalnız kurucu.
+   ========================================================= */
+function efsaneler(){ return (DB.ayar&&DB.ayar.efsaneler)||[]; }
+
+/* adı olan ama masada bulunmayan kişiyi de yazıyla gösterebilmek için */
+function adaGoreOyuncu(adi){
+  const n=String(adi||'').toLocaleLowerCase('tr-TR');
+  return DB.oyuncular.find(o=>o.masaId===DB.aktifGrup&&o.ad.toLocaleLowerCase('tr-TR')===n)||null;
+}
+
+function efsaneKart(){
+  const l=efsaneler(), k=kurucuMu();
+  if(!l.length&&!k) return '';
+  return `<div class="card">
+    <h3>📜 Masa Efsaneleri</h3>
+    <div class="xs dim" style="margin-bottom:10px">Masanın hafızası. Bir daha "öyle olmamıştı" diyen olmaz.</div>
+    ${l.length?l.map((e,i)=>`<div class="rozet" style="margin-bottom:8px">
+      <div class="k">${e.tip==='uyari'?'⚠️':'📖'}</div>
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:700;font-size:13.5px">${esc(e.baslik||'Efsane')}</div>
+        ${(e.adlar||[]).length?`<div class="xs" style="color:var(--gold);margin:2px 0">${esc((e.adlar||[]).join(' & '))}</div>`:''}
+        <div class="xs muted" style="line-height:1.55">${esc(e.metin||'')}</div>
+      </div>
+      ${k?`<button class="btn-xs btn-dn" style="flex-shrink:0" onclick="efsaneSil(${i})">Sil</button>`:''}
+    </div>`).join('')
+     :'<div class="sm dim">Henüz efsane yazılmadı.</div>'}
+    ${k?`<button class="btn-b btn-full btn-sm" style="margin-top:10px" onclick="efsaneAc()">+ Efsane Yaz</button>
+      ${!l.length?`<button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="efsaneSeed()">⚡ Hazır efsaneleri yükle</button>`:''}`:''}
+  </div>`;
+}
+
+function efsaneAc(){
+  if(!kurucuMu()) return toast('Efsaneyi yalnız grubu kuran yazabilir',true);
+  const oyn=grupOyunculari();
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Efsane Yaz</h2>
+    <div class="xs dim" style="margin-bottom:14px">Masada yaşanmış, unutulmaması gereken bir hâl.
+      Kişi seçersen o kişiler eş düştüğünde masa uyarı verir.</div>
+    <div class="field"><label class="fl">Başlık</label>
+      <input id="efBas" maxlength="40" placeholder="Kredi Meselesi"></div>
+    <div class="field"><label class="fl">Metin</label>
+      <textarea id="efMetin" rows="4" placeholder="Ne olmuştu? Zabıt üslubuyla yazarsan tadından yenmez."></textarea></div>
+    <div class="field"><label class="fl">Kimler hakkında <span style="text-transform:none;letter-spacing:0">(isteğe bağlı)</span></label>
+      <div class="row wrap" id="efKim">${oyn.map(o=>
+        `<div class="chip" data-id="${o.id}" onclick="this.classList.toggle('on')">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div>
+      <div class="xs dim" style="margin-top:6px">İki kişi seçersen, o ikisi Batak'ta eş düştüğünde uyarı çıkar.</div></div>
+    <div class="field"><label class="fl">Tür</label>
+      <div class="seg" id="efTip">
+        <button class="on" data-t="efsane" onclick="segSec(this)">📖 Efsane</button>
+        <button data-t="uyari" onclick="segSec(this)">⚠️ Uyarı</button></div></div>
+    <button class="btn-p btn-full" id="efBtn" style="margin-top:16px" onclick="efsaneKaydet()">Deftere Geçir</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+
+async function efsaneKaydet(){
+  const baslik=$('#efBas').value.trim(), metin=$('#efMetin').value.trim();
+  if(!baslik) return toast('Başlık gerekli',true);
+  if(!metin)  return toast('Metni yaz',true);
+  const adlar=[...document.querySelectorAll('#efKim .chip.on')].map(e=>ad(e.dataset.id));
+  const tip=document.querySelector('#efTip .on')?.dataset.t||'efsane';
+  const btn=$('#efBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  DB.ayar.efsaneler=[...efsaneler(),{baslik,metin,adlar,tip}];
+  await ayarYaz(true);
+  kapatModal(); render(); toast('Efsane deftere geçti.');
+}
+
+async function efsaneSil(i){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  const e=efsaneler()[i]; if(!e) return;
+  if(!confirm(`"${e.baslik}" silinsin mi?`)) return;
+  DB.ayar.efsaneler=efsaneler().filter((_,j)=>j!==i);
+  await ayarYaz(true);
+  render(); toast('Silindi');
+}
+
+async function efsaneSeed(){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  try{
+    const d=await fetch('kurulum/efsaneler.json',{cache:'no-store'}).then(r=>r.json());
+    const gelen=(d.efsaneler||[]).filter(e=>!efsaneler().some(x=>x.baslik===e.baslik));
+    if(!gelen.length) return toast('Hazır efsaneler zaten yüklü');
+    DB.ayar.efsaneler=[...efsaneler(),...gelen];
+    await ayarYaz(true);
+    render(); toast(`${gelen.length} efsane yüklendi.`);
+  }catch(e){ toast('Efsane dosyası okunamadı',true); }
+}
+
+/* --------- maç kurulumunda uyarı ---------
+   Aynı takıma düşen ikili hakkında yazılmış efsane varsa göster. */
+function efsaneUyari(takimlar){
+  const l=efsaneler().filter(e=>(e.adlar||[]).length>=2);
+  if(!l.length||!takimlar) return '';
+  const cikti=[];
+  for(const e of l){
+    const ids=(e.adlar||[]).map(a=>adaGoreOyuncu(a)?.id).filter(Boolean);
+    if(ids.length<2) continue;
+    const ayniTakim=takimlar.some(t=>ids.every(id=>t.includes(id)));
+    if(ayniTakim) cikti.push(e);
+  }
+  if(!cikti.length) return '';
+  return cikti.map(e=>`<div class="uyari" style="margin-top:10px">
+    ⚠️ <b>${esc(e.baslik)}</b> — ${esc(e.metin)}</div>`).join('');
+}
+
+/* =========================================================
+   NEYE OYNANIYOR + BORÇ TABELASI
+   Her maça bir bahis yazılır (cin, çay, hesap...). Maç kapanınca
+   kazanan alacaklı, kaybeden borçlu olur. Ödeme akışa işlenir ve
+   tabeladan düşer — yani borç kaydı da masanın gözü önünde durur.
+   ========================================================= */
+const BAHISLER=[
+  {ad:'Cin',    k:'🥃'},
+  {ad:'Çay',    k:'🫖'},
+  {ad:'Kahve',  k:'☕'},
+  {ad:'Nargile',k:'💨'},
+  {ad:'Tost',   k:'🥪'},
+  {ad:'Hesap',  k:'🧾'},
+  {ad:'Onur',   k:'🎖️'}   // borç doğurmaz
+];
+const bahisIkon=ne=>(BAHISLER.find(b=>b.ad===ne)||{}).k||'🎁';
+const BORCSUZ=['Onur',''];
+
+/* maç kurulum penceresine konan bahis seçici */
+function bahisSecici(varsayilan){
+  const v=varsayilan||'Cin';
+  return `<div class="field"><label class="fl">Neye oynanıyor?</label>
+    <div class="row wrap" id="mBahis">${BAHISLER.map(b=>
+      `<div class="chip ${b.ad===v?'on':''}" data-b="${b.ad}" onclick="tekSec(this)">${b.k} ${b.ad}</div>`).join('')}</div>
+    <div class="row" style="margin-top:8px;gap:8px;align-items:center">
+      <input id="mBahisSerbest" placeholder="ya da kendin yaz..." style="flex:1">
+      <div class="row" style="gap:6px;align-items:center">
+        <span class="xs dim">adet</span>
+        <input type="number" id="mBahisAdet" value="1" min="1" max="20" style="width:64px">
+      </div>
+    </div>
+    <div class="xs dim" style="margin-top:6px">Kaybeden borçlanır, kazanan alacaklı olur; Borç Tabelası'na işlenir.
+      "Onur" seçilirse borç doğmaz.</div></div>`;
+}
+function bahisOku(){
+  const serbest=($('#mBahisSerbest')?.value||'').trim();
+  const ne=serbest||document.querySelector('#mBahis .chip.on')?.dataset.b||'Cin';
+  const adet=Math.max(1,Math.min(20,parseInt($('#mBahisAdet')?.value,10)||1));
+  return {ne,adet};
+}
+
+/* --------- tabela: maçlardan alacak/borç, akıştan ödeme --------- */
+function borcTablosu(){
+  const t={};        // "oyuncuId|bahis" → bakiye (+ alacaklı, − borçlu)
+  const ekle=(id,ne,n)=>{ if(!id||BORCSUZ.includes(ne)) return;
+    const k=`${id}|${ne}`; t[k]=(t[k]||0)+n; };
+
+  for(const c of grupCelseleri()){
+    const b=c.bahis; if(!b||!b.ne||BORCSUZ.includes(b.ne)) continue;
+    const n=Number(b.adet)||1;
+    if(c.oyun==='batak'){
+      const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
+      c.takimlar.forEach((tk,ti)=>tk.oyuncular.forEach(id=>ekle(id,b.ne,ti===kz?n:-n)));
+    }else{
+      const sr=yzMac(c).sira; if(!sr.length) continue;
+      ekle(sr[0].id,b.ne,n);
+      ekle(sr[sr.length-1].id,b.ne,-n);
+    }
+  }
+  /* akıştaki ödemeler borcu kapatır */
+  (DB.akis||[]).forEach(a=>{
+    const o=a.veri&&a.veri.odeme;
+    if(!o||!o.kim||!o.ne) return;
+    const k=`${o.kim}|${o.ne}`;
+    t[k]=(t[k]||0)+(Number(o.adet)||0);      // ödeyince borcu (eksi) azalır
+  });
+  return t;
+}
+
+function borcKart(){
+  const t=borcTablosu();
+  const kayitlar=Object.entries(t).filter(([,v])=>v!==0)
+    .map(([k,v])=>{const [id,ne]=k.split('|'); return {id,ne,v};});
+  if(!kayitlar.length) return '';
+
+  const borclu=kayitlar.filter(r=>r.v<0).sort((a,b)=>a.v-b.v);
+  const alacakli=kayitlar.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const satir=r=>`<div class="row" style="padding:6px 0;gap:9px">
+    ${avatar(r.id,28)}
+    <div class="grow" style="min-width:0"><div style="font-weight:600;font-size:13.5px" class="ell">${esc(ad(r.id))}</div>
+      <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}</div></div>
+    <div class="serif" style="font-size:18px" class="${r.v<0?'neg':'pos'}">
+      <span class="${r.v<0?'neg':'pos'}">${r.v<0?Math.abs(r.v):'+'+r.v}</span></div>
+    ${r.v<0?`<button class="btn-xs btn-gh" onclick="borcOdeAc('${r.id}','${esc(r.ne)}',${Math.abs(r.v)})">Ödedi</button>`:''}
+  </div>`;
+
+  return `<div class="card">
+    <h3>🥃 Borç Tabelası</h3>
+    <div class="xs dim" style="margin-bottom:8px">Maçlardan doğan borçlar. Ödeme kaydedilince düşer ve akışa işlenir.</div>
+    ${borclu.length?`<div class="xs" style="color:#DD8A8A;font-weight:700;margin:4px 0">BORÇLU</div>
+      ${borclu.map(satir).join('')}`:''}
+    ${alacakli.length?`<div class="sep"></div>
+      <div class="xs" style="color:#8CC79B;font-weight:700;margin:4px 0">ALACAKLI</div>
+      ${alacakli.map(satir).join('')}`:''}
+    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.</div>
+  </div>`;
+}
+
+function borcOdeAc(id,ne,enfazla){
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Borç Ödemesi</h2>
+    <div class="xs dim" style="margin-bottom:14px">Kayıt akışa işlenir; masa görür, tabeladan düşer.</div>
+    <div class="row" style="gap:10px;margin-bottom:12px">${avatar(id,36)}
+      <div><div style="font-weight:700">${esc(ad(id))}</div>
+        <div class="xs dim">${bahisIkon(ne)} ${esc(ne)} · ${enfazla} borç</div></div></div>
+    <div class="field"><label class="fl">Kaç tanesini ödedi?</label>
+      <input type="number" id="boAdet" value="${enfazla}" min="1" max="${enfazla}"></div>
+    <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
+      onclick="borcOdeKaydet('${id}','${esc(ne)}',${enfazla})">Ödendi Olarak İşle</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+async function borcOdeKaydet(id,ne,enfazla){
+  const adet=Math.max(1,Math.min(enfazla,parseInt($('#boAdet').value,10)||1));
+  const btn=$('#boBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const metin=`${ad(id)}, ${adet} ${ne} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
+  const ok=await akisEkle('mesaj',metin,{odeme:{kim:id,ne,adet}});
+  if(!ok){ btn.disabled=false; btn.textContent='Ödendi Olarak İşle'; return; }
+  kapatModal(); render(); toast(metin,true);
+}
+
+/* zabıta bahis satırı */
+function bahisNotu(c){
+  const b=c.bahis;
+  if(!b||!b.ne) return '';
+  if(BORCSUZ.includes(b.ne)) return `BAHİS: Maç ${b.ne.toLocaleLowerCase('tr-TR')}una oynanmıştır; maddi bir sonuç doğmamıştır.`;
+  const n=Number(b.adet)||1;
+  if(c.oyun==='batak'){
+    const kz=c.kazanan??batakMac(c).macKazanan;
+    if(kz==null) return '';
+    const kayb=c.takimlar[1-kz].oyuncular.map(ad);
+    return `BAHİS: ${n} ${b.ne}. ${liste(kayb)} borçlanmış olup, ifa süresi bir sonraki celseye kadardır.`;
+  }
+  const sr=yzMac(c).sira;
+  if(!sr.length) return '';
+  return `BAHİS: ${n} ${b.ne}. ${ad(sr[sr.length-1].id)} borçlanmış, ${ad(sr[0].id)} alacaklı hâle gelmiştir.`;
 }
 
 /* Tabelacı ben değilim: yazamam, canlı izlerim. */
