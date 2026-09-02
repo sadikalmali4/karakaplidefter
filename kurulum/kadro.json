@@ -1,15 +1,56 @@
 {
   "grup": "Parkverde",
   "emoji": "🍀",
-  "aciklama": "Tek dokunuşla kurulan başlangıç kadrosu. Fotoğrafı olmayanlar sonradan eklenir.",
+  "aciklama": "Tek dokunuşla kurulan başlangıç kadrosu. Renkler sabit; kırmızı kimseye verilmez (kırmızı takım/uyarı rengi).",
   "oyuncular": [
-    { "ad": "Mustafa", "kad": "mustafa", "foto": null },
-    { "ad": "Hüseyin", "kad": "huseyin", "foto": null },
-    { "ad": "Tuğrul",  "kad": "tugrul",  "foto": "tugrul.jpg" },
-    { "ad": "Volkan",  "kad": "volkan",  "foto": "volkan.jpg" },
-    { "ad": "Emre",    "kad": "emre",    "foto": "emre.jpg" },
-    { "ad": "Ufuk",    "kad": "ufuk",    "foto": "ufuk.jpg" },
-    { "ad": "Ali",     "kad": "ali",     "foto": null },
-    { "ad": "Sadık",   "kad": "sadik",   "foto": "sadik.jpg", "ben": true }
+    {
+      "ad": "Mustafa",
+      "kad": "mustafa",
+      "foto": null,
+      "renk": "#4A8FA8"
+    },
+    {
+      "ad": "Hüseyin",
+      "kad": "huseyin",
+      "foto": null,
+      "renk": "#6E9B5C"
+    },
+    {
+      "ad": "Tuğrul",
+      "kad": "tugrul",
+      "foto": "tugrul.jpg",
+      "renk": "#8A7BC4"
+    },
+    {
+      "ad": "Volkan",
+      "kad": "volkan",
+      "foto": "volkan.jpg",
+      "renk": "#C4784A"
+    },
+    {
+      "ad": "Emre",
+      "kad": "emre",
+      "foto": "emre.jpg",
+      "renk": "#9B6EA8"
+    },
+    {
+      "ad": "Ufuk",
+      "kad": "ufuk",
+      "foto": "ufuk.jpg",
+      "renk": "#5C8A9B"
+    },
+    {
+      "ad": "Ali",
+      "kad": "ali",
+      "foto": null,
+      "renk": "#7A9B4A"
+    },
+    {
+      "ad": "Sadık",
+      "kad": "sadik",
+      "foto": "sadik.jpg",
+      "ben": true,
+      "renk": "#C9A227"
+    }
   ]
 }
