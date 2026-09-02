@@ -7,7 +7,7 @@
  *
  * Uygulamayı güncelledikten sonra SURUM'u bir artır; eski önbellek silinir.
  */
-const SURUM = 'kkd-v5-4';
+const SURUM = 'kkd-v5-5';
 const KABUK = [
   './',
   './index.html',
@@ -47,8 +47,11 @@ self.addEventListener('fetch', e => {
   // Sayfa ve index.html: ÖNCE AĞ — güncellemeyi kaçırmamak için.
   const sayfaMi = istek.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('index.html');
   if (sayfaMi) {
+    // cache:'reload' ŞART: GitHub Pages index.html'e Cache-Control: max-age=600
+    // veriyor. Düz fetch tarayıcı önbelleğinden karşılanıyor, "önce ağ" kuralı
+    // işlemiyor ve yeni sürüm 10 dakika boyunca kullanıcıya hiç ulaşmıyor.
     e.respondWith(
-      fetch(istek)
+      fetch(istek, { cache: 'reload' })
         .then(y => {
           const kopya = y.clone();
           caches.open(SURUM).then(c => c.put('./index.html', kopya)).catch(() => {});
