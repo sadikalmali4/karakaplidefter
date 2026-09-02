@@ -72,14 +72,16 @@ function viewSicil(){
   /* oyuncu kartı açıldıysa iki oyunu birlikte gösteriyoruz */
   if(SABIKA_ID) return sabikaGorunum(SABIKA_ID);
 
+  const sz=sezonSecici();
   const b=sicilSirali('batak').length, y=sicilSirali('101').length;
-  if(!b&&!y) return `<div class="card"><div class="empty"><div class="big">📊</div>
+  if(!b&&!y) return sz+`<div class="card"><div class="empty"><div class="big">📊</div>
     Henüz kapanmış maç yok.<div class="sm" style="margin-top:6px">İlk tabelayı kapat, sicil kendiliğinden dolar.</div></div></div>`;
 
-  return `<div class="ikili">
+  return sz+`<div class="ikili">
       ${sicilKarti('batak')}
       ${sicilKarti('101')}
     </div>
+    ${sezonPanosu()}
     <div class="ikili">
       ${sicilKarne('batak')}
       ${sicilKarne('101')}

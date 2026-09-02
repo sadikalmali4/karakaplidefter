@@ -426,7 +426,8 @@ function istatistik(oyun){
     ihale:0,ihaleBat:0,ihaleTam:0,slem:0,cikisGal:0,cikisKay:0,
     elBitirdi:0,acamadi:0,cifte:0,enAgirCeza:0,enAgirBatak:0,
     enIyi:null,enKotu:null,form:[],seri:0,seriTip:''};
-  const list=grupCelseleri().filter(c=>c.oyun===oyun).slice()
+  /* Sicil ve unvanlar SEZONA bagli; rekor/aramizda/borc her zaman toplam. */
+  const list=sezonCelseleri().filter(c=>c.oyun===oyun).slice()
     .sort((a,b)=>(a.tarih+a.id).localeCompare(b.tarih+b.id));
 
   for(const c of list){

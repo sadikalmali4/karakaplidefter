@@ -36,6 +36,7 @@ function viewCelse(){
         ?'İki masa aynı anda yürüyebilir; her masanın tabelasını ayrı kişi yazar. '
         :''}Kurayı defter çeker, itiraz kabul edilmez.</div>
     </div>
+    ${cagriKart()}
     ${dogumKart()}
     ${acikIddiaKart()}
     ${son?`<div class="card"><h3>Son Maç</h3>${arsivSatir(son,true)}</div>`:''}

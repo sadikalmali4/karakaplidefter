@@ -90,6 +90,7 @@ async function baslat(){
     if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
   });
   davetOku();                       // ?kod=…&oyuncu=… ile gelindiyse yakala
+  const _cagri=cagriOku();          // ?cagri=… ile gelindiyse Masa sekmesine düş
   try{
     const {data:{session}}=await sb.auth.getSession();
     OTURUM=session?.user||null;
@@ -98,6 +99,7 @@ async function baslat(){
       if(DAVET) await davetiIsle();
       kanalKur();
     }
+    if(_cagri&&OTURUM){ TAB='celse'; SABIKA_ID=null; }
     DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
   }catch(e){ DURUM='hata'; HATA=hataMetni(e); }
   render();
@@ -190,10 +192,19 @@ async function verileriGetir(){
     profilId:t.profil_id,ev:t.ev,dep:t.dep}));
 
   const g=grup(DB.aktifGrup)||{};
-  DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
-            yz:   Object.assign({},VARSAYILAN_AYAR.yz,   (g.ayar||{}).yz   ||{}),
-            bahis:(g.ayar||{}).bahis||VARSAYILAN_AYAR.bahis,
-            efsaneler:(g.ayar||{}).efsaneler||[] };
+  /* ÖNCE saklanan ayarın tamamı kopyalanır, SONRA bildiğimiz alanlar
+     normalleştirilir. Yalnız bilinen alanlar okunursa (eski hâl) geri
+     kalanlar bellekten düşüyor ve ayarı bütün olarak yazan ilk işlem
+     onları BULUTTAN DA siliyordu — lakaplar tam bu yüzden kayboluyordu. */
+  DB.ayar=Object.assign({}, g.ayar||{}, {
+    batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
+    yz:   Object.assign({},VARSAYILAN_AYAR.yz,   (g.ayar||{}).yz   ||{}),
+    bahis:(g.ayar||{}).bahis||VARSAYILAN_AYAR.bahis,
+    efsaneler:(g.ayar||{}).efsaneler||[],
+    lakaplar:(g.ayar||{}).lakaplar||{},
+    sampiyonlar:(g.ayar||{}).sampiyonlar||[]
+  });
+  if((g.ayar||{}).yerler) DB.ayar.yerler=g.ayar.yerler;
   DB.ben = DB.oyuncular.find(o=>o.masaId===DB.aktifGrup&&o.profilId===OTURUM.id)?.id || null;
 
   BEKLEYENLER=[]; MASA_UYELERI=[];

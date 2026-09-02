@@ -21,8 +21,9 @@ function viewRozet(){
     ||'<div class="card"><div class="empty"><div class="big">⚔️</div>Henüz karşılaşma yok.</div></div>');
 
   /* --- unvanlar --- */
+  const sz=sezonSecici();
   const oyun=ROZET_OYUN, r=muayyideler(oyun), gen=genelMuayyideler();
-  if(!r.length && !gen.length) return nav+oyunSec+`<div class="card"><div class="empty"><div class="big">🏅</div>
+  if(!r.length && !gen.length) return nav+oyunSec+sz+`<div class="card"><div class="empty"><div class="big">🏅</div>
     Henüz unvan dağıtılmadı.<div class="sm" style="margin-top:6px">Birkaç maç oyna, unvanlar sahiplerini bulsun.</div></div></div>`;
   const iyi=r.filter(x=>x.tip!=='kotu').concat(gen.filter(x=>x.tip!=='kotu'));
   const kotu=r.filter(x=>x.tip==='kotu').concat(gen.filter(x=>x.tip==='kotu'));
