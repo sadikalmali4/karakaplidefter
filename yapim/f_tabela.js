@@ -102,7 +102,9 @@ function batakTabela(){
     ${bitti?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
       <div class="xs dim" style="margin-top:2px">${top[pKz]} – ${top[1-pKz]}</div>
-      ${m.partiSkor[pKz]+1>=c.partiHedef
+      ${/* batakMac, kapatılmamış partiyi de sayıyor — üstüne +1 eklenirse
+            ilk partide maç bitmiş sanılır. Olduğu gibi karşılaştır. */''}
+      ${m.partiSkor[pKz]>=c.partiHedef
         ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}

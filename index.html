@@ -1512,9 +1512,11 @@ function girisNotu(){
   const g=document.querySelector('#mGiris .on')?.dataset.g;
   const n=$('#mGirisNot'); if(!n) return;
   n.textContent = g==='hizli'
-    ? 'Tek ekran: kim kazandı, kim kaybetti. Kuralları bilmeyen de girebilir.'
-    : 'El el giriş: ihale/ceza puanları otomatik hesaplanır, istatistikler zenginleşir.';
-  const pk=$('#mPartiKap'); if(pk) pk.style.display = g==='hizli' ? 'none' : '';
+    ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.'
+    : 'Tabelanın dökümlü hâli: ihale, koz, şlem / bitirdi, açamadı, çifte. Puan otomatik hesaplanır.';
+  /* Parti sayısı ikisinde de sorulur: hızlı mod da artık gerçek tabela,
+     61'e ulaşınca parti kapanıyor ve kaç parti alanın kazandığı belirleyici. */
+  const pk=$('#mPartiKap'); if(pk) pk.style.display='';
 }
 function segSec(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
 function chipSec(el,max){
@@ -1538,7 +1540,10 @@ const secililer=()=>[...document.querySelectorAll('#mOyuncular .chip.on')]
 async function celseKur(oyun){
   const s=secililer();
   const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
-  const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
+  /* Parti sayısı artık iki giriş şeklinde de seçiliyor (hızlı mod da
+     gerçek tabela). Seçim yoksa oyunun varsayılanına düş. */
+  const partiHedef= Number(document.querySelector('#mParti .on')?.dataset.p)
+                 || (oyun==='batak' ? (DB.ayar.batak.partiHedef||2) : (DB.ayar.yz.partiHedef||1));
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
   /* Tabela FİİLEN devredilir: seçilen kişinin hesabı varsa yazma yetkisi
      ona geçer (yama 07). Hesabı yoksa kalem açanda kalır — yoksa kimse
@@ -1574,7 +1579,9 @@ async function celseKur(oyun){
     if(error) throw error;
     Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:yazanHesap,_sira:data.olusturma});
     DB.acik.push(c); SECILI_MAC=c.id; DB.aktif=c;
-    if(giris==='detay'&&kurucuMu()){
+    /* Seçilen parti sayısı bir dahaki masaya varsayılan olsun — giriş
+       şeklinden bağımsız, çünkü ikisinde de seçiliyor artık. */
+    if(kurucuMu()&&DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef!==partiHedef){
       DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
       ayarYaz(true);
     }
@@ -1664,7 +1671,7 @@ function aktifBatak(){
       <div class="bar"><i style="width:${yuz(i)}%;background:${i?'var(--blue)':'var(--accent2)'}"></i></div></div>`).join('')}
     ${pKz!==null?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
-      ${m.partiSkor[pKz]+1>=c.partiHedef
+      ${m.partiSkor[pKz]>=c.partiHedef
         ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
         :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
@@ -4166,7 +4173,9 @@ function batakTabela(){
     ${bitti?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
       <div class="xs dim" style="margin-top:2px">${top[pKz]} – ${top[1-pKz]}</div>
-      ${m.partiSkor[pKz]+1>=c.partiHedef
+      ${/* batakMac, kapatılmamış partiyi de sayıyor — üstüne +1 eklenirse
+            ilk partide maç bitmiş sanılır. Olduğu gibi karşılaştır. */''}
+      ${m.partiSkor[pKz]>=c.partiHedef
         ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}

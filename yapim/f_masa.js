@@ -85,7 +85,10 @@ const varsayilanMasaAd=()=>`${DB.acik.length+1}. Masa`;
 async function celseKur(oyun){
   const s=secililer();
   const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
-  const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
+  /* Parti sayısı artık iki giriş şeklinde de seçiliyor (hızlı mod da
+     gerçek tabela). Seçim yoksa oyunun varsayılanına düş. */
+  const partiHedef= Number(document.querySelector('#mParti .on')?.dataset.p)
+                 || (oyun==='batak' ? (DB.ayar.batak.partiHedef||2) : (DB.ayar.yz.partiHedef||1));
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
   /* Tabela FİİLEN devredilir: seçilen kişinin hesabı varsa yazma yetkisi
      ona geçer (yama 07). Hesabı yoksa kalem açanda kalır — yoksa kimse
@@ -121,7 +124,9 @@ async function celseKur(oyun){
     if(error) throw error;
     Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:yazanHesap,_sira:data.olusturma});
     DB.acik.push(c); SECILI_MAC=c.id; DB.aktif=c;
-    if(giris==='detay'&&kurucuMu()){
+    /* Seçilen parti sayısı bir dahaki masaya varsayılan olsun — giriş
+       şeklinden bağımsız, çünkü ikisinde de seçiliyor artık. */
+    if(kurucuMu()&&DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef!==partiHedef){
       DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
       ayarYaz(true);
     }

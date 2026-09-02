@@ -1009,9 +1009,11 @@ function girisNotu(){
   const g=document.querySelector('#mGiris .on')?.dataset.g;
   const n=$('#mGirisNot'); if(!n) return;
   n.textContent = g==='hizli'
-    ? 'Tek ekran: kim kazandı, kim kaybetti. Kuralları bilmeyen de girebilir.'
-    : 'El el giriş: ihale/ceza puanları otomatik hesaplanır, istatistikler zenginleşir.';
-  const pk=$('#mPartiKap'); if(pk) pk.style.display = g==='hizli' ? 'none' : '';
+    ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.'
+    : 'Tabelanın dökümlü hâli: ihale, koz, şlem / bitirdi, açamadı, çifte. Puan otomatik hesaplanır.';
+  /* Parti sayısı ikisinde de sorulur: hızlı mod da artık gerçek tabela,
+     61'e ulaşınca parti kapanıyor ve kaç parti alanın kazandığı belirleyici. */
+  const pk=$('#mPartiKap'); if(pk) pk.style.display='';
 }
 function segSec(b){b.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');}
 function chipSec(el,max){
@@ -1181,7 +1183,7 @@ function aktifBatak(){
       <div class="bar"><i style="width:${yuz(i)}%;background:${i?'var(--blue)':'var(--accent2)'}"></i></div></div>`).join('')}
     ${pKz!==null?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
-      ${m.partiSkor[pKz]+1>=c.partiHedef
+      ${m.partiSkor[pKz]>=c.partiHedef
         ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
         :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
