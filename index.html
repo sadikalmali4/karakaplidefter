@@ -713,79 +713,122 @@ const SEVIYELER=[
 ];
 const seviye=n=>SEVIYELER.slice().reverse().find(s=>n>=s.n)||SEVIYELER[0];
 
+/* Batak'ta ihale de puan da TAKIMA aittir; eşlerin istatistiği birbirinin
+   aynısı çıkar. Bu yüzden unvan artık tek kişi değil, BAŞA BAŞ OLANLARIN
+   HEPSİ. Eşler birlikte oynadıkça unvanı paylaşırlar; farklı eşlerle
+   oynayıp sayılar ayrıştıkça unvan kendiliğinden tek kişiye döner. */
 function muayyideler(oyun){
   const v=Object.values(istatistik(oyun)).filter(p=>p.celse>0);
   const out=[]; if(!v.length) return out;
-  const enb=(l,f)=>{const x=l.slice().sort((a,b)=>f(b)-f(a))[0]; return (x&&f(x)>0)?x:null;};
-  const enk=(l,f)=>l.slice().sort((a,b)=>f(a)-f(b))[0];
-  const ek=(k,ad,kim,acik,tip)=>{ if(kim) out.push({k,ad,kim:kim.id||kim,aciklama:acik,tip:tip||'iyi'}); };
+
+  /* en yüksek / en düşük — başa baş olanların TAMAMINI döndürür */
+  const enb=(l,f)=>{ if(!l.length) return null;
+    const en=Math.max(...l.map(f)); return en>0 ? l.filter(p=>f(p)===en) : null; };
+  const enk=(l,f)=>{ if(!l.length) return null;
+    const en=Math.min(...l.map(f)); return l.filter(p=>f(p)===en); };
+  const ek=(k,ad2,kim,acik,tip)=>{
+    if(kim&&kim.length) out.push({k,ad:ad2,kim:kim.map(p=>p.id||p),aciklama:acik,tip:tip||'iyi'});
+  };
+  const b=x=>x[0];                       // başa baş olanların değerleri aynı
 
   const sampiyon=enb(v,p=>p.gal*1000+p.oran);
-  ek('🏆','Emsal Karar',sampiyon,sampiyon&&`${sampiyon.gal} maç birinciliği. Artık içtihattır.`);
+  ek('🏆','Emsal Karar',sampiyon,sampiyon&&`${b(sampiyon).gal} maç birinciliği. Artık içtihattır.`);
 
   if(oyun==='batak'){
-    ek('💸','Masanın Sponsoru',enk(v,p=>p.toplamPuan),null,'kotu');
-    const sp=enk(v,p=>p.toplamPuan); if(sp) out[out.length-1].aciklama=`Toplam ${sp.toplamPuan} puan. Masayı fiilen finanse etmektedir.`;
+    const sp=enk(v,p=>p.toplamPuan);
+    ek('💸','Masanın Sponsoru',sp,sp&&`Toplam ${b(sp).toplamPuan} puan. Masayı fiilen finanse etmektedir.`,'kotu');
+
     const mut=enb(v,p=>p.ihale);
-    ek('🏗️','İhale Müteahhidi',mut,mut&&`${mut.ihale} ihale. İştahı sabittir, sonuçları değişkendir.`);
+    ek('🏗️','İhale Müteahhidi',mut,mut&&`${b(mut).ihale} ihale. İştahı sabittir, sonuçları değişkendir.`);
+
     const enkaz=enb(v.filter(p=>p.ihale>=3),p=>p.batOran);
-    ek('💥','Enkaz Ustası',enkaz,enkaz&&`${enkaz.ihale} ihalenin ${enkaz.ihaleBat} tanesini batırdı (%${Math.round(enkaz.batOran*100)}). Yıkım ustasıdır.`,'kotu');
-    const buz=v.filter(p=>p.ihale>=3&&p.ihaleBat===0)[0];
-    ek('🧊','Buzdolabı',buz,buz&&`${buz.ihale} ihale, sıfır batak. Soğukkanlılığı rahatsız edicidir.`);
+    ek('💥','Enkaz Ustası',enkaz,enkaz&&`${b(enkaz).ihale} ihalenin ${b(enkaz).ihaleBat} tanesini batırdı (%${Math.round(b(enkaz).batOran*100)}). Yıkım ustasıdır.`,'kotu');
+
+    const buz=v.filter(p=>p.ihale>=3&&p.ihaleBat===0);
+    ek('🧊','Buzdolabı',buz.length?buz:null,buz.length&&`${b(buz).ihale} ihale, sıfır batak. Soğukkanlılığı rahatsız edicidir.`);
+
     const nisan=enb(v.filter(p=>p.ihale>=3),p=>p.ihaleTam);
-    ek('🎯','Keskin Nişancı',nisan,nisan&&`${nisan.ihaleTam} ihale tutturdu. Ağzından çıkanı kulağı duyuyor.`);
+    ek('🎯','Keskin Nişancı',nisan,nisan&&`${b(nisan).ihaleTam} ihale tutturdu. Ağzından çıkanı kulağı duyuyor.`);
+
     const slem=enb(v,p=>p.slem);
-    ek('🧨','Şlemci',slem,slem&&`${slem.slem} kez masaya tek el bırakmadı. Kibri kayda geçirilmiştir.`);
+    ek('🧨','Şlemci',slem,slem&&`${b(slem).slem} kez masaya tek el bırakmadı. Kibri kayda geçirilmiştir.`);
+
     const bey=enk(v.filter(p=>p.celse>=2),p=>p.ihale/Math.max(1,p.celse));
-    if(bey&&mut&&bey.id!==mut.id) ek('🎩','Beyefendi',bey,`Maç başına ${(bey.ihale/bey.celse).toFixed(1)} ihale. Riski eşine bırakma sanatı.`);
+    const mutIds=(mut||[]).map(p=>p.id);
+    if(bey&&mut&&!bey.some(p=>mutIds.includes(p.id)))
+      ek('🎩','Beyefendi',bey,`Maç başına ${(b(bey).ihale/b(bey).celse).toFixed(1)} ihale. Riski eşine bırakma sanatı.`);
+
     const cik=enb(v,p=>p.cikisGal);
-    ek('🩸','Çıkıştırma Celladı',cik,cik&&`Çıkıştırmada ${cik.cikisGal} galibiyet. Soğukkanlı katildir.`);
+    ek('🩸','Çıkıştırma Celladı',cik,cik&&`Çıkıştırmada ${b(cik).cikisGal} galibiyet. Soğukkanlı katildir.`);
+
     const kur=enb(v,p=>p.cikisKay);
-    ek('⚰️','Çıkıştırma Kurbanı',kur,kur&&`Çıkıştırmada ${kur.cikisKay} yenilgi. Son virajda direksiyon kilitlenmektedir.`,'kotu');
+    ek('⚰️','Çıkıştırma Kurbanı',kur,kur&&`Çıkıştırmada ${b(kur).cikisKay} yenilgi. Son virajda direksiyon kilitlenmektedir.`,'kotu');
   }else{
     const sp=enb(v,p=>p.toplamPuan);
-    ek('💸','Masanın Sponsoru',sp,sp&&`Toplam ${sp.toplamPuan} ceza puanı. Kendi rekorunu kendisi kırmaktadır.`,'kotu');
+    ek('💸','Masanın Sponsoru',sp,sp&&`Toplam ${b(sp).toplamPuan} ceza puanı. Kendi rekorunu kendisi kırmaktadır.`,'kotu');
+
     const bit=enb(v,p=>p.elBitirdi);
-    ek('✂️','İnfaz Memuru',bit,bit&&`${bit.elBitirdi} el bitirdi. Masaya merhameti yoktur.`);
+    ek('✂️','İnfaz Memuru',bit,bit&&`${b(bit).elBitirdi} el bitirdi. Masaya merhameti yoktur.`);
+
     const kap=enb(v,p=>p.acamadi);
-    ek('🔒','Kapalı Dosya',kap,kap&&`${kap.acamadi} el açamadı, ${kap.acamadi*DB.ayar.yz.acamayan} puan ceza yazıldı.`,'kotu');
+    ek('🔒','Kapalı Dosya',kap,kap&&`${b(kap).acamadi} el açamadı, ${b(kap).acamadi*DB.ayar.yz.acamayan} puan ceza yazıldı.`,'kotu');
+
     const kum=enb(v,p=>p.cifte);
-    ek('🎲','Çifte Kumrusu',kum,kum&&`${kum.cifte} kez çifte gitti. Cesaretin bedeli iki katıdır.`);
+    ek('🎲','Çifte Kumrusu',kum,kum&&`${b(kum).cifte} kez çifte gitti. Cesaretin bedeli iki katıdır.`);
+
     const agir=enb(v,p=>p.enAgirCeza);
-    ek('🐢','Ağır Ceza',agir,agir&&`Tek elde ${agir.enAgirCeza} puan yedi. Rekor kendisindedir.`,'kotu');
+    ek('🐢','Ağır Ceza',agir,agir&&`Tek elde ${b(agir).enAgirCeza} puan yedi. Rekor kendisindedir.`,'kotu');
+
     const nazar=enb(v,p=>p.ikinci);
-    ek('🧿','Nazar Boncuğu',nazar,nazar&&`${nazar.ikinci} kez ikinci oldu. Kürsüye en yakın uzaklıktır.`);
+    ek('🧿','Nazar Boncuğu',nazar,nazar&&`${b(nazar).ikinci} kez ikinci oldu. Kürsüye en yakın uzaklıktır.`);
+
     const hesap=enb(v,p=>p.son);
-    ek('🧾','Hesabı Ödeyen',hesap,hesap&&`${hesap.son} kez sonuncu. Garson kendisini tanımaktadır.`,'kotu');
+    ek('🧾','Hesabı Ödeyen',hesap,hesap&&`${b(hesap).son} kez sonuncu. Garson kendisini tanımaktadır.`,'kotu');
   }
+
   const dus=enb(v.filter(p=>p.seriTip==='hasret'&&p.seri>=2),p=>p.seri);
-  ek('📉','Serbest Düşüş',dus,dus&&`Galibiyet hasreti ${dus.seri}. maça çıktı. Dosya ilgili birime sevk edilmiştir.`,'kotu');
+  ek('📉','Serbest Düşüş',dus,dus&&`Galibiyet hasreti ${b(dus).seri}. maça çıktı. Dosya ilgili birime sevk edilmiştir.`,'kotu');
+
   const ser=enb(v.filter(p=>p.seriTip==='gal'&&p.seri>=2),p=>p.seri);
-  ek('🔥','Müktesep Hak',ser,ser&&`Üst üste ${ser.seri} maç birinci. Tesadüf savunması reddedilmiştir.`);
+  ek('🔥','Müktesep Hak',ser,ser&&`Üst üste ${b(ser).seri} maç birinci. Tesadüf savunması reddedilmiştir.`);
+
   const dev=enb(v,p=>p.celse);
-  ek('🪑','Kürsü Müdavimi',dev,dev&&`${dev.celse} maç. Masanın demirbaşıdır.`);
+  ek('🪑','Kürsü Müdavimi',dev,dev&&`${b(dev).celse} maç. Masanın demirbaşıdır.`);
   return out;
 }
+
+/* unvan sahiplerini yazıya çevir: "Sadık ve Volkan" */
+const unvanKisi=kim=>Array.isArray(kim)?kim:[kim];
+const unvanAd=kim=>liste(unvanKisi(kim).map(ad));
+function unvanAvatar(kim,b){
+  const l=unvanKisi(kim), g=l.slice(0,3);
+  return g.map(id=>avatar(id,b||26)).join('')+(l.length>3?`<span class="xs dim">+${l.length-3}</span>`:'');
+}
 function rozetSahipleri(oyun){
-  const m={}; muayyideler(oyun).forEach(x=>m[x.ad]=x.kim); return m;
+  /* Unvanın el değiştirip değiştirmediğini anlamak için sahiplerin
+     tamamını tek anahtara çeviriyoruz; eş değişince de fark edilsin. */
+  const m={};
+  muayyideler(oyun).forEach(x=>m[x.ad]=unvanKisi(x.kim).slice().sort().join(','));
+  return m;
 }
 /* oyundan bağımsız unvanlar: iddia + doğum günü */
+/* oyundan bağımsız unvanlar: iddia + doğum günü (bunlar kişiseldir) */
 function genelMuayyideler(){
   const out=[];
   const v=Object.values(iddiaSicil()).filter(p=>p.kazandi+p.kaybetti>0);
   if(v.length){
     const laf=v.slice().sort((a,b)=>(b.kaybetti-b.kazandi)-(a.kaybetti-a.kazandi))[0];
-    if(laf&&laf.kaybetti>laf.kazandi) out.push({k:'🎤',ad:'Ağzı Kalabalık',kim:laf.id,tip:'kotu',
+    if(laf&&laf.kaybetti>laf.kazandi) out.push({k:'🎤',ad:'Ağzı Kalabalık',kim:[laf.id],tip:'kotu',
       aciklama:`${laf.kaybetti} iddia kaybetti, ${laf.kazandi} kazandı. Konuşmadan önce düşünmesi tavsiye olunur.`});
     const er=v.slice().sort((a,b)=>(b.kazandi-b.kaybetti)-(a.kazandi-a.kaybetti))[0];
-    if(er&&er.kazandi>er.kaybetti) out.push({k:'🪙',ad:'Sözünün Eri',kim:er.id,
+    if(er&&er.kazandi>er.kaybetti) out.push({k:'🪙',ad:'Sözünün Eri',kim:[er.id],
       aciklama:`${er.kazandi} iddia tuttu. Beyanı senet hükmündedir.`});
     const acikci=v.slice().sort((a,b)=>b.acik-a.acik)[0];
-    if(acikci&&acikci.acik>=2) out.push({k:'📿',ad:'Vaatler Bakanı',kim:acikci.id,
+    if(acikci&&acikci.acik>=2) out.push({k:'📿',ad:'Vaatler Bakanı',kim:[acikci.id],
       aciklama:`${acikci.acik} açık iddia. Hepsinin vadesi gelecektir.`});
   }
   const dgler=DB.oyuncular.filter(o=>o.dogum&&dgKalan(o.dogum)===0);
-  dgler.forEach(o=>out.push({k:'🎂',ad:'Doğum Günü Çocuğu',kim:o.id,
+  dgler.forEach(o=>out.push({k:'🎂',ad:'Doğum Günü Çocuğu',kim:[o.id],
     aciklama:`Bugün ${yas(o.dogum)??'?'} yaşına bastı. Masa, kaybetse dahi üzülmemesini kararlaştırmıştır.`}));
   return out;
 }
@@ -1782,7 +1825,7 @@ async function celseKesinlestir(){
     : ad(c.kazanan);
   akisEkle('zabit',c.zabit,{mac_id:c.id,oyun:c.oyun,masaAd:c.masaAd||'',tarih:c.tarih,kazanan:kazananAd})
     .then(()=>Promise.all(yeni.map(r=>
-      akisEkle('unvan',r.aciklama||'',{unvan:r.ad,k:r.k,kim:ad(r.kim),oyun:c.oyun}))))
+      akisEkle('unvan',r.aciklama||'',{unvan:r.ad,k:r.k,kim:unvanAd(r.kim),oyun:c.oyun}))))
     .then(()=>{ if(TAB==='akis') render(); })
     .catch(()=>{});
 
@@ -1804,7 +1847,7 @@ function zabitGoster(c,yeni){
     ${yeni&&yeni.length?`<div style="margin-bottom:12px">
       <h3 style="color:var(--gold)">🏅 El Değiştiren Müeyyideler</h3>
       <div class="stack">${yeni.map(r=>`<div class="rozet yeni"><div class="k">${r.k}</div>
-        <div><div style="font-weight:700;font-size:13.5px">${esc(r.ad)} — <span style="color:var(--gold)">${esc(ad(r.kim))}</span></div>
+        <div><div style="font-weight:700;font-size:13.5px">${esc(r.ad)} — <span style="color:var(--gold)">${esc(unvanAd(r.kim))}</span></div>
         <div class="xs muted">${esc(r.aciklama||'')}</div></div></div>`).join('')}</div></div>`:''}
     <div class="zabit" id="zMetin">${esc(c.zabit)}</div>
     <button class="btn-g btn-full" style="margin-top:12px" onclick="kopyala(document.getElementById('zMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
@@ -1856,7 +1899,7 @@ function sabikaGorunum(id,oyun){
   const p=istatistik(oyun)[id], o=oy(id), sv=seviye(toplamMac(id));
   const kut=(b,e,r)=>`<div style="flex:1;min-width:76px;text-align:center;padding:9px 4px;background:var(--panel2);border-radius:10px">
     <div class="serif" style="font-size:19px;color:${r||'var(--ink)'}">${b}</div><div class="xs dim">${e}</div></div>`;
-  const rozetleri=muayyideler(oyun).filter(r=>r.kim===id);
+  const rozetleri=muayyideler(oyun).filter(r=>unvanKisi(r.kim).includes(id));
   return `<button class="btn-sm btn-gh" style="margin-bottom:10px" onclick="SABIKA_ID=null;render()">‹ Sicile dön</button>
   <div class="card tight"><div class="row" style="gap:12px">${avatar(id,48)}
     <div class="grow"><div class="serif" style="font-size:19px">${esc(o.ad)}${
@@ -1921,14 +1964,21 @@ function viewRozet(){
   const gen=genelMuayyideler();
   const iyi=r.filter(x=>x.tip!=='kotu').concat(gen.filter(x=>x.tip!=='kotu'));
   const kotu=r.filter(x=>x.tip==='kotu').concat(gen.filter(x=>x.tip==='kotu'));
-  const kart=x=>`<div class="rozet"><div class="k">${x.k}</div><div class="grow">
-    <div style="font-weight:700;font-size:13.5px">${esc(x.ad)}</div>
-    <div class="xs muted" style="margin-top:1px">${esc(x.aciklama||'')}</div></div>
-    <div class="row" style="gap:6px;flex-shrink:0">${avatar(x.kim,26)}</div></div>`;
+  const kart=x=>{
+    const l=unvanKisi(x.kim);
+    return `<div class="rozet"><div class="k">${x.k}</div><div class="grow" style="min-width:0">
+      <div style="font-weight:700;font-size:13.5px">${esc(x.ad)}
+        ${l.length>1?'<span class="pill" style="margin-left:4px">ortak</span>':''}</div>
+      <div style="font-size:12.5px;color:var(--gold);margin-top:1px">${esc(unvanAd(x.kim))}</div>
+      <div class="xs muted" style="margin-top:2px">${esc(x.aciklama||'')}</div></div>
+      <div class="row" style="gap:4px;flex-shrink:0">${unvanAvatar(x.kim,26)}</div></div>`;
+  };
   const svTablo=DB.oyuncular.map(o=>({o,n:toplamMac(o.id)})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
   return secim+`
   ${iyi.length?`<div class="card"><h3>🏆 Şeref Levhası</h3><div class="stack">${iyi.map(kart).join('')}</div></div>`:''}
   ${kotu.length?`<div class="card"><h3>⚠️ Utanç Duvarı</h3><div class="stack">${kotu.map(kart).join('')}</div></div>`:''}
+  ${oyun==='batak'?`<div class="card tight xs dim">Batak'ta ihale ve puan takıma aittir; eşler
+    başa başsa unvanı <b>ortak</b> taşır. Farklı eşlerle oynadıkça sayılar ayrışır, unvan tek kişiye döner.</div>`:''}
   ${svTablo.length?`<div class="card"><h3>Kıdem</h3>${svTablo.map(({o,n})=>{const s=seviye(n);
     const sonra=SEVIYELER.find(x=>x.n>n);
     return `<div class="row" style="padding:7px 0;gap:9px">${avatar(o.id,28)}
@@ -2152,7 +2202,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.2 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.3 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
