@@ -1014,9 +1014,7 @@ function girisNotu(){
      Batak'ta ihale/koz dökümü (puanı uygulama hesaplar),
      101'de ceza/ödül kutuları (puanı yine sen yazarsın). */
   n.textContent = g==='hizli'
-    ? (oyun==='batak'
-       ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Ceza/ödül sütunu da açılabilir.'
-       : 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.')
+    ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.'
     : (oyun==='batak'
        ? 'İhale, koz ve çıkan el girilir; puanı uygulama hesaplar. İhale/batak/şlem istatistiği ancak böyle birikir.'
        : 'Her el, her oyuncu için üç kutu: sayı, ceza (+), ödül (−). Puanı yine sen yazarsın, uygulama kural yorumlamaz.');
@@ -1176,11 +1174,17 @@ function aktifBatak(){
   const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
   return `
   ${macSerit(c)}
+  ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
-      <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · hedef ${a.hedef} · ${parti.eller.length} el</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        ${talikDugme()}
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
     <div class="sep"></div>
     ${[0,1].map(i=>`<div style="margin-bottom:${i?0:12}px">
@@ -1253,11 +1257,17 @@ function aktifYz(){
   const sonParti=doldu&&pKz&&((m.partiKaz[pKz[0]]||0)>=c.partiHedef);
   return `
   ${macSerit(c)}
+  ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
-      <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
+    <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+      <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · ${c.mod==='esli'?'eşli':'herkes tek'}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
+        ${talikDugme()}
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      </div>
     </div>
     <div class="row" style="margin-top:10px;gap:9px">
       <div class="grow bar"><i style="width:${Math.min(100,oynanan/N*100)}%;background:${doldu?'var(--gold)':'var(--blue)'}"></i></div>

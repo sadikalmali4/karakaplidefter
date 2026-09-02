@@ -224,6 +224,8 @@ let _yazZaman=null, _yazSira=Promise.resolve(), _bekleyenYazi=false;
 function kaydet(){
   if(!DB.aktif) return;
   if(!tabelaciMiyim()) return;          // yazma hakkı yoksa buluta gitmeye çalışma
+  /* Talik edilmiş masaya sayı yazılıyorsa ara fiilen bitmiştir */
+  if(DB.aktif.talik) talikKendiCozuldu(DB.aktif);
   _bekleyenYazi=true; yazIsigi();
   clearTimeout(_yazZaman);
   _yazZaman=setTimeout(aktifYaz,450);

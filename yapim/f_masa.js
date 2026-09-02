@@ -15,14 +15,17 @@ function viewCelse(){
       ${kurucuMu()?`<button class="btn-b" style="margin-top:8px" onclick="kadroSor()">⚡ Parkverde kadrosunu kur</button>`:''}
       </div></div>`;
 
+  /* Talik edilmiş masa "açık" sayılmaz: ayrı kutuda bekler, sayaçlara girmez. */
+  const yuruyen=DB.acik.filter(c=>!c.talik);
   const son=grupCelseleri().slice().sort((a,b)=>(b.tarih+(b._sira||'')).localeCompare(a.tarih+(a._sira||'')))[0];
   return `
-    ${DB.acik.length?`<div class="card">
-      <h3><span class="canli"></span>Açık Masalar (${DB.acik.length})</h3>
-      ${DB.acik.map(acikMasaSatir).join('<div class="sep"></div>')}
+    ${yuruyen.length?`<div class="card">
+      <h3><span class="canli"></span>Açık Masalar (${yuruyen.length})</h3>
+      ${yuruyen.map(acikMasaSatir).join('<div class="sep"></div>')}
     </div>`:''}
+    ${talikKart()}
     <div class="card">
-      <h3>${DB.acik.length?'Bir Masa Daha Aç':'Yeni Masa'}</h3>
+      <h3>${yuruyen.length?'Bir Masa Daha Aç':'Yeni Masa'}</h3>
       <div class="two">
         <button class="btn-p" style="flex-direction:column;padding:20px 10px;gap:5px" onclick="celseBaslat('batak')">
           <span style="font-size:24px">🂡</span><span>BATAK</span>
@@ -32,7 +35,7 @@ function viewCelse(){
           <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">parti ${DB.ayar.yz.elSayisi} el<br>çok puanlı kaybeder</span></button>
       </div>
       <button class="btn-g btn-full btn-sm" style="margin-top:10px" onclick="kuraCek()">🎲 Eş Kurası Çek</button>
-      <div class="xs dim" style="margin-top:8px">${DB.acik.length
+      <div class="xs dim" style="margin-top:8px">${yuruyen.length
         ?'İki masa aynı anda yürüyebilir; her masanın tabelasını ayrı kişi yazar. '
         :''}Kurayı defter çeker, itiraz kabul edilmez.</div>
     </div>
@@ -80,7 +83,7 @@ function macBirak(){
   SECILI_MAC=null; DB.aktif=null;
   render(); window.scrollTo(0,0);
 }
-const varsayilanMasaAd=()=>`${DB.acik.length+1}. Masa`;
+const varsayilanMasaAd=()=>`${DB.acik.filter(c=>!c.talik).length+1}. Masa`;
 
 //== celseKur
 async function celseKur(oyun){
@@ -194,7 +197,7 @@ async function celseKesinlestir(){
 //== celseIptal
 async function celseIptal(){
   const c=DB.aktif; if(!c) return;
-  if(!confirm('Bu tabela kaydedilmeden silinsin mi?')) return;
+  if(!confirm('Bu tabela SİLİNECEK, yazılan sayılar gidecek.\n\nOyun yarıda kaldıysa silmek yerine ⏸️ Ara düğmesiyle celseyi talik et — tabela olduğu gibi durur, sonra kaldığın elden devam edersin.\n\nYine de silinsin mi?')) return;
   clearTimeout(_yazZaman); _bekleyenYazi=false;
   const {error}=await sb.from('maclar').delete().eq('id',c.id);
   if(error) return toast(hataMetni(error),true);
@@ -207,6 +210,10 @@ async function celseIptal(){
 /* Tabelacı ben değilim: yazamam, canlı izlerim. */
 function canliIzle(){
   const c=DB.aktif, m=macDurum(c);
+  /* Talik edilmişse izleyecek canlı bir şey yok; şeridi göster, çık. */
+  if(c.talik) return `${talikBanner(c)}
+    <div class="card tight center">
+      <button class="btn-gh btn-sm" onclick="macBirak()">← Masalar</button></div>`;
   const kim=DB.oyuncular.find(o=>o.profilId===c._hesap&&o.masaId===c.grupId);
   const bas2=`<div class="card">
     <div class="row" style="justify-content:space-between">

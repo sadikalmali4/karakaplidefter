@@ -14,7 +14,7 @@ import io, os, re, sys
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
 from kkd_ortak import oku, yaz, fn_degistir, arasini_degistir
-import yama_101, yama_sosyal, yama_gorsel, yama_batak_ek
+import yama_101, yama_sosyal, yama_gorsel, yama_talik
 
 YAYIN  = os.path.dirname(BURA)                 # .../bulut
 KAYNAK = os.path.join(BURA, 'temel.html')
@@ -122,12 +122,9 @@ s = s.replace(eski_ma, '''    <div class="field"><label class="fl">Masa adı</la
 
 ''' + eski_ma, 1)
 
-# tabela ekranlarından masa listesine dönüş
-eski_gd = '''<button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>'''
-assert s.count(eski_gd) >= 2, 'iptal düğmesi bulunamadı'
-s = s.replace(eski_gd,
-              '''<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
-        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>''')
+# NOT: "← Masalar" düğmesi eskiden burada her "İptal"in yanına
+# eklenirdi. Artık dört tabela ekranının da kaynağında yazılı
+# (f_tabela.js x2, temel.html x2); yama ikinci kopya üretiyordu.
 
 # chipSec: seçim sırası damgası. Date.now() aynı milisaniyedeki iki seçimi
 # eşitleyip eş/sıralama tayinini bozuyordu — artan sayaç kullan.
@@ -202,6 +199,7 @@ if eski in s:
 
 # 101: silme (ödül) ve elle ceza alanları
 s = yama_101.uygula(s)
+s = yama_talik.uygula(s)
 s = yama_sosyal.uygula(s)
 
 # ---- Açılış sekmesi ----
@@ -247,6 +245,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_sezon.js') + '\n' + F('f_cagri.js') + '\n'
               + F('f_tahmin.js') + '\n' + F('f_tahmin2.js') + '\n'
               + F('f_borc.js') + '\n' + F('f_hesap.js') + '\n'
+              + F('f_talik.js') + '\n'
               + F('f_rekor.js') + '\n' + F('f_hafta.js') + '\n' + F('f_devir.js') + '\n'
               + '\n\n'.join(yeniler) + '\n\n/* ---------- modal ---------- */', 1)
 
@@ -254,7 +253,6 @@ s = s.replace('/* ---------- modal ---------- */',
 # çubukları yerleştiriyor. Aramızda/borç çubukları yukarıdaki parçaların
 # içinde olduğu için bu satır parça birleştirmeden önce çalışamaz.
 s = yama_gorsel.uygula(s)
-s = yama_batak_ek.uygula(s)
 
 # Maç kurulumunda "Yer": serbest yazı yerine mutat mekân seçici
 # (Parkverde / Kemerdere + istenirse elle yazma). Tarih tek başına kalıyor.
