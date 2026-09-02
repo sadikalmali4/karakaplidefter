@@ -4665,7 +4665,13 @@ function sezonZabtiUret(yil){
    gerekçesi katılanların doğrudan kuraya girmesi ve kayda geçmesi.
    ========================================================= */
 
-const CAGRI_VAR='✋', CAGRI_YOK='✖️';
+/* Tepki tablosunun anahtarı (kayıt, kişi, işaret) olduğu için bir kişi
+   birden çok işaret taşıyabiliyor: biri katılım cevabı, biri eş oyu.
+   Silme işlemleri bu yüzden yalnız kendi grubunu temizliyor — yoksa
+   katılım cevabı verince eş oyu da uçuyordu. */
+const CAGRI_VAR='✋', CAGRI_YOK='✖️', ES_KURA='🎲', ES_BELLI='🤝';
+const RSVP_ISARET=[CAGRI_VAR,CAGRI_YOK];
+const ESOY_ISARET=[ES_KURA,ES_BELLI];
 
 const cagrilar = ()=>(DB.akis||[]).filter(a=>a.tip==='cagri'&&a.grupId===DB.aktifGrup);
 function acikCagri(){
@@ -4677,9 +4683,29 @@ function acikCagri(){
 }
 const cagriCevap = (a,isaret)=>(a.tepkiler||[]).filter(t=>t.emoji===isaret).map(t=>t.profilId);
 const cagriBenim = a=>{
-  const t=(a.tepkiler||[]).find(x=>x.profilId===OTURUM.id);
+  const t=(a.tepkiler||[]).find(x=>x.profilId===OTURUM.id&&RSVP_ISARET.includes(x.emoji));
   return t?t.emoji:null;
 };
+const cagriEsBenim = a=>{
+  const t=(a.tepkiler||[]).find(x=>x.profilId===OTURUM.id&&ESOY_ISARET.includes(x.emoji));
+  return t?t.emoji:null;
+};
+/* Eş oylaması: yalnız GELECEĞİNİ söyleyenlerin oyu sayılır — masaya
+   oturmayacak kişinin eş usulünü belirlemesi tuhaf olur. Eşitlikte
+   sonuç yok, masada konuşulur. */
+function cagriEsSonuc(a){
+  const gelen=new Set(cagriCevap(a,CAGRI_VAR));
+  const oy=e=>(a.tepkiler||[]).filter(t=>t.emoji===e&&gelen.has(t.profilId)).map(t=>t.profilId);
+  const k=oy(ES_KURA), b=oy(ES_BELLI);
+  return {kura:k, belli:b,
+          sonuc: k.length===b.length ? null : (k.length>b.length?'kura':'belli')};
+}
+/* Çağrının fiilî eş usulü: kesin seçildiyse o, oylamaysa oyun sonucu */
+function cagriEsUsul(a){
+  const c=a.veri.cagri;
+  if(c.es!=='oylama') return c.es;
+  return cagriEsSonuc(a).sonuc;      // null → henüz belli değil
+}
 const profilOyuncuId = pid=>DB.oyuncular.find(o=>o.profilId===pid&&o.masaId===DB.aktifGrup)?.id||null;
 
 /* --------------------------- kurulum --------------------------- */
@@ -4696,13 +4722,15 @@ function cagriAc(){
       <div><label class="fl">Saat</label><input type="time" id="cgSaat" value="21:00"></div>
     </div>
     ${yerSecici(sonYer())}
-    <div class="field"><label class="fl">Eşler</label>
+    <div class="field"><label class="fl">Eşler nasıl belirlenecek?</label>
       <div class="seg" id="cgEs">
-        <button class="on" data-e="kura" onclick="segSec(this)">🎲 Kurayla</button>
+        <button class="on" data-e="oylama" onclick="segSec(this)">🗳️ Oylansın</button>
+        <button data-e="kura" onclick="segSec(this)">🎲 Kurayla</button>
         <button data-e="belli" onclick="segSec(this)">🤝 Belli</button>
       </div>
-      <div class="xs dim" style="margin-top:6px">Kurayla derseniz katılanlar arasından çekilir.
-        Belli derseniz masada konuşulur, uygulama karışmaz.</div></div>
+      <div class="xs dim" style="margin-top:6px">
+        <b>Oylansın:</b> gelenler oy verir, çoğunluk kazanır — eşitlikte masada konuşulur.<br>
+        <b>Kurayla:</b> katılanlar arasından çekilir. <b>Belli:</b> uygulama karışmaz.</div></div>
     <div class="field"><label class="fl">Not <span style="text-transform:none;letter-spacing:0">(isteğe bağlı)</span></label>
       <input id="cgNot" maxlength="120" placeholder="Cin bende, siz mezeyi getirin"></div>
     <button class="btn-p btn-full" id="cgBtn" style="margin-top:16px" onclick="cagriKaydet()">Çağrıyı Yay</button>
@@ -4719,9 +4747,9 @@ async function cagriKaydet(){
   const not=$('#cgNot').value.trim();
 
   const btn=$('#cgBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
-  const metin=`${saatMetni(zaman.toISOString())} · ${yer} — masa kuruluyor.`+
-    (es==='kura'?' Eşler kurayla çekilecek.':' Eşler masada belirlenecek.')+
-    (not?` ${not}`:'');
+  const esLaf={kura:' Eşler kurayla çekilecek.',belli:' Eşler masada belirlenecek.',
+               oylama:' Eş usulü gelenlerin oyuna bırakılmıştır.'}[es]||'';
+  const metin=`${saatMetni(zaman.toISOString())} · ${yer} — masa kuruluyor.`+esLaf+(not?` ${not}`:'');
   const id=await akisEkle('cagri',metin,{cagri:{zaman:zaman.toISOString(),yer,es,not}});
   if(!id){ btn.disabled=false; btn.textContent='Çağrıyı Yay'; return; }
   /* çağıran zaten geliyor sayılır */
@@ -4733,21 +4761,24 @@ async function cagriKaydet(){
 }
 
 /* --------------------------- cevap --------------------------- */
-async function cagriCevapla(akisId,isaret,sessiz){
+/* Yalnız kendi grubundaki işareti değiştirir; öteki grup yerinde kalır. */
+async function cagriIsaret(akisId,isaret,grup2,sessiz,laf){
   try{
-    /* Tek cevap: önce varsa kaldır, sonra yaz */
     await sb.from('akis_tepkileri').delete()
-      .eq('akis_id',akisId).eq('profil_id',OTURUM.id);
+      .eq('akis_id',akisId).eq('profil_id',OTURUM.id).in('emoji',grup2);
     if(isaret){
       const {error}=await sb.from('akis_tepkileri')
         .insert({akis_id:akisId,profil_id:OTURUM.id,emoji:isaret});
       if(error) throw error;
     }
-    if(!sessiz){ await yenile(true);
-      toast(isaret===CAGRI_VAR?'Katılıyorsun, yazıldı.':'Katılmıyorsun, yazıldı.'); }
+    if(!sessiz){ await yenile(true); if(laf) toast(laf); }
     return true;
   }catch(e){ if(!sessiz) toast(hataMetni(e),true); return false; }
 }
+const cagriCevapla=(akisId,isaret,sessiz)=>cagriIsaret(akisId,isaret,RSVP_ISARET,sessiz,
+  isaret===CAGRI_VAR?'Katılıyorsun, yazıldı.':'Katılmıyorsun, yazıldı.');
+const cagriEsOy=(akisId,isaret)=>cagriIsaret(akisId,isaret,ESOY_ISARET,false,
+  isaret===ES_KURA?'Oyun: kurayla.':'Oyun: eşler belli.');
 
 /* --------------------------- kart --------------------------- */
 function cagriKart(){
@@ -4760,6 +4791,9 @@ function cagriKart(){
   const benim=cagriBenim(a);
   const kalan=kalanMetni(c.zaman);
   const gecti=new Date(c.zaman).getTime()<=Date.now();
+  const usul=cagriEsUsul(a);
+  const oy=cagriEsSonuc(a), esBenim=cagriEsBenim(a);
+  const rozet={kura:'🎲 Kurayla',belli:'🤝 Eşler belli',oylama:'🗳️ Oylanıyor'}[c.es]||'';
   const ad3=pid=>{const o=profilOyuncuId(pid); return o?ad(o):(MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller?.ad||'?');};
   const av=pid=>{const o=profilOyuncuId(pid); return o?avatar(o,24):'';};
 
@@ -4767,7 +4801,7 @@ function cagriKart(){
     <div class="row" style="justify-content:space-between;align-items:flex-start">
       <div><div class="serif" style="font-size:17px">📣 Masa Çağrısı</div>
         <div class="xs dim">${saatMetni(c.zaman)} · ${esc(c.yer||'')} · ${gecti?'vakti geçti':kalan}</div></div>
-      <span class="pill ${c.es==='kura'?'gold':''}">${c.es==='kura'?'🎲 Kurayla':'🤝 Eşler belli'}</span>
+      <span class="pill ${c.es==='belli'?'':'gold'}">${rozet}</span>
     </div>
     ${c.not?`<div class="sm" style="margin-top:8px;font-style:italic">${esc(c.not)}</div>`:''}
 
@@ -4790,13 +4824,36 @@ function cagriKart(){
         onclick="cagriCevapla('${a.id}','${CAGRI_YOK}')">✖️ Katılmıyorum</button>
     </div>`:''}
 
+    ${c.es==='oylama'?`
+      <div class="sep"></div>
+      <div class="row" style="justify-content:space-between;align-items:baseline">
+        <div class="xs dim">EŞLER — GELENLERİN OYU</div>
+        <div class="xs ${usul?'':'dim'}" ${usul?'style="color:var(--gold);font-weight:700"':''}>${
+          usul==='kura'?'🎲 kura kazandı':(usul==='belli'?'🤝 eşler belli':'henüz belli değil')}</div>
+      </div>
+      ${!gecti?`<div class="two" style="margin-top:8px">
+        <button class="btn-sm" style="${esBenim===ES_KURA
+          ?'background:var(--gold);border-color:var(--gold);color:#231d09':''}"
+          onclick="cagriEsOy('${a.id}','${ES_KURA}')">🎲 Kura (${oy.kura.length})</button>
+        <button class="btn-sm" style="${esBenim===ES_BELLI
+          ?'background:var(--gold);border-color:var(--gold);color:#231d09':''}"
+          onclick="cagriEsOy('${a.id}','${ES_BELLI}')">🤝 Belli (${oy.belli.length})</button>
+      </div>
+      ${benim!==CAGRI_VAR?`<div class="xs dim" style="margin-top:6px">
+        Oyun sayılması için "Katılıyorum" demen gerekiyor.</div>`:''}`
+      :`<div class="xs dim" style="margin-top:6px">
+        🎲 ${oy.kura.length} · 🤝 ${oy.belli.length}</div>`}
+      ${oy.sonuc===null&&(oy.kura.length||oy.belli.length)
+        ?`<div class="xs dim" style="margin-top:6px">Oylar eşit — masada konuşulacak.</div>`:''}
+    `:''}
+
     <button class="btn-gh btn-full btn-sm" style="margin-top:9px" onclick="cagriPaylas('${a.id}')">
       📋 WhatsApp'a Yapıştır</button>
 
-    ${c.es==='kura'&&gelen.length>=4&&!gecti
+    ${usul==='kura'&&gelen.length>=4&&!gecti
       ?`<button class="btn-g btn-full btn-sm" style="margin-top:8px" onclick="cagriKura('${a.id}')">
           🎲 Gelenler arasından kura çek</button>`
-      :(c.es==='kura'&&!gecti?`<div class="xs dim center" style="margin-top:8px">
+      :(usul==='kura'&&!gecti?`<div class="xs dim center" style="margin-top:8px">
           Kura için en az 4 kişi gerekiyor (${gelen.length} var).</div>`:'')}
 
     ${kurucuMu()||a.yazanId===OTURUM.id
@@ -4824,7 +4881,12 @@ function cagriMetni(akisId){
   return [
     `${g.emoji||''} ${g.ad} — MASA ÇAĞRISI`,
     `${saatMetni(c.zaman)} · ${c.yer||''}`,
-    c.es==='kura'?'Eşler kurayla çekilecek.':'Eşler masada belirlenecek.',
+    (c.es==='oylama'
+      ? (()=>{const o=cagriEsSonuc(a);
+              return o.sonuc==='kura' ? 'Eş usulü oylandı: KURAYLA.'
+                   : o.sonuc==='belli' ? 'Eş usulü oylandı: EŞLER BELLİ.'
+                   : `Eş usulü oylanıyor (🎲 ${o.kura.length} · 🤝 ${o.belli.length}). Oyunu uygulamadan ver.`;})()
+      : (c.es==='kura'?'Eşler kurayla çekilecek.':'Eşler masada belirlenecek.')),
     c.not?c.not:'',
     '',
     gelen.length?`Şimdilik gelenler: ${gelen.map(ad3).join(', ')}`:'Henüz kimse cevap vermedi.',
