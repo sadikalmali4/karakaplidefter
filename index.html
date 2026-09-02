@@ -5651,12 +5651,52 @@ async function haftaOzetiAkisa(gun){
 }
 
 /* --------- EŞ KURASI ---------
-   Aktif oyunculardan 4'ünü ve eşlerini kura çeker. Kuraya itiraz edilmez. */
-let KURA=null;
+   Kura, kadronun tamamından değil O AN MASADA OLANLARDAN çekilir —
+   yoksa gelmeyeni de masaya oturtuyordu. Önce "kimler var" sorulur,
+   seçim oturum boyunca hatırlanır; "Yeniden çek" aynı kişiler arasında
+   tekrar dağıtır, kimlerin olduğunu değiştirmek ayrı düğmede. */
+let KURA=null, KURA_MEVCUT=null;
+
 function kuraCek(){
-  const oyn=grupOyunculari().map(o=>o.id);
-  if(oyn.length<4) return toast('Kura için en az 4 oyuncu gerekli',true);
-  const k=oyn.slice();
+  if(!KURA_MEVCUT||KURA_MEVCUT.length<4) return kuraKimlerAc();
+  kuraDagit();
+}
+function kuraKimlerAc(){
+  const oyn=grupOyunculari();
+  if(oyn.length<4) return toast('Kura için kadroda en az 4 oyuncu olmalı',true);
+  /* Varsayılan: açık bir masada oturmayan herkes. Zaten oynayan biri
+     yeni kuraya girmesin. */
+  const mesgul=new Set((DB.acik||[]).flatMap(a=>macOyunculari(a)));
+  const secili=new Set(KURA_MEVCUT||oyn.filter(o=>!mesgul.has(o.id)).map(o=>o.id));
+  acModal(`<div class="center"><div style="font-size:30px">🎲</div>
+      <h2 class="serif" style="margin:6px 0 4px">Bugün masada kimler var?</h2>
+      <div class="xs dim" style="margin-bottom:14px">Kura yalnız işaretlediklerin arasından çekilir.
+        Dört kişiden fazlaysa kalanlar bekleyene yazılır.</div></div>
+    <div class="row wrap" id="kmKim">${oyn.map(o=>
+      `<div class="chip ${secili.has(o.id)?'on':''}" data-id="${o.id}"
+        onclick="this.classList.toggle('on');kuraSayac()">${avatar(o.id,20)}${esc(o.ad)}${
+        mesgul.has(o.id)?'<span class="xs dim" style="font-weight:500">· masada</span>':''}</div>`).join('')}</div>
+    <div class="xs dim" id="kmSayac" style="margin-top:8px"></div>
+    <button class="btn-p btn-full" id="kmBtn" style="margin-top:14px" onclick="kuraMevcutKaydet()">🎲 Kurayı Çek</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+  kuraSayac();
+}
+function kuraSayac(){
+  const n=document.querySelectorAll('#kmKim .chip.on').length;
+  const s=$('#kmSayac'), b=$('#kmBtn');
+  if(s) s.textContent = n<4 ? `${n} kişi seçili — en az 4 gerekiyor.`
+        : (n===4 ? '4 kişi: tam masa, bekleyen olmayacak.'
+                 : `${n} kişi: 4'ü oynar, ${n-4} kişi bekler.`);
+  if(b) b.disabled = n<4;
+}
+function kuraMevcutKaydet(){
+  const s=[...document.querySelectorAll('#kmKim .chip.on')].map(e=>e.dataset.id);
+  if(s.length<4) return toast('En az 4 kişi seç',true);
+  KURA_MEVCUT=s;
+  kuraDagit();
+}
+function kuraDagit(){
+  const k=KURA_MEVCUT.slice();
   for(let i=k.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [k[i],k[j]]=[k[j],k[i]]; }
   KURA={A:[k[0],k[1]],B:[k[2],k[3]],bekleyen:k.slice(4)};
   kuraGoster();
@@ -5683,9 +5723,12 @@ function kuraGoster(){
     </div>
     ${KURA.bekleyen.length?`<div class="card tight" style="margin:0 0 10px">
       <div class="xs dim">Bekleyenler: ${esc(KURA.bekleyen.map(ad).join(', '))}</div></div>`:''}
+    <div class="xs dim center" style="margin-bottom:10px">
+      Kura ${KURA_MEVCUT.length} kişi arasından çekildi.</div>
     ${uyari}
     <button class="btn-p btn-full" style="margin-top:12px" onclick="kuraylaAc()">Bu kurayla Batak aç</button>
-    <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="kuraCek()">🎲 Yeniden çek</button>
+    <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="kuraDagit()">🎲 Yeniden çek</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kuraKimlerAc()">👥 Kimler var, değiştir</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px"
       onclick='kopyala(${JSON.stringify('🎲 Kura çekildi\n')}+"A: "+${JSON.stringify('')}+document.querySelector("#modalHost .card.tight").innerText)'>📋 Kopyala</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
