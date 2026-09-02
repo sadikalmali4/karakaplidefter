@@ -1436,7 +1436,10 @@ function acikMasaSatir(c){
       <div class="sm" style="margin-top:5px;font-weight:600" >${esc(o.kim)}</div>
       <div class="xs muted">${esc(o.skor)}${o.alt?' · '+esc(o.alt):''}</div>
     </div>
-    <button class="btn-sm ${benim?'btn-p':''}" onclick="macSec('${c.id}')">${benim?'Tabela':'İzle'}</button>
+    <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+      <button class="btn-sm ${benim?'btn-p':''}" onclick="macSec('${c.id}')">${benim?'Tabela':'İzle'}</button>
+      ${benim?`<button class="btn-xs btn-gh" onclick="misafirPaylasId('${c.id}')">📱 Paylaş</button>`:''}
+    </div>
   </div>`;
 }
 function macSec(id){
@@ -1724,12 +1727,13 @@ function aktifBatak(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · hedef ${a.hedef} · ${parti.eller.length} el</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>
@@ -1811,12 +1815,13 @@ function aktifYz(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · ${c.mod==='esli'?'eşli':'herkes tek'}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>
@@ -2515,7 +2520,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.3 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.4 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4236,12 +4241,13 @@ function batakTabela(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>
@@ -4347,13 +4353,14 @@ function yzTabela(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}
           ${c.mod==='esli'?' · eşli':''}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>
@@ -6857,6 +6864,42 @@ async function misafirKapat() {
     delete c._misafirKod;
     kapatModal(); toast('Misafir yazma kapatıldı', true);
   } catch (e) { toast(hataMetni(e), true); }
+}
+
+
+//== misafirCagriKart
+/* TABELANIN ÜSTÜNDEKİ ÇAĞRI KARTI
+   "Link çıkmıyor" dendi: düğme başlıkta küçük bir çipti. Artık tabelayı
+   açan kişi maçın en üstünde tam genişlikte görüyor. Kapatılabilir —
+   oturum boyunca bir daha çıkmaz (sunucuya yazılan bir şey değil). */
+let _paylasGizli = {};
+function misafirCagriKart(c) {
+  if (MISAFIR || !c || c.bitti) return '';
+  if (c._hesap !== OTURUM?.id) return '';          // yalnız tabelayı tutan
+  if (_paylasGizli[c.id]) return '';
+  return `<div class="card tight" style="border-color:var(--gold);background:var(--panel2)">
+    <div class="row" style="gap:9px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">📱</div>
+      <div class="grow" style="min-width:0">
+        <div class="sm" style="font-weight:700">Masayı gruba at</div>
+        <div class="xs dim" style="margin-top:3px">WhatsApp'a link gönder; masadakiler
+          hesap açmadan, adını yazıp <b>sonuçları buraya girsin</b>.</div>
+      </div>
+      <button class="btn-xs btn-gh" style="flex-shrink:0"
+        onclick="paylasGizle('${c.id}')">✕</button>
+    </div>
+    <button class="btn-g btn-full" style="margin-top:10px" onclick="misafirPaylasAc()">
+      🔗 Linki Üret ve Paylaş</button>
+  </div>`;
+}
+function paylasGizle(id) { _paylasGizli[id] = true; render(); }
+
+/* Masalar listesinden doğrudan paylaşma */
+function misafirPaylasId(id) {
+  const c = DB.acik.find(x => x.id === id);
+  if (!c) return;
+  SECILI_MAC = id; DB.aktif = c;
+  misafirPaylasAc();
 }
 
 /* =========================================================

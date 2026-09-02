@@ -342,3 +342,39 @@ async function misafirKapat() {
     kapatModal(); toast('Misafir yazma kapatıldı', true);
   } catch (e) { toast(hataMetni(e), true); }
 }
+
+
+//== misafirCagriKart
+/* TABELANIN ÜSTÜNDEKİ ÇAĞRI KARTI
+   "Link çıkmıyor" dendi: düğme başlıkta küçük bir çipti. Artık tabelayı
+   açan kişi maçın en üstünde tam genişlikte görüyor. Kapatılabilir —
+   oturum boyunca bir daha çıkmaz (sunucuya yazılan bir şey değil). */
+let _paylasGizli = {};
+function misafirCagriKart(c) {
+  if (MISAFIR || !c || c.bitti) return '';
+  if (c._hesap !== OTURUM?.id) return '';          // yalnız tabelayı tutan
+  if (_paylasGizli[c.id]) return '';
+  return `<div class="card tight" style="border-color:var(--gold);background:var(--panel2)">
+    <div class="row" style="gap:9px;align-items:flex-start">
+      <div style="font-size:20px;flex-shrink:0">📱</div>
+      <div class="grow" style="min-width:0">
+        <div class="sm" style="font-weight:700">Masayı gruba at</div>
+        <div class="xs dim" style="margin-top:3px">WhatsApp'a link gönder; masadakiler
+          hesap açmadan, adını yazıp <b>sonuçları buraya girsin</b>.</div>
+      </div>
+      <button class="btn-xs btn-gh" style="flex-shrink:0"
+        onclick="paylasGizle('${c.id}')">✕</button>
+    </div>
+    <button class="btn-g btn-full" style="margin-top:10px" onclick="misafirPaylasAc()">
+      🔗 Linki Üret ve Paylaş</button>
+  </div>`;
+}
+function paylasGizle(id) { _paylasGizli[id] = true; render(); }
+
+/* Masalar listesinden doğrudan paylaşma */
+function misafirPaylasId(id) {
+  const c = DB.acik.find(x => x.id === id);
+  if (!c) return;
+  SECILI_MAC = id; DB.aktif = c;
+  misafirPaylasAc();
+}

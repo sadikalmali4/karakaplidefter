@@ -68,12 +68,13 @@ function batakTabela(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>
@@ -179,13 +180,14 @@ function yzTabela(){
   return `
   ${MISAFIR?'':macSerit(c)}
   ${MISAFIR?'':kurtarmaKontrol(c)}
+  ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}
           ${c.mod==='esli'?' · eşli':''}</div></div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto;justify-content:flex-end">
+      <div style="display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0;justify-content:flex-end">
         ${MISAFIR?'':`<button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-gh" onclick="devretAc()">✍️ Devret</button>
         <button class="btn-xs btn-gh" onclick="misafirPaylasAc()">📱 Paylaş</button>

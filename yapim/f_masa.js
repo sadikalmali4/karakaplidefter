@@ -72,7 +72,10 @@ function acikMasaSatir(c){
       <div class="sm" style="margin-top:5px;font-weight:600" >${esc(o.kim)}</div>
       <div class="xs muted">${esc(o.skor)}${o.alt?' · '+esc(o.alt):''}</div>
     </div>
-    <button class="btn-sm ${benim?'btn-p':''}" onclick="macSec('${c.id}')">${benim?'Tabela':'İzle'}</button>
+    <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+      <button class="btn-sm ${benim?'btn-p':''}" onclick="macSec('${c.id}')">${benim?'Tabela':'İzle'}</button>
+      ${benim?`<button class="btn-xs btn-gh" onclick="misafirPaylasId('${c.id}')">📱 Paylaş</button>`:''}
+    </div>
   </div>`;
 }
 function macSec(id){
