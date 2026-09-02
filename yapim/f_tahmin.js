@@ -126,8 +126,15 @@ function tahminKart(){
     </div>
     ${!mac.length?`<div class="sep"></div><div class="sm dim">Bu haftaya maç girilmemiş.
       ${k?'Yukarıdaki "+ Maç" ile haftanın fikstürünü yapıştır.':''}</div>`
-     :`<div class="sep"></div>${mac.map(macSatiri).join('<div class="sep" style="margin:10px -14px"></div>')}`}
+     :`<div class="sep"></div>${mac.map(macSatiri).join('<div class="sep" style="margin:10px -14px"></div>')}
+       ${mac.some(x=>!kilitli(x))?`
+         <button class="btn-p btn-full" style="margin-top:14px" id="thHepBtn"
+           onclick="tahminHepsiniKaydet('${h.id}')">💾 Yazdıklarımın Hepsini Kaydet</button>
+         <div class="xs dim center" style="margin-top:6px">Kutudan çıkınca zaten kendiliğinden kaydediliyor;
+           bu düğme hepsini bir arada yazar.</div>`:''}`}
   </div>
+
+  ${tahminPanosu(h.id)}
 
   ${sirali.length?`<div class="card">
     <h3>🏆 Hafta Sıralaması</h3>
@@ -168,22 +175,27 @@ function macSatiri(k){
     </div>
 
     ${!kl?`<div class="row" style="gap:6px;margin-top:8px;align-items:center">
-      <input type="number" id="th-e-${k.id}" min="0" max="30" value="${t?t.ev:''}" placeholder="–"
+      <input type="number" inputmode="numeric" id="th-e-${k.id}" min="0" max="30" value="${t?t.ev:''}" placeholder="–"
+        onchange="tahminKaydet('${k.id}',true)" onkeydown="if(event.key==='Enter')this.blur()"
         style="width:56px;text-align:center;font:600 16px Georgia,serif">
       <span class="dim">–</span>
-      <input type="number" id="th-d-${k.id}" min="0" max="30" value="${t?t.dep:''}" placeholder="–"
+      <input type="number" inputmode="numeric" id="th-d-${k.id}" min="0" max="30" value="${t?t.dep:''}" placeholder="–"
+        onchange="tahminKaydet('${k.id}',true)" onkeydown="if(event.key==='Enter')this.blur()"
         style="width:56px;text-align:center;font:600 16px Georgia,serif">
-      <button class="btn-sm btn-p" onclick="tahminKaydet('${k.id}')">${t?'Değiştir':'Tahmin Et'}</button>
+      <span class="xs" id="th-n-${k.id}" style="color:${t?'var(--green)':'var(--dim)'}">${t?'✓ kayıtlı':'iki sayıyı yaz'}</span>
     </div>`
     :(t?`<div class="xs" style="margin-top:6px">Tahminin: <b>${t.ev}–${t.dep}</b>
         ${bitti?` · <b class="${tahminPuan(t,k)>0?'pos':'zero'}">${puanEtiketi(tahminPuan(t,k))}</b>`:''}</div>`
       :`<div class="xs dim" style="margin-top:6px">Tahmin girmedin.</div>`)}
 
-    ${digerleri.length?`<div class="row wrap" style="gap:5px;margin-top:7px">${digerleri.map(x=>{
-      const p=bitti?tahminPuan(x,k):null;
-      return `<span class="pill ${p===5?'gold':(p>0?'green':(bitti?'':'blue'))}">
-        ${esc(profilAd(x.profilId))} ${x.ev}–${x.dep}${p!==null?' '+puanEtiketi(p):''}</span>`;}).join('')}
-      </div>`:(kl?'':`<div class="xs dim" style="margin-top:6px">Henüz başka tahmin yok.</div>`)}
+    ${hepsi.length?`<div class="row wrap" style="gap:5px;margin-top:7px">${hepsi
+      .slice().sort((a,b)=>(a.profilId===OTURUM.id?-1:0)-(b.profilId===OTURUM.id?-1:0))
+      .map(x=>{
+        const p=bitti?tahminPuan(x,k):null, ben=x.profilId===OTURUM.id;
+        return `<span class="pill ${p===5?'gold':(p>0?'green':(bitti?'':(ben?'gold':'blue')))}"
+          style="${ben?'font-weight:700':''}">
+          ${ben?'sen':esc(profilAd(x.profilId))} ${x.ev}–${x.dep}${p!==null?' '+puanEtiketi(p):''}</span>`;}).join('')}
+      </div>`:(kl?'':`<div class="xs dim" style="margin-top:6px">Henüz tahmin yok.</div>`)}
   </div>`;
 }
 
@@ -199,4 +211,65 @@ function sezonKart(){
       <td><b>${x.puan}</b></td><td>${x.tam||'–'}</td>
       <td class="dim">${x.hafta?x.hafta+' 🏆':'–'}</td></tr>`).join('')}
     </tbody></table></div>`;
+}
+
+
+//== tahminPanosu
+/* HERKESİN TAHMİNİ BİR TABLODA
+   Satır = kişi, sütun = maç. Hücrede o kişinin skoru; maç
+   sonuçlandıysa aldığı puana göre renklenir (altın = tam skor).
+   Sütun başlıkları numaralı, altında hangi maç olduğu yazıyor —
+   20 maçlık haftada takım adlarını yatay sığdırmanın yolu yok. */
+function tahminPanosu(hid){
+  const mac=haftaMaclari(hid);
+  if(!mac.length) return '';
+  const tahminler=mac.flatMap(k=>macTahminleri(k.id));
+  if(!tahminler.length) return `<div class="card"><h3>🗒️ Tahmin Panosu</h3>
+    <div class="sm dim">Henüz kimse tahmin yazmadı. İlk yazan sen ol.</div></div>`;
+
+  /* kişiler: tahmin yazanlar önce, sonra yazmayan masa üyeleri */
+  const yazanlar=[...new Set(tahminler.map(t=>t.profilId))];
+  const uyeler=(MASA_UYELERI||[]).map(u=>u.profil_id).filter(id=>!yazanlar.includes(id));
+  const kisiler=yazanlar.concat(uyeler);
+
+  const hp=haftaPuanlari(hid);
+  const sirali=kisiler.slice().sort((a,b)=>
+    ((hp[b]?.puan)||0)-((hp[a]?.puan)||0)
+    || (a===OTURUM.id?-1:0)-(b===OTURUM.id?-1:0)
+    || String(profilAd(a)).localeCompare(String(profilAd(b)),'tr'));
+
+  const hucre=(pid,k)=>{
+    const t=macTahminleri(k.id).find(x=>x.profilId===pid);
+    if(!t) return `<td class="dim center">–</td>`;
+    const p=skorVar(k)?tahminPuan(t,k):null;
+    const renk = p===5 ? 'var(--gold)' : (p>0 ? 'var(--green)' : (p===0 ? 'var(--dim)' : 'var(--ink)'));
+    return `<td class="center" style="white-space:nowrap;color:${renk};font-weight:${p>0?700:600}">
+      ${t.ev}–${t.dep}${p!==null&&p>0?`<span class="xs"> +${p}</span>`:''}</td>`;
+  };
+
+  return `<div class="card">
+    <h3>🗒️ Tahmin Panosu</h3>
+    <div class="xs dim" style="margin-bottom:9px">Herkesin tahmini bir arada.
+      <b style="color:var(--gold)">Altın</b> tam skor, <b style="color:var(--green)">yeşil</b> puan aldı,
+      soluk olan tutmadı. Sağa kaydırarak bütün maçları görürsün.</div>
+
+    <div style="overflow-x:auto"><table style="min-width:100%">
+      <thead><tr><th style="position:sticky;left:0;background:var(--panel)">Kişi</th>
+        ${mac.map((k,i)=>`<th class="center" title="${esc(k.ev)} – ${esc(k.deplasman)}">${i+1}</th>`).join('')}
+        <th class="center">Σ</th></tr></thead>
+      <tbody>${sirali.map(pid=>`<tr>
+        <td style="position:sticky;left:0;background:var(--panel)">
+          <div class="row" style="gap:7px">${profilAvatar(pid,22)}
+            <span style="font-weight:${pid===OTURUM.id?700:600};white-space:nowrap">${
+              pid===OTURUM.id?'sen':esc(profilAd(pid))}</span></div></td>
+        ${mac.map(k=>hucre(pid,k)).join('')}
+        <td class="center"><b>${(hp[pid]?.puan)||0}</b></td></tr>`).join('')}
+      </tbody>
+    </table></div>
+
+    <div class="xs dim" style="margin-top:10px;line-height:1.7">
+      ${mac.map((k,i)=>`<div><b>${i+1}</b> · ${esc(k.ev)} – ${esc(k.deplasman)}
+        ${skorVar(k)?`<b>${k.evSkor}–${k.depSkor}</b>`:`<span class="dim">${kilitli(k)?'oynanıyor':saatMetni(k.baslangic)}</span>`}</div>`).join('')}
+    </div>
+  </div>`;
 }

@@ -246,6 +246,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_tahmin.js') + '\n' + F('f_tahmin2.js') + '\n'
               + F('f_borc.js') + '\n' + F('f_hesap.js') + '\n'
               + F('f_talik.js') + '\n'
+              + F('f_dayanikli.js') + '\n'
               + F('f_rekor.js') + '\n' + F('f_hafta.js') + '\n' + F('f_devir.js') + '\n'
               + '\n\n'.join(yeniler) + '\n\n/* ---------- modal ---------- */', 1)
 

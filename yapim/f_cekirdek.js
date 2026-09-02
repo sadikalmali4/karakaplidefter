@@ -226,6 +226,9 @@ function kaydet(){
   if(!tabelaciMiyim()) return;          // yazma hakkı yoksa buluta gitmeye çalışma
   /* Talik edilmiş masaya sayı yazılıyorsa ara fiilen bitmiştir */
   if(DB.aktif.talik) talikKendiCozuldu(DB.aktif);
+  /* Yerel ayna + bıkmayan yeniden deneme f_dayanikli.js'te.
+     Buradaki gövde onun için duruyor; celseKaydet varsa o kullanılıyor. */
+  if(typeof celseKaydet==='function') return celseKaydet();
   _bekleyenYazi=true; yazIsigi();
   clearTimeout(_yazZaman);
   _yazZaman=setTimeout(aktifYaz,450);
@@ -236,6 +239,7 @@ function aktifBelge(c){
   return g;
 }
 function aktifYaz(){
+  if(typeof celseYaz==='function') return celseYaz();
   const c=DB.aktif;
   if(!c||!tabelaciMiyim()){ _bekleyenYazi=false; yazIsigi(); return _yazSira; }
   _yazSira=_yazSira.then(async()=>{
@@ -256,6 +260,7 @@ function yazIsigi(){
 async function yenile(sessiz){
   try{
     await verileriGetir();
+    if(typeof aynaTemizle==='function') aynaTemizle();
     DURUM = DB.gruplar.length ? 'hazir' : 'masayok';
     render();
     if(!sessiz) toast('Güncellendi');

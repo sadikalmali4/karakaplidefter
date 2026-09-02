@@ -67,6 +67,7 @@ function batakTabela(){
 
   return `
   ${macSerit(c)}
+  ${kurtarmaKontrol(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
@@ -174,6 +175,7 @@ function yzTabela(){
 
   return `
   ${macSerit(c)}
+  ${kurtarmaKontrol(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">

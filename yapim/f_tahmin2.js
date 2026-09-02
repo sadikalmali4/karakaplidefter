@@ -271,23 +271,71 @@ async function skorKaydet(kid){
 }
 
 /* ---------------- tahmin ---------------- */
-async function tahminKaydet(kid){
+/* sessiz=true: kutudan çıkınca kendiliğinden yazılır. Ekranı yeniden
+   çizmez (yazarken odak kaçmasın), yanındaki küçük not güncellenir. */
+async function tahminKaydet(kid,sessiz){
   const k=(DB.karsilasmalar||[]).find(x=>x.id===kid); if(!k) return;
+  const not=(m,renk)=>{ const n=$(`#th-n-${kid}`); if(n){ n.textContent=m; n.style.color=renk; } };
   if(kilitli(k)){ await yenile(true); return toast('Maç başladı, tahmin kapandı.',true); }
-  const e=parseInt($(`#th-e-${kid}`).value,10), d=parseInt($(`#th-d-${kid}`).value,10);
-  if(!Number.isInteger(e)||!Number.isInteger(d)||e<0||d<0) return toast('İki skoru da yaz',true);
-  const {error}=await sb.from('tahminler')
-    .upsert({karsilasma_id:kid,profil_id:OTURUM.id,ev:e,dep:d,guncelleme:new Date().toISOString()},
-            {onConflict:'karsilasma_id,profil_id'});
+  const e=parseInt($(`#th-e-${kid}`)?.value,10), d=parseInt($(`#th-d-${kid}`)?.value,10);
+  if(!Number.isInteger(e)||!Number.isInteger(d)||e<0||d<0){
+    if(sessiz){ not('iki sayıyı yaz','var(--dim)'); return; }
+    return toast('İki skoru da yaz',true);
+  }
+  const eski=benimTahmin(kid);
+  if(eski&&eski.ev===e&&eski.dep===d){ not('✓ kayıtlı','var(--green)'); return; }
+  not('yazılıyor…','var(--dim)');
+  const {error}=await tahminYaz(kid,e,d);
   if(error){
     /* kilit veritabanında: maç başladıysa kural engeller */
     if(/row-level security|violates/i.test(error.message||'')){
       await yenile(true); return toast('Maç başladı, tahmin kapandı.',true);
     }
+    not('yazılamadı','var(--red)');
     return toast(hataMetni(error),true);
+  }
+  if(sessiz){
+    /* yerel kaydı güncelle, ekranı çizmeden notu yeşile çevir */
+    const yeni={karsilasmaId:kid,profilId:OTURUM.id,ev:e,dep:d};
+    const i=(DB.tahminler||[]).findIndex(t=>t.karsilasmaId===kid&&t.profilId===OTURUM.id);
+    if(i>=0) DB.tahminler[i]=Object.assign(DB.tahminler[i],yeni); else (DB.tahminler=DB.tahminler||[]).push(yeni);
+    not('✓ kayıtlı','var(--green)');
+    return;
   }
   await yenile(true);
   toast(`${k.ev} – ${k.deplasman}: ${e}–${d} yazıldı.`);
+}
+
+function tahminYaz(kid,e,d){
+  return sb.from('tahminler')
+    .upsert({karsilasma_id:kid,profil_id:OTURUM.id,ev:e,dep:d,guncelleme:new Date().toISOString()},
+            {onConflict:'karsilasma_id,profil_id'});
+}
+
+/* Ekrandaki bütün açık maçların kutularını okuyup TEK istekte yazar. */
+async function tahminHepsiniKaydet(hid){
+  const acik=haftaMaclari(hid).filter(k=>!kilitli(k));
+  const satir=[], atlanan=[];
+  acik.forEach(k=>{
+    const e=parseInt($(`#th-e-${k.id}`)?.value,10), d=parseInt($(`#th-d-${k.id}`)?.value,10);
+    if(!Number.isInteger(e)||!Number.isInteger(d)||e<0||d<0){ atlanan.push(k); return; }
+    satir.push({karsilasma_id:k.id,profil_id:OTURUM.id,ev:e,dep:d,guncelleme:new Date().toISOString()});
+  });
+  if(!satir.length) return toast('Kaydedilecek tahmin yok — skorları yaz',true);
+
+  const btn=$('#thHepBtn');
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>'; }
+  const {error}=await sb.from('tahminler').upsert(satir,{onConflict:'karsilasma_id,profil_id'});
+  if(error){
+    if(btn){ btn.disabled=false; btn.textContent='💾 Yazdıklarımın Hepsini Kaydet'; }
+    if(/row-level security|violates/i.test(error.message||'')){
+      await yenile(true);
+      return toast('Bir maç bu arada başlamış olabilir; ekran yenilendi, kalanları tekrar dene.',true);
+    }
+    return toast(hataMetni(error),true);
+  }
+  await yenile(true);
+  toast(`${satir.length} tahmin kaydedildi${atlanan.length?`, ${atlanan.length} maç boş bırakıldı`:''}.`,true);
 }
 
 /* ---------------- hafta zabıtı ---------------- */

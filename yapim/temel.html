@@ -1174,6 +1174,7 @@ function aktifBatak(){
   const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
   return `
   ${macSerit(c)}
+  ${kurtarmaKontrol(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
@@ -1257,6 +1258,7 @@ function aktifYz(){
   const sonParti=doldu&&pKz&&((m.partiKaz[pKz[0]]||0)>=c.partiHedef);
   return `
   ${macSerit(c)}
+  ${kurtarmaKontrol(c)}
   ${talikBanner(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
