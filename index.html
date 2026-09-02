@@ -599,10 +599,19 @@ function grupCelseleri(){
 
    Şlemi ihaleyi ALMAYAN takım yaparsa (alinan=0) zaten ihale batmış
    olur: alan takım -ihale yazar, karşı takım 13 yazar. O yön doğruydu. */
+/* el.ek = [[A ceza, A ödül],[B ceza, B ödül]] — ceza artırır, ödül düşer.
+   Hem kâğıt satırında hem ihaleli elde geçerli; tek yerden hesaplanıyor. */
+function batakEkPuan(el,i){
+  const e=el&&el.ek;
+  if(!Array.isArray(e)||!Array.isArray(e[i])) return 0;
+  return (Number(e[i][0])||0) - (Number(e[i][1])||0);
+}
 function batakElPuan(el,a){
   /* HAM SATIR: tabelaya kâğıttaki gibi iki sayı doğrudan yazılmış.
      İhale/koz dökümü yoktur; ne yazıldıysa o geçerlidir (eksi dahil). */
-  if(el && Array.isArray(el.ham)) return [Number(el.ham[0])||0, Number(el.ham[1])||0];
+  if(el && Array.isArray(el.ham))
+    return [ (Number(el.ham[0])||0) + batakEkPuan(el,0),
+             (Number(el.ham[1])||0) + batakEkPuan(el,1) ];
   const t=[0,0], alan=el.ihaleTakim, karsi=1-alan;
   const tuttu=el.alinan>=el.ihale, slem=el.alinan===a.toplamEl;
 
@@ -612,6 +621,7 @@ function batakElPuan(el,a){
   else if(!tuttu&&a.batinca==='onuc')  t[karsi]=a.toplamEl;
   else if(!tuttu&&a.batinca==='ihale') t[karsi]=el.ihale;
   else                                 t[karsi]=a.toplamEl-el.alinan;
+  t[0]+=batakEkPuan(el,0); t[1]+=batakEkPuan(el,1);
   return t;
 }
 function batakPartiToplam(p){
@@ -654,6 +664,10 @@ const batakTumEller=c=>{norm(c);return c.partiler.flatMap(p=>p.eller);};
    İkisi de her el, her oyuncu için ayrı ayrı tutulur. */
 function yzDurumPuan(d){
   const a=DB.ayar.yz; if(!d) return 0;
+  /* ELLE GIRIS: uygulama kural yorumlamiyor. Sayi yazilir, ceza eklenir,
+     odul dusulur. Ev kurallari degistiginde kod degistirmek gerekmiyor. */
+  if(d.tip==='elle')
+    return (Number(d.sayi)||0) + (Number(d.ceza)||0) - (Number(d.odul)||0);
   let p=0;
   switch(d.tip){
     case 'bitirdi': p=(a.okeyAktif&&d.okey)?a.bitiren*a.okeyCarpan:a.bitiren; break;
@@ -671,6 +685,11 @@ function yzDurumPuan(d){
 function yzKirilim(d){
   const a=DB.ayar.yz;
   if(!d) return {normal:0,odul:0,ceza:0,toplam:0};
+  /* Elle giriste kirilim dogrudan yazilan uc alandan gelir. */
+  if(d.tip==='elle'){
+    const n0=Number(d.sayi)||0, z=Number(d.ceza)||0, o=Number(d.odul)||0;
+    return {normal:n0, ceza:z, odul:-o, toplam:n0+z-o};
+  }
   let n=0;
   switch(d.tip){
     case 'bitirdi': n=(a.okeyAktif&&d.okey)?a.bitiren*a.okeyCarpan:a.bitiren; break;
@@ -794,11 +813,12 @@ function istatistik(oyun){
         const p=kur(id);
         const v=yzElPuan(el,id); if(v>p.enAgirCeza)p.enAgirCeza=v;
         const d=el.durum&&el.durum[id]; if(!d) return;   /* ham satırda durum dökümü yok */
-        if(d.tip==='bitirdi')p.elBitirdi++;
+        if(d.tip==='bitirdi'||d.bitirdi)p.elBitirdi++;
         if(d.tip==='acamadi')p.acamadi++;
         if(d.tip==='cifte')p.cifte++;
+        if(d.ceza) p.ekCeza=(p.ekCeza||0)+Number(d.ceza);
+        if(d.odul) p.ekOdul=(p.ekOdul||0)+Number(d.odul);
         if(d.silme) p.silmeSay=(p.silmeSay||0)+1;
-        if(d.ceza)  p.ekCeza=(p.ekCeza||0)+Number(d.ceza);
       })));
     }
   }
@@ -973,19 +993,17 @@ function batakElYorum(c,el){
   return rast(['İhale tutmuştur. Sıradaki.',`${T(el.ihaleTakim)} sözünü tutmuştur; nadir görülen bir hâldir.`]);
 }
 function yzElYorum(c,durum){
-  const a=DB.ayar.yz;
-  const bit=c.oyuncular.find(id=>durum[id]?.tip==='bitirdi');
-  const ac =c.oyuncular.filter(id=>durum[id]?.tip==='acamadi');
-  const ci =c.oyuncular.filter(id=>durum[id]?.tip==='cifte');
-  const si =c.oyuncular.filter(id=>durum[id]?.silme);
-  const cz =c.oyuncular.filter(id=>durum[id]?.ceza);
-  if(si.length)    return `${liste(si.map(ad))} SİLDİ: hanesinden ${Math.abs(Number(a.silme)||0)} puan düştü. Masa bu hâli kıskançlıkla izlemiştir.`;
-  if(cz.length)    return `${liste(cz.map(ad))} hakkında ek ceza yazılmıştır. Gerekçe tabelacıya aittir.`;
-  if(ac.length>=2) return `${liste(ac.map(ad))} açamadı. Masanın yarısı seyirci konumundadır.`;
-  if(ci.length)    return `${liste(ci.map(ad))} çifte gitti, bedeli iki katı. Cesaret pahalıdır.`;
-  if(ac.length===1)return `${ad(ac[0])} açamadı: +${a.acamayan}. Savunması alınmamıştır.`;
-  if(bit) return rast([`${ad(bit)} eli bitirdi. Masa sessizliğe gömülmüştür.`,
-                       `${ad(bit)} ${a.bitiren} yazdı. İtiraz yolu kapalıdır.`]);
+  const p=id=>yzDurumPuan(durum[id]);
+  const bit=c.oyuncular.filter(id=>durum[id]&&(durum[id].bitirdi||durum[id].tip==='bitirdi'));
+  const agir=c.oyuncular.slice().sort((x,y)=>p(y)-p(x))[0];
+  const cezali=c.oyuncular.filter(id=>durum[id]&&durum[id].ceza);
+  const odullu=c.oyuncular.filter(id=>durum[id]&&durum[id].odul);
+  if(bit.length) return rast([
+    `${liste(bit.map(ad))} eli bitirdi. Masa sessizliğe gömülmüştür.`,
+    `${liste(bit.map(ad))} bitirdi; itiraz yolu kapalıdır.`]);
+  if(cezali.length) return `${liste(cezali.map(ad))} ceza yemiştir. Savunması alınmamıştır.`;
+  if(odullu.length) return `${liste(odullu.map(ad))} ödül almıştır; masa bunu şüpheyle karşılamıştır.`;
+  if(agir&&p(agir)>0) return `Elin en ağır hanesi ${ad(agir)}'e yazılmıştır: ${p(agir)}.`;
   return 'El kaydedildi.';
 }
 
@@ -1486,8 +1504,8 @@ function celseBaslat(oyun){
 
     <div class="field"><label class="fl">Giriş şekli</label>
       <div class="seg" id="mGiris">
-        <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">⚡ Hızlı</button>
-        <button data-g="detay" onclick="segSec(this);girisNotu()">📋 Detaylı</button>
+        <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">📝 Tabela</button>
+        <button data-g="detay" onclick="segSec(this);girisNotu()">📋 İhaleli</button>
       </div>
       <div class="xs dim" id="mGirisNot" style="margin-top:6px"></div>
     </div>
@@ -1708,6 +1726,16 @@ function aktifBatak(){
         ${Array.from({length:a.toplamEl+1},(_,k)=>`<div class="chip" data-v="${k}" style="flex:1;min-width:34px;justify-content:center;padding:9px 0" onclick="tekSec(this)">${k}</div>`).join('')}
       </div>
       <div class="xs dim" style="margin-top:6px">Karşı takım kalanı yazar (toplam ${a.toplamEl} el).</div></div>
+
+    <details style="margin-top:10px"><summary>⚖️ Bu ele ceza / ödül ekle</summary><div>
+      ${[0,1].map(i=>`<div class="row" style="gap:7px;align-items:center;margin-top:7px">
+        <span class="pill ${i?'blue':'green'}" style="flex-shrink:0">${c.takimlar[i].ad}</span>
+        <input type="number" inputmode="numeric" id="bCeza${i}" placeholder="ceza +" style="flex:1">
+        <input type="number" inputmode="numeric" id="bOdul${i}" placeholder="ödül −" style="flex:1">
+      </div>`).join('')}
+      <div class="xs dim" style="margin-top:7px">Ceza puanı artırır, ödül düşer. Boş bırakılırsa yazılmaz.</div>
+    </div></details>
+
     <button class="btn-p btn-full" style="margin-top:14px" onclick="batakElEkle()">Eli Yaz</button>
   </div>`:''}
 
@@ -1733,6 +1761,9 @@ function batakElEkle(){
   if(!al) return toast('Çıkan el sayısını seç');
   const el={ihaleTakim:Number(document.querySelector('#bTakim .on').dataset.v),
             ihale:Number($('#bIhale').value),koz:$('#bKoz').value,alinan:Number(al.dataset.v)};
+  const say=n=>{const v=$(n)?.value; return (v===''||v==null)?0:(parseInt(v,10)||0);};
+  const ek=[[say('#bCeza0'),say('#bOdul0')],[say('#bCeza1'),say('#bOdul1')]];
+  if(ek.some(p=>p[0]||p[1])) el.ek=ek;
   parti.eller.push(el); kaydet(); render(); toast(batakElYorum(c,el),true);
 }
 
@@ -1774,24 +1805,29 @@ function aktifYz(){
 
   ${!doldu?`<div class="card">
     <h3>El Yaz · ${oynanan+1}. El</h3>
-    <div class="xs dim" style="margin-bottom:10px">Bitiren <b>${a.bitiren}</b> · açamayan <b>+${a.acamayan}</b> · çifte <b>×${a.cifteCarpan}</b> · silme <b>${a.silme}</b><br>Silme ve ek ceza, normal puanın DIŞINDA yazılır; ikisi de her oyuncu için ayrı ayrı.</div>
+    <div class="xs dim" style="margin-bottom:10px">Sayıyı olduğu gibi yaz. <b>Ceza eklenir (+)</b>,
+      <b>ödül düşer (−)</b>. Toplam: sayı + ceza − ödül. Uygulama kural yorumlamıyor.</div>
     ${c.oyuncular.map(id=>`<div class="el-card" data-oy="${id}">
-      <div class="row" style="margin-bottom:8px">${avatar(id,24)}<div style="font-weight:700;font-size:14px">${esc(ad(id))}</div></div>
-      <div class="row wrap durumlar" style="gap:6px">
-        <div class="chip" data-d="bitirdi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Bitirdi</div>
-        ${c.mod==='esli'?`<div class="chip" data-d="es" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Eşi bitirdi (yazmaz)</div>`:''}
-        <div class="chip" data-d="acamadi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Açamadı</div>
-        <div class="chip" data-d="kaldi" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Açtı, elinde kaldı</div>
-        <div class="chip" data-d="cifte" onclick="yzDurumSec(this)" style="font-size:12px;padding:6px 10px">Çifte gitti, kaldı</div>
+      <div class="row" style="margin-bottom:8px">${avatar(id,24)}
+        <div class="grow" style="font-weight:700;font-size:14px">${esc(ad(id))}</div>
+        <label class="xs dim" style="display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" class="bitirdi" style="width:16px;height:16px"> bitirdi</label>
       </div>
-      <div class="ek" style="margin-top:8px;display:none"></div>
-      <div class="row" style="margin-top:8px;gap:8px;align-items:center">
-        <div class="chip silme" onclick="yzSilmeSec(this)" style="font-size:12px;padding:6px 10px"
-          title="Ödül: hanesinden ${Math.abs(Number(a.silme)||0)} puan düşer">🧹 Silme</div>
-        <input type="number" class="cezaGir" placeholder="ek ceza" inputmode="numeric"
-          style="width:104px;padding:7px 9px;font-size:12.5px">
-      </div></div>`).join('')}
-    <button class="btn-p btn-full" style="margin-top:6px" onclick="yzElEkle()">Eli Yaz</button>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px">
+        <div><label class="fl">Sayı</label>
+          <input type="number" inputmode="numeric" class="say" placeholder="0"
+            style="text-align:center;font:600 16px Georgia,serif"></div>
+        <div><label class="fl" style="color:#C99A8C">+ Ceza</label>
+          <input type="number" inputmode="numeric" class="cezaGir" placeholder="–"
+            style="text-align:center;font:600 16px Georgia,serif"></div>
+        <div><label class="fl" style="color:#8CC79B">− Ödül</label>
+          <input type="number" inputmode="numeric" class="odulGir" placeholder="–"
+            style="text-align:center;font:600 16px Georgia,serif"></div>
+      </div>
+      <div class="ek" style="margin-top:8px;display:none"></div></div>`).join('')}
+    <div class="xs dim" style="margin-top:4px">"bitirdi" işareti puana etki etmez; yalnız
+      El Karnesi ve "İnfaz Memuru" unvanı için sayılır.</div>
+    <button class="btn-p btn-full" style="margin-top:8px" onclick="yzElEkle()">Eli Yaz</button>
   </div>`:''}
 
   ${parti.eller.length?`<div class="card">
@@ -1800,10 +1836,11 @@ function aktifYz(){
       <thead><tr><th>El</th>${c.oyuncular.map(id=>`<th>${esc(ad(id))}</th>`).join('')}</tr></thead>
       <tbody>${parti.eller.map((el,i)=>`<tr><td>${i+1}</td>${c.oyuncular.map(id=>{
         const d=el.durum[id]||{},kr=yzKirilim(d),p=kr.toplam;
-        const ip={bitirdi:'B',es:'E',acamadi:'A',kaldi:'',cifte:'Ç'}[d.tip]||'';
+        const ip = d.tip==='elle' ? (d.bitirdi?'B':'')
+                 : ({bitirdi:'B',es:'E',acamadi:'A',kaldi:'',cifte:'Ç'}[d.tip]||'');
         return `<td class="${snf(-p)}">${art(p)}${ip?` <span class="xs dim">${ip}</span>`:''}${
-          d.silme?' <span class="xs" style="color:var(--gold)">🧹</span>':''}${
-          d.ceza?` <span class="xs neg">+${d.ceza}</span>`:''}</td>`;}).join('')}</tr>`).join('')}
+          kr.ceza?` <span class="xs neg">+${kr.ceza}</span>`:''}${
+          kr.odul?` <span class="xs pos">${kr.odul}</span>`:''}</td>`;}).join('')}</tr>`).join('')}
       ${(()=>{ const t={n:{},o:{},z:{}};
         c.oyuncular.forEach(id=>{t.n[id]=0;t.o[id]=0;t.z[id]=0;});
         parti.eller.forEach(el=>c.oyuncular.forEach(id=>{const k=yzKirilim(el.durum[id]);
@@ -1811,9 +1848,9 @@ function aktifYz(){
         const varMi=o=>c.oyuncular.some(id=>o[id]);
         const sat=(bas,o,renkli)=>`<tr><td class="xs dim">${bas}</td>${c.oyuncular.map(id=>
           `<td class="xs ${renkli?snf(-o[id]):'dim'}">${o[id]?art(o[id]):'—'}</td>`).join('')}</tr>`;
-        return sat('Normal',t.n,false)
-             + (varMi(t.o)?sat('Ödül · silme',t.o,true):'')
-             + (varMi(t.z)?sat('Ek ceza',t.z,true):''); })()}
+        return sat('Sayı',t.n,false)
+             + (varMi(t.z)?sat('Ceza (+)',t.z,true):'')
+             + (varMi(t.o)?sat('Ödül (−)',t.o,true):''); })()}
       <tr style="border-top:2px solid var(--line)"><td><b>TOPLAM</b></td>${
         c.oyuncular.map(id=>`<td><b>${yzPartiToplam(parti,c)[id]}</b></td>`).join('')}</tr></tbody></table></div>
     <button class="btn-sm btn-dn" style="margin-top:10px;width:100%" onclick="elSil()">Son Eli Boz</button>
@@ -1843,33 +1880,25 @@ function yzSilmeSec(el){ el.classList.toggle('on'); }
 function yzElEkle(){
   const c=DB.aktif,parti=yzMac(c).aktif,durum={},eksik=[];
   let bitiren=null;
+  const say=x=>{ const v=x?.value; return (v===''||v==null)?null:Number(v); };
   for(const id of c.oyuncular){
     const kart=document.querySelector(`.el-card[data-oy="${id}"]`);
-    const s=kart.querySelector('.durumlar .chip.on');
-    if(!s){eksik.push(ad(id));continue;}
-    const tip=s.dataset.d,d={tip};
-    if(tip==='kaldi'||tip==='cifte'){
-      const v=kart.querySelector('.say')?.value;
-      if(v===''||v==null) return toast(`${ad(id)} için kalan sayıyı gir`,true);
-      d.sayi=Number(v);
-    }
-    if(tip==='bitirdi'){bitiren=id;d.okey=!!kart.querySelector('.okey')?.checked;}
-    if(kart.querySelector('.silme.on')) d.silme=true;
-    const cz=kart.querySelector('.cezaGir')?.value;
-    if(cz!==''&&cz!=null&&Number(cz)) d.ceza=Number(cz);
+    const s=say(kart.querySelector('.say'));
+    const cz=say(kart.querySelector('.cezaGir'));
+    const od=say(kart.querySelector('.odulGir'));
+    const bt=!!kart.querySelector('.bitirdi')?.checked;
+    if(s===null&&cz===null&&od===null&&!bt){ eksik.push(ad(id)); continue; }
+    const d={tip:'elle'};
+    if(s!==null)  d.sayi=s;
+    if(cz)        d.ceza=cz;
+    if(od)        d.odul=od;
+    if(bt){ d.bitirdi=true; bitiren=id; }
     durum[id]=d;
   }
-  if(eksik.length) return toast(`Durum seçilmedi: ${eksik.join(', ')}`,true);
-  if(!bitiren) return toast('El bitiren oyuncuyu işaretle',true);
-  if(c.mod==='esli'&&c.esler){
-    const pr=c.esler.find(p=>p.includes(bitiren)), es=pr&&pr.find(x=>x!==bitiren);
-    if(es&&durum[es]&&durum[es].tip!=='es'){
-      const kor={tip:'es'};
-      if(durum[es].silme) kor.silme=true;
-      if(durum[es].ceza)  kor.ceza=durum[es].ceza;
-      durum[es]=kor;
-    }
-  }
+  /* Hicbir sey yazilmayan oyuncuya 0 yazilir — "durum secilmedi" diye
+     tutmuyoruz artik, cunku sifir da gecerli bir sonuc. */
+  eksik.forEach(()=>{});
+  c.oyuncular.forEach(id=>{ if(!durum[id]) durum[id]={tip:'elle',sayi:0}; });
   parti.eller.push({durum}); kaydet(); render();
   const N=DB.ayar.yz.elSayisi||11;
   toast(parti.eller.length>=N?`${N}. el girildi — parti tamamlandı`:yzElYorum(c,durum),true);
@@ -2370,25 +2399,33 @@ function viewAyar(){
   </div>
 
   <div class="card">
-    <h3>101 Kuralları</h3>
+    <h3>101 · Ceza ve Ödül</h3>
+    <div class="uyari" style="margin-bottom:10px">101'de puanı <b>elle</b> yazıyorsun:
+      her el için <b>Sayı</b>, varsa <b>+ Ceza</b> ve <b>− Ödül</b>.
+      Uygulama kural yorumlamıyor — ev kuralınız değişirse burada bir şey değiştirmen gerekmez.
+      <b>Ceza eklenir, ödül düşer.</b></div>
     <div class="two">
       <div><label class="fl">Partide el sayısı</label><input type="number" value="${a.yz.elSayisi}" ${kilit} onchange="ayarSet('yz','elSayisi',this.value,1)"></div>
-      <div><label class="fl">Çifte çarpanı</label><input type="number" value="${a.yz.cifteCarpan}" ${kilit} onchange="ayarSet('yz','cifteCarpan',this.value,1)"></div>
+      <div><label class="fl">Varsayılan parti sayısı</label>
+        <div class="seg">${[1,2,3].map(n=>`<button class="${a.yz.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('yz','partiHedef',${n},1).then(render)">${n===1?'Tek':n}</button>`).join('')}</div></div>
     </div>
-    <div class="two" style="margin-top:10px">
-      <div><label class="fl">El bitiren</label><input type="number" value="${a.yz.bitiren}" ${kilit} onchange="ayarSet('yz','bitiren',this.value)"></div>
-      <div><label class="fl">Açamayan cezası</label><input type="number" value="${a.yz.acamayan}" ${kilit} onchange="ayarSet('yz','acamayan',this.value)"></div>
-    </div>
-    <div class="field" style="margin-top:10px"><label class="fl">🧹 Silme (ödül) puanı</label>
-      <input type="number" value="${a.yz.silme}" ${kilit} onchange="ayarSet('yz','silme',this.value)">
-      <div class="xs dim" style="margin-top:5px">Silme yapanın hanesinden düşülen sabit miktar. EKSİ yazılmalı (örn. −202).
-        Normal puanın dışında işler; el yazarken her oyuncu için ayrıca işaretlenir.</div></div>
-    <div class="field" style="margin-top:10px"><label class="fl">Varsayılan parti sayısı</label>
-      <div class="seg">${[1,2,3].map(n=>`<button class="${a.yz.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('yz','partiHedef',${n},1).then(render)">${n===1?'Tek':n+' parti'}</button>`).join('')}</div></div>
-    <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13.5px;cursor:pointer">
-      <input type="checkbox" style="width:18px;height:18px" ${a.yz.okeyAktif?'checked':''} ${kilit}
-        onchange="ayarSet('yz','okeyAktif',this.checked).then(render)">
-      Okeyle bitirme çarpanı kullanılsın (×${a.yz.okeyCarpan})</label>
+    <div class="xs dim" style="margin-top:10px">Aşağıdakiler yalnız <b>hızlı tabelada</b> ipucu olarak
+      gösterilir ve eski kayıtların puanını hesaplarken kullanılır. Yeni ellerde puanı sen yazdığın için
+      hiçbirine dokunmak zorunda değilsin.</div>
+    <details style="margin-top:8px"><summary>Eski kayıtların hesabı (dokunmasan da olur)</summary><div>
+      <div class="two">
+        <div><label class="fl">El bitiren (ödül)</label><input type="number" value="${a.yz.bitiren}" ${kilit} onchange="ayarSet('yz','bitiren',this.value)"></div>
+        <div><label class="fl">Açamayan (ceza)</label><input type="number" value="${a.yz.acamayan}" ${kilit} onchange="ayarSet('yz','acamayan',this.value)"></div>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div><label class="fl">Çifte çarpanı</label><input type="number" value="${a.yz.cifteCarpan}" ${kilit} onchange="ayarSet('yz','cifteCarpan',this.value,1)"></div>
+        <div><label class="fl">Silme (ödül)</label><input type="number" value="${a.yz.silme}" ${kilit} onchange="ayarSet('yz','silme',this.value)"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13.5px;cursor:pointer">
+        <input type="checkbox" style="width:18px;height:18px" ${a.yz.okeyAktif?'checked':''} ${kilit}
+          onchange="ayarSet('yz','okeyAktif',this.checked).then(render)">
+        Okeyle bitirme çarpanı (×${a.yz.okeyCarpan})</label>
+    </div></details>
     <div class="sep"></div>
     <h3>Son İki Sıranın Müeyyidesi</h3>
     <div class="field"><label class="fl">3. sıra</label><input value="${esc(a.yz.muey3)}" ${kilit} onchange="ayarSet('yz','muey3',this.value)" placeholder="Çay ısmarlar"></div>
@@ -2434,7 +2471,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 5.1 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4098,7 +4135,18 @@ function yerOku(){
    güncellenir. Yoksa mobilde her dokunuşta odak kaçar.
    ========================================================= */
 
+let TB_EK=false;      // ceza/ödül sütunları açık mı (oturum boyu)
 const TB_IZGARA='display:grid;grid-template-columns:26px 1fr 1fr;gap:7px;align-items:center';
+/* ceza/ödül açıkken sütun sayısı 6'ya çıkar; yatay kaydırma ile okunur */
+const TB_IZGARA_EK='display:grid;grid-template-columns:26px repeat(6,minmax(52px,1fr));gap:5px;align-items:center';
+const tbIzgara=()=>TB_EK?TB_IZGARA_EK:TB_IZGARA;
+function tbEkAcKapa(){ TB_EK=!TB_EK; render(); }
+function tbEkDeger(p,r,i,j){
+  const el=(p.eller||[])[r];
+  const e=el&&Array.isArray(el.ek)?el.ek:null;
+  const v=e&&Array.isArray(e[i])?e[i][j]:0;
+  return v||'';
+}
 
 function hamSatirlar(p){
   return (p.eller||[]).map(el=>{
@@ -4117,20 +4165,57 @@ function tbHucre(r,i,deger,kilit){
       background:${kilit?'transparent':'var(--panel2)'};
       border-color:${kilit?'transparent':'var(--line)'}">`;
 }
+function tbEkHucre(r,i,j,deger,kilit){
+  return `<input type="number" inputmode="numeric" data-r="${r}" data-ek="${i}${j}"
+    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül':'ceza'}"
+    onchange="tbEkYaz(${r},${i},${j},this.value)"
+    style="width:100%;text-align:center;font:600 13px/1 inherit;padding:8px 1px;
+      color:${j?'var(--green)':'var(--red)'};
+      background:${kilit?'transparent':'var(--panel3)'};
+      border-color:${kilit?'transparent':'var(--line)'}">`;
+}
 function tbSatirHtml(r,cift,kilit){
-  return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
+  const p=tbAktifParti();
+  if(!TB_EK) return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
     <div class="xs dim center">${r+1}</div>
     ${tbHucre(r,0,cift?cift[0]:'',kilit)}${tbHucre(r,1,cift?cift[1]:'',kilit)}
   </div>`;
+  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B) */
+  return `<div style="${TB_IZGARA_EK};margin-bottom:5px" data-satir="${r}">
+    <div class="xs dim center">${r+1}</div>
+    ${[0,1].map(i=>
+      tbHucre(r,i,cift?tbSaf(p,r,i):'',kilit)
+      + tbEkHucre(r,i,0,tbEkDeger(p,r,i,0),kilit)
+      + tbEkHucre(r,i,1,tbEkDeger(p,r,i,1),kilit)).join('')}
+  </div>`;
+}
+/* hücrede ceza/ödül DEĞİL, yalnız yazılan ham sayı görünsün */
+function tbSaf(p,r,i){
+  const el=(p.eller||[])[r];
+  if(!el) return '';
+  if(Array.isArray(el.ham)) return Number(el.ham[i])||0;
+  const t=batakElPuan(Object.assign({},el,{ek:null}),DB.ayar.batak);
+  return t[i];
+}
+function tbEkYaz(r,i,j,deger){
+  const parti=tbAktifParti();
+  while(parti.eller.length<=r) parti.eller.push({ham:[0,0]});
+  const el=parti.eller[r];
+  if(!Array.isArray(el.ek)) el.ek=[[0,0],[0,0]];
+  el.ek[i][j]=String(deger).trim()===''?0:(parseInt(deger,10)||0);
+  if(!el.ek.some(x=>x[0]||x[1])) delete el.ek;
+  parti.kazanan=null; kaydet();
+  if(batakPartiKazanan(parti)!==null){ render(); return; }
+  tbTazele();
 }
 function tbToplamHtml(){
   const c=DB.aktif, a=DB.ayar.batak, parti=tbAktifParti();
   const {top}=batakPartiToplam(parti);
   const pKz=batakPartiKazanan(parti);
   const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
-  return `<div style="${TB_IZGARA}">
+  return `<div style="${TB_EK?TB_IZGARA_EK:TB_IZGARA}">
     <div class="xs dim center">Σ</div>
-    ${[0,1].map(i=>`<div class="center">
+    ${[0,1].map(i=>`<div class="center" ${TB_EK?'style="grid-column:span 3"':''}>
       <div class="serif" style="font-size:30px;line-height:1;
         color:${pKz===i?'var(--gold)':(top[i]<0?'var(--red)':'var(--ink)')}">${top[i]}</div>
       <div class="bar" style="margin-top:6px"><i style="width:${yuz(i)}%;
@@ -4165,12 +4250,20 @@ function batakTabela(){
 
     <div class="sep"></div>
 
-    <div style="${TB_IZGARA};align-items:end">
+    <div class="row" style="justify-content:flex-end;margin-bottom:7px">
+      <button class="btn-xs ${TB_EK?'btn-g':'btn-gh'}" onclick="tbEkAcKapa()">⚖️ Ceza / Ödül</button>
+    </div>
+    <div style="${tbIzgara()};align-items:end">
       <div></div>
-      ${[0,1].map(i=>`<div class="center">
-        <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
-        <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
-      </div>`).join('')}
+      ${[0,1].map(i=>TB_EK
+        ?`<div class="center" style="grid-column:span 3">
+            <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
+            <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
+          </div>`
+        :`<div class="center">
+            <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
+            <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
+          </div>`).join('')}
     </div>
 
     <div style="height:1px;background:var(--line);margin:9px 0"></div>
@@ -4202,7 +4295,8 @@ function batakTabela(){
   ${!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
-    İhale, koz ve şlem dökümü tutulacaksa masa "Detaylı" açılmalı.</div>`;
+    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: ceza puanı artırır, ödül düşer.
+    İhale, koz ve şlem dökümü tutulacaksa masa "İhaleli" açılmalı.</div>`;
 }
 
 /* =========================================================

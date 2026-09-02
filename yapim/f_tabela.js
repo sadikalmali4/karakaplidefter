@@ -11,7 +11,18 @@
    güncellenir. Yoksa mobilde her dokunuşta odak kaçar.
    ========================================================= */
 
+let TB_EK=false;      // ceza/ödül sütunları açık mı (oturum boyu)
 const TB_IZGARA='display:grid;grid-template-columns:26px 1fr 1fr;gap:7px;align-items:center';
+/* ceza/ödül açıkken sütun sayısı 6'ya çıkar; yatay kaydırma ile okunur */
+const TB_IZGARA_EK='display:grid;grid-template-columns:26px repeat(6,minmax(52px,1fr));gap:5px;align-items:center';
+const tbIzgara=()=>TB_EK?TB_IZGARA_EK:TB_IZGARA;
+function tbEkAcKapa(){ TB_EK=!TB_EK; render(); }
+function tbEkDeger(p,r,i,j){
+  const el=(p.eller||[])[r];
+  const e=el&&Array.isArray(el.ek)?el.ek:null;
+  const v=e&&Array.isArray(e[i])?e[i][j]:0;
+  return v||'';
+}
 
 function hamSatirlar(p){
   return (p.eller||[]).map(el=>{
@@ -30,20 +41,57 @@ function tbHucre(r,i,deger,kilit){
       background:${kilit?'transparent':'var(--panel2)'};
       border-color:${kilit?'transparent':'var(--line)'}">`;
 }
+function tbEkHucre(r,i,j,deger,kilit){
+  return `<input type="number" inputmode="numeric" data-r="${r}" data-ek="${i}${j}"
+    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül':'ceza'}"
+    onchange="tbEkYaz(${r},${i},${j},this.value)"
+    style="width:100%;text-align:center;font:600 13px/1 inherit;padding:8px 1px;
+      color:${j?'var(--green)':'var(--red)'};
+      background:${kilit?'transparent':'var(--panel3)'};
+      border-color:${kilit?'transparent':'var(--line)'}">`;
+}
 function tbSatirHtml(r,cift,kilit){
-  return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
+  const p=tbAktifParti();
+  if(!TB_EK) return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
     <div class="xs dim center">${r+1}</div>
     ${tbHucre(r,0,cift?cift[0]:'',kilit)}${tbHucre(r,1,cift?cift[1]:'',kilit)}
   </div>`;
+  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B) */
+  return `<div style="${TB_IZGARA_EK};margin-bottom:5px" data-satir="${r}">
+    <div class="xs dim center">${r+1}</div>
+    ${[0,1].map(i=>
+      tbHucre(r,i,cift?tbSaf(p,r,i):'',kilit)
+      + tbEkHucre(r,i,0,tbEkDeger(p,r,i,0),kilit)
+      + tbEkHucre(r,i,1,tbEkDeger(p,r,i,1),kilit)).join('')}
+  </div>`;
+}
+/* hücrede ceza/ödül DEĞİL, yalnız yazılan ham sayı görünsün */
+function tbSaf(p,r,i){
+  const el=(p.eller||[])[r];
+  if(!el) return '';
+  if(Array.isArray(el.ham)) return Number(el.ham[i])||0;
+  const t=batakElPuan(Object.assign({},el,{ek:null}),DB.ayar.batak);
+  return t[i];
+}
+function tbEkYaz(r,i,j,deger){
+  const parti=tbAktifParti();
+  while(parti.eller.length<=r) parti.eller.push({ham:[0,0]});
+  const el=parti.eller[r];
+  if(!Array.isArray(el.ek)) el.ek=[[0,0],[0,0]];
+  el.ek[i][j]=String(deger).trim()===''?0:(parseInt(deger,10)||0);
+  if(!el.ek.some(x=>x[0]||x[1])) delete el.ek;
+  parti.kazanan=null; kaydet();
+  if(batakPartiKazanan(parti)!==null){ render(); return; }
+  tbTazele();
 }
 function tbToplamHtml(){
   const c=DB.aktif, a=DB.ayar.batak, parti=tbAktifParti();
   const {top}=batakPartiToplam(parti);
   const pKz=batakPartiKazanan(parti);
   const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
-  return `<div style="${TB_IZGARA}">
+  return `<div style="${TB_EK?TB_IZGARA_EK:TB_IZGARA}">
     <div class="xs dim center">Σ</div>
-    ${[0,1].map(i=>`<div class="center">
+    ${[0,1].map(i=>`<div class="center" ${TB_EK?'style="grid-column:span 3"':''}>
       <div class="serif" style="font-size:30px;line-height:1;
         color:${pKz===i?'var(--gold)':(top[i]<0?'var(--red)':'var(--ink)')}">${top[i]}</div>
       <div class="bar" style="margin-top:6px"><i style="width:${yuz(i)}%;
@@ -78,12 +126,20 @@ function batakTabela(){
 
     <div class="sep"></div>
 
-    <div style="${TB_IZGARA};align-items:end">
+    <div class="row" style="justify-content:flex-end;margin-bottom:7px">
+      <button class="btn-xs ${TB_EK?'btn-g':'btn-gh'}" onclick="tbEkAcKapa()">⚖️ Ceza / Ödül</button>
+    </div>
+    <div style="${tbIzgara()};align-items:end">
       <div></div>
-      ${[0,1].map(i=>`<div class="center">
-        <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
-        <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
-      </div>`).join('')}
+      ${[0,1].map(i=>TB_EK
+        ?`<div class="center" style="grid-column:span 3">
+            <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
+            <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
+          </div>`
+        :`<div class="center">
+            <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
+            <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
+          </div>`).join('')}
     </div>
 
     <div style="height:1px;background:var(--line);margin:9px 0"></div>
@@ -115,7 +171,8 @@ function batakTabela(){
   ${!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
-    İhale, koz ve şlem dökümü tutulacaksa masa "Detaylı" açılmalı.</div>`;
+    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: ceza puanı artırır, ödül düşer.
+    İhale, koz ve şlem dökümü tutulacaksa masa "İhaleli" açılmalı.</div>`;
 }
 
 /* =========================================================

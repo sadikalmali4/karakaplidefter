@@ -14,7 +14,7 @@ import io, os, re, sys
 BURA = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BURA)
 from kkd_ortak import oku, yaz, fn_degistir, arasini_degistir
-import yama_101, yama_sosyal, yama_gorsel
+import yama_101, yama_sosyal, yama_gorsel, yama_batak_ek
 
 YAYIN  = os.path.dirname(BURA)                 # .../bulut
 KAYNAK = os.path.join(BURA, 'temel.html')
@@ -254,6 +254,7 @@ s = s.replace('/* ---------- modal ---------- */',
 # çubukları yerleştiriyor. Aramızda/borç çubukları yukarıdaki parçaların
 # içinde olduğu için bu satır parça birleştirmeden önce çalışamaz.
 s = yama_gorsel.uygula(s)
+s = yama_batak_ek.uygula(s)
 
 # Maç kurulumunda "Yer": serbest yazı yerine mutat mekân seçici
 # (Parkverde / Kemerdere + istenirse elle yazma). Tarih tek başına kalıyor.
@@ -296,6 +297,20 @@ s = s.replace(eski,
 # başlıktaki alt yazı artık innerHTML ile yazılıyor
 s = s.replace('<div class="sub" id="hdrSub">Batak &amp; 101 tabelası</div>',
               '<div class="sub" id="hdrSub">bağlanıyor…</div>')
+
+# Giriş şekli adları: "Hızlı" artık kâğıt tabelası, "Detaylı" ihaleli döküm.
+# Eski adlar yanıltıyordu (hızlı = sadece kim kazandı sanılıyordu).
+GIRIS_ADLARI = [
+    ('>⚡ Hızlı<',   '>📝 Tabela<'),
+    ('>📋 Detaylı<', '>📋 İhaleli<'),
+    ("? 'Tek ekran: kim kazandı, kim kaybetti. Kuralları bilmeyen de girebilir.'",
+     "? 'Kâğıttaki tabela: sayıyı sen yazarsın. Ceza ve ödül sütunu da açılabilir.'"),
+    ("    : 'El el giriş: ihale/ceza puanları otomatik hesaplanır, istatistikler zenginleşir.';",
+     "    : 'İhale, koz ve çıkan el girilir; puanı uygulama hesaplar. İhale/batak/şlem istatistiği ancak böyle birikir.';"),
+]
+for _e, _y in GIRIS_ADLARI:
+    if _e in s:
+        s = s.replace(_e, _y)
 
 yaz(HEDEF, s)
 print('yazildi:', HEDEF, len(s), 'karakter', s.count('\n'), 'satir')

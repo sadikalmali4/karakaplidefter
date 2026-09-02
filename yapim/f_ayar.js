@@ -108,25 +108,33 @@ function viewAyar(){
   </div>
 
   <div class="card">
-    <h3>101 Kuralları</h3>
+    <h3>101 · Ceza ve Ödül</h3>
+    <div class="uyari" style="margin-bottom:10px">101'de puanı <b>elle</b> yazıyorsun:
+      her el için <b>Sayı</b>, varsa <b>+ Ceza</b> ve <b>− Ödül</b>.
+      Uygulama kural yorumlamıyor — ev kuralınız değişirse burada bir şey değiştirmen gerekmez.
+      <b>Ceza eklenir, ödül düşer.</b></div>
     <div class="two">
       <div><label class="fl">Partide el sayısı</label><input type="number" value="${a.yz.elSayisi}" ${kilit} onchange="ayarSet('yz','elSayisi',this.value,1)"></div>
-      <div><label class="fl">Çifte çarpanı</label><input type="number" value="${a.yz.cifteCarpan}" ${kilit} onchange="ayarSet('yz','cifteCarpan',this.value,1)"></div>
+      <div><label class="fl">Varsayılan parti sayısı</label>
+        <div class="seg">${[1,2,3].map(n=>`<button class="${a.yz.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('yz','partiHedef',${n},1).then(render)">${n===1?'Tek':n}</button>`).join('')}</div></div>
     </div>
-    <div class="two" style="margin-top:10px">
-      <div><label class="fl">El bitiren</label><input type="number" value="${a.yz.bitiren}" ${kilit} onchange="ayarSet('yz','bitiren',this.value)"></div>
-      <div><label class="fl">Açamayan cezası</label><input type="number" value="${a.yz.acamayan}" ${kilit} onchange="ayarSet('yz','acamayan',this.value)"></div>
-    </div>
-    <div class="field" style="margin-top:10px"><label class="fl">🧹 Silme (ödül) puanı</label>
-      <input type="number" value="${a.yz.silme}" ${kilit} onchange="ayarSet('yz','silme',this.value)">
-      <div class="xs dim" style="margin-top:5px">Silme yapanın hanesinden düşülen sabit miktar. EKSİ yazılmalı (örn. −202).
-        Normal puanın dışında işler; el yazarken her oyuncu için ayrıca işaretlenir.</div></div>
-    <div class="field" style="margin-top:10px"><label class="fl">Varsayılan parti sayısı</label>
-      <div class="seg">${[1,2,3].map(n=>`<button class="${a.yz.partiHedef===n?'on':''}" ${kilit} onclick="ayarSet('yz','partiHedef',${n},1).then(render)">${n===1?'Tek':n+' parti'}</button>`).join('')}</div></div>
-    <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13.5px;cursor:pointer">
-      <input type="checkbox" style="width:18px;height:18px" ${a.yz.okeyAktif?'checked':''} ${kilit}
-        onchange="ayarSet('yz','okeyAktif',this.checked).then(render)">
-      Okeyle bitirme çarpanı kullanılsın (×${a.yz.okeyCarpan})</label>
+    <div class="xs dim" style="margin-top:10px">Aşağıdakiler yalnız <b>hızlı tabelada</b> ipucu olarak
+      gösterilir ve eski kayıtların puanını hesaplarken kullanılır. Yeni ellerde puanı sen yazdığın için
+      hiçbirine dokunmak zorunda değilsin.</div>
+    <details style="margin-top:8px"><summary>Eski kayıtların hesabı (dokunmasan da olur)</summary><div>
+      <div class="two">
+        <div><label class="fl">El bitiren (ödül)</label><input type="number" value="${a.yz.bitiren}" ${kilit} onchange="ayarSet('yz','bitiren',this.value)"></div>
+        <div><label class="fl">Açamayan (ceza)</label><input type="number" value="${a.yz.acamayan}" ${kilit} onchange="ayarSet('yz','acamayan',this.value)"></div>
+      </div>
+      <div class="two" style="margin-top:10px">
+        <div><label class="fl">Çifte çarpanı</label><input type="number" value="${a.yz.cifteCarpan}" ${kilit} onchange="ayarSet('yz','cifteCarpan',this.value,1)"></div>
+        <div><label class="fl">Silme (ödül)</label><input type="number" value="${a.yz.silme}" ${kilit} onchange="ayarSet('yz','silme',this.value)"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13.5px;cursor:pointer">
+        <input type="checkbox" style="width:18px;height:18px" ${a.yz.okeyAktif?'checked':''} ${kilit}
+          onchange="ayarSet('yz','okeyAktif',this.checked).then(render)">
+        Okeyle bitirme çarpanı (×${a.yz.okeyCarpan})</label>
+    </div></details>
     <div class="sep"></div>
     <h3>Son İki Sıranın Müeyyidesi</h3>
     <div class="field"><label class="fl">3. sıra</label><input value="${esc(a.yz.muey3)}" ${kilit} onchange="ayarSet('yz','muey3',this.value)" placeholder="Çay ısmarlar"></div>
@@ -172,5 +180,5 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 5.1 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.6 · bulut</div>`;
 }

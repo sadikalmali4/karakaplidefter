@@ -6,6 +6,10 @@
    İkisi de her el, her oyuncu için ayrı ayrı tutulur. */
 function yzDurumPuan(d){
   const a=DB.ayar.yz; if(!d) return 0;
+  /* ELLE GIRIS: uygulama kural yorumlamiyor. Sayi yazilir, ceza eklenir,
+     odul dusulur. Ev kurallari degistiginde kod degistirmek gerekmiyor. */
+  if(d.tip==='elle')
+    return (Number(d.sayi)||0) + (Number(d.ceza)||0) - (Number(d.odul)||0);
   let p=0;
   switch(d.tip){
     case 'bitirdi': p=(a.okeyAktif&&d.okey)?a.bitiren*a.okeyCarpan:a.bitiren; break;
@@ -23,6 +27,11 @@ function yzDurumPuan(d){
 function yzKirilim(d){
   const a=DB.ayar.yz;
   if(!d) return {normal:0,odul:0,ceza:0,toplam:0};
+  /* Elle giriste kirilim dogrudan yazilan uc alandan gelir. */
+  if(d.tip==='elle'){
+    const n0=Number(d.sayi)||0, z=Number(d.ceza)||0, o=Number(d.odul)||0;
+    return {normal:n0, ceza:z, odul:-o, toplam:n0+z-o};
+  }
   let n=0;
   switch(d.tip){
     case 'bitirdi': n=(a.okeyAktif&&d.okey)?a.bitiren*a.okeyCarpan:a.bitiren; break;
@@ -60,33 +69,25 @@ function yzSilmeSec(el){ el.classList.toggle('on'); }
 function yzElEkle(){
   const c=DB.aktif,parti=yzMac(c).aktif,durum={},eksik=[];
   let bitiren=null;
+  const say=x=>{ const v=x?.value; return (v===''||v==null)?null:Number(v); };
   for(const id of c.oyuncular){
     const kart=document.querySelector(`.el-card[data-oy="${id}"]`);
-    const s=kart.querySelector('.durumlar .chip.on');
-    if(!s){eksik.push(ad(id));continue;}
-    const tip=s.dataset.d,d={tip};
-    if(tip==='kaldi'||tip==='cifte'){
-      const v=kart.querySelector('.say')?.value;
-      if(v===''||v==null) return toast(`${ad(id)} için kalan sayıyı gir`,true);
-      d.sayi=Number(v);
-    }
-    if(tip==='bitirdi'){bitiren=id;d.okey=!!kart.querySelector('.okey')?.checked;}
-    if(kart.querySelector('.silme.on')) d.silme=true;
-    const cz=kart.querySelector('.cezaGir')?.value;
-    if(cz!==''&&cz!=null&&Number(cz)) d.ceza=Number(cz);
+    const s=say(kart.querySelector('.say'));
+    const cz=say(kart.querySelector('.cezaGir'));
+    const od=say(kart.querySelector('.odulGir'));
+    const bt=!!kart.querySelector('.bitirdi')?.checked;
+    if(s===null&&cz===null&&od===null&&!bt){ eksik.push(ad(id)); continue; }
+    const d={tip:'elle'};
+    if(s!==null)  d.sayi=s;
+    if(cz)        d.ceza=cz;
+    if(od)        d.odul=od;
+    if(bt){ d.bitirdi=true; bitiren=id; }
     durum[id]=d;
   }
-  if(eksik.length) return toast(`Durum seçilmedi: ${eksik.join(', ')}`,true);
-  if(!bitiren) return toast('El bitiren oyuncuyu işaretle',true);
-  if(c.mod==='esli'&&c.esler){
-    const pr=c.esler.find(p=>p.includes(bitiren)), es=pr&&pr.find(x=>x!==bitiren);
-    if(es&&durum[es]&&durum[es].tip!=='es'){
-      const kor={tip:'es'};
-      if(durum[es].silme) kor.silme=true;
-      if(durum[es].ceza)  kor.ceza=durum[es].ceza;
-      durum[es]=kor;
-    }
-  }
+  /* Hicbir sey yazilmayan oyuncuya 0 yazilir — "durum secilmedi" diye
+     tutmuyoruz artik, cunku sifir da gecerli bir sonuc. */
+  eksik.forEach(()=>{});
+  c.oyuncular.forEach(id=>{ if(!durum[id]) durum[id]={tip:'elle',sayi:0}; });
   parti.eller.push({durum}); kaydet(); render();
   const N=DB.ayar.yz.elSayisi||11;
   toast(parti.eller.length>=N?`${N}. el girildi — parti tamamlandı`:yzElYorum(c,durum),true);
@@ -94,18 +95,16 @@ function yzElEkle(){
 
 //== yzElYorum
 function yzElYorum(c,durum){
-  const a=DB.ayar.yz;
-  const bit=c.oyuncular.find(id=>durum[id]?.tip==='bitirdi');
-  const ac =c.oyuncular.filter(id=>durum[id]?.tip==='acamadi');
-  const ci =c.oyuncular.filter(id=>durum[id]?.tip==='cifte');
-  const si =c.oyuncular.filter(id=>durum[id]?.silme);
-  const cz =c.oyuncular.filter(id=>durum[id]?.ceza);
-  if(si.length)    return `${liste(si.map(ad))} SİLDİ: hanesinden ${Math.abs(Number(a.silme)||0)} puan düştü. Masa bu hâli kıskançlıkla izlemiştir.`;
-  if(cz.length)    return `${liste(cz.map(ad))} hakkında ek ceza yazılmıştır. Gerekçe tabelacıya aittir.`;
-  if(ac.length>=2) return `${liste(ac.map(ad))} açamadı. Masanın yarısı seyirci konumundadır.`;
-  if(ci.length)    return `${liste(ci.map(ad))} çifte gitti, bedeli iki katı. Cesaret pahalıdır.`;
-  if(ac.length===1)return `${ad(ac[0])} açamadı: +${a.acamayan}. Savunması alınmamıştır.`;
-  if(bit) return rast([`${ad(bit)} eli bitirdi. Masa sessizliğe gömülmüştür.`,
-                       `${ad(bit)} ${a.bitiren} yazdı. İtiraz yolu kapalıdır.`]);
+  const p=id=>yzDurumPuan(durum[id]);
+  const bit=c.oyuncular.filter(id=>durum[id]&&(durum[id].bitirdi||durum[id].tip==='bitirdi'));
+  const agir=c.oyuncular.slice().sort((x,y)=>p(y)-p(x))[0];
+  const cezali=c.oyuncular.filter(id=>durum[id]&&durum[id].ceza);
+  const odullu=c.oyuncular.filter(id=>durum[id]&&durum[id].odul);
+  if(bit.length) return rast([
+    `${liste(bit.map(ad))} eli bitirdi. Masa sessizliğe gömülmüştür.`,
+    `${liste(bit.map(ad))} bitirdi; itiraz yolu kapalıdır.`]);
+  if(cezali.length) return `${liste(cezali.map(ad))} ceza yemiştir. Savunması alınmamıştır.`;
+  if(odullu.length) return `${liste(odullu.map(ad))} ödül almıştır; masa bunu şüpheyle karşılamıştır.`;
+  if(agir&&p(agir)>0) return `Elin en ağır hanesi ${ad(agir)}'e yazılmıştır: ${p(agir)}.`;
   return 'El kaydedildi.';
 }
