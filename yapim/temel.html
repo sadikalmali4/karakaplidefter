@@ -179,7 +179,7 @@ details>div{margin-top:10px}
    KARA KAPLI DEFTER  v3
    Batak : eşli · ihaleli · parti 61 · maç = kaç parti alan
    101   : parti 11 el · ceza puanı · çok puanlı kaybeder
-   Üyeler (profil+foto) · Gruplar · Hızlı/Detaylı giriş · Müeyyideler
+   Üyeler (profil+foto) · Gruplar · Tabela/İhaleli giriş · Müeyyideler
    ========================================================= */
 
 const KEY='kkd_v3';
@@ -969,9 +969,9 @@ function celseBaslat(oyun){
       : `Masadaki oyuncuları seç (3–6). Her parti ${DB.ayar.yz.elSayisi} eldir.`}</div>
 
     <div class="field"><label class="fl">Giriş şekli</label>
-      <div class="seg" id="mGiris">
-        <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">⚡ Hızlı</button>
-        <button data-g="detay" onclick="segSec(this);girisNotu()">📋 Detaylı</button>
+      <div class="seg" id="mGiris" data-oyun="${oyun}">
+        <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">📝 Tabela</button>
+        <button data-g="detay" onclick="segSec(this);girisNotu()">${oyun==='batak'?'📋 İhaleli':'⚖️ Ceza / Ödül'}</button>
       </div>
       <div class="xs dim" id="mGirisNot" style="margin-top:6px"></div>
     </div>
@@ -1008,10 +1008,18 @@ function celseBaslat(oyun){
 }
 function girisNotu(){
   const g=document.querySelector('#mGiris .on')?.dataset.g;
+  const oyun=$('#mGiris')?.dataset.oyun||'batak';
   const n=$('#mGirisNot'); if(!n) return;
+  /* İki oyunun ikinci şıkkı aynı şey değil:
+     Batak'ta ihale/koz dökümü (puanı uygulama hesaplar),
+     101'de ceza/ödül kutuları (puanı yine sen yazarsın). */
   n.textContent = g==='hizli'
-    ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.'
-    : 'Tabelanın dökümlü hâli: ihale, koz, şlem / bitirdi, açamadı, çifte. Puan otomatik hesaplanır.';
+    ? (oyun==='batak'
+       ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Ceza/ödül sütunu da açılabilir.'
+       : 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.')
+    : (oyun==='batak'
+       ? 'İhale, koz ve çıkan el girilir; puanı uygulama hesaplar. İhale/batak/şlem istatistiği ancak böyle birikir.'
+       : 'Her el, her oyuncu için üç kutu: sayı, ceza (+), ödül (−). Puanı yine sen yazarsın, uygulama kural yorumlamaz.');
   /* Parti sayısı ikisinde de sorulur: hızlı mod da artık gerçek tabela,
      61'e ulaşınca parti kapanıyor ve kaç parti alanın kazandığı belirleyici. */
   const pk=$('#mPartiKap'); if(pk) pk.style.display='';

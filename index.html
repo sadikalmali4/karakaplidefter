@@ -204,7 +204,7 @@ textarea{font-family:inherit;font-size:15px;line-height:1.5}
    KARA KAPLI DEFTER  v3
    Batak : eşli · ihaleli · parti 61 · maç = kaç parti alan
    101   : parti 11 el · ceza puanı · çok puanlı kaybeder
-   Üyeler (profil+foto) · Gruplar · Hızlı/Detaylı giriş · Müeyyideler
+   Üyeler (profil+foto) · Gruplar · Tabela/İhaleli giriş · Müeyyideler
    ========================================================= */
 
 /* =========================================================
@@ -1505,9 +1505,9 @@ function celseBaslat(oyun){
     ${bahisSecici(DB.ayar.bahis)}
 
     <div class="field"><label class="fl">Giriş şekli</label>
-      <div class="seg" id="mGiris">
+      <div class="seg" id="mGiris" data-oyun="${oyun}">
         <button data-g="hizli" class="on" onclick="segSec(this);girisNotu()">📝 Tabela</button>
-        <button data-g="detay" onclick="segSec(this);girisNotu()">📋 İhaleli</button>
+        <button data-g="detay" onclick="segSec(this);girisNotu()">${oyun==='batak'?'📋 İhaleli':'⚖️ Ceza / Ödül'}</button>
       </div>
       <div class="xs dim" id="mGirisNot" style="margin-top:6px"></div>
     </div>
@@ -1543,10 +1543,18 @@ function celseBaslat(oyun){
 }
 function girisNotu(){
   const g=document.querySelector('#mGiris .on')?.dataset.g;
+  const oyun=$('#mGiris')?.dataset.oyun||'batak';
   const n=$('#mGirisNot'); if(!n) return;
+  /* İki oyunun ikinci şıkkı aynı şey değil:
+     Batak'ta ihale/koz dökümü (puanı uygulama hesaplar),
+     101'de ceza/ödül kutuları (puanı yine sen yazarsın). */
   n.textContent = g==='hizli'
-    ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.'
-    : 'Tabelanın dökümlü hâli: ihale, koz, şlem / bitirdi, açamadı, çifte. Puan otomatik hesaplanır.';
+    ? (oyun==='batak'
+       ? 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Ceza/ödül sütunu da açılabilir.'
+       : 'Kâğıttaki tabela: her elin sayısını alt alta yazarsın, altta toplanır. Kural bilmek gerekmez.')
+    : (oyun==='batak'
+       ? 'İhale, koz ve çıkan el girilir; puanı uygulama hesaplar. İhale/batak/şlem istatistiği ancak böyle birikir.'
+       : 'Her el, her oyuncu için üç kutu: sayı, ceza (+), ödül (−). Puanı yine sen yazarsın, uygulama kural yorumlamaz.');
   /* Parti sayısı ikisinde de sorulur: hızlı mod da artık gerçek tabela,
      61'e ulaşınca parti kapanıyor ve kaç parti alanın kazandığı belirleyici. */
   const pk=$('#mPartiKap'); if(pk) pk.style.display='';
@@ -2075,7 +2083,7 @@ function sicilKarne(oyun){
           <td class="${p.ihaleTam?'pos':''}">${p.ihaleTam}</td><td class="${p.ihaleBat?'neg':''}">${p.ihaleBat}</td>
           <td>${p.ihale?Math.round(p.batOran*100):'–'}</td></tr>`).join('')}
       </tbody></table></div>
-      <div class="xs dim" style="margin-top:8px">Yalnız "Detaylı" açılmış masalarda dolar.</div></div>`;
+      <div class="xs dim" style="margin-top:8px">Yalnız <b>İhaleli</b> açılmış Batak masalarında dolar.</div></div>`;
   }
   if(!v.some(p=>p.elBitirdi||p.acamadi||p.cifte||p.enAgirCeza)) return '';
   return `<div class="card"><h3>El Karnesi</h3>
@@ -2085,7 +2093,8 @@ function sicilKarne(oyun){
         <td class="${p.elBitirdi?'pos':''}">${p.elBitirdi}</td><td class="${p.acamadi?'neg':''}">${p.acamadi}</td>
         <td>${p.cifte}</td><td class="dim">${p.enAgirCeza||'–'}</td></tr>`).join('')}
     </tbody></table></div>
-    <div class="xs dim" style="margin-top:8px">Bitirdi/açamadı dökümü yalnız "Detaylı" masalarda tutulur; ham tabelada "en ağır" yine sayılır.</div></div>`;
+    <div class="xs dim" style="margin-top:8px">Bitirdi işareti el yazarken konur; açamadı/çifte sütunları eski kayıtlardan gelir.
+      Ceza ve ödül toplamları puanın içinde, tabelanın altındaki kırılımda görünür.</div></div>`;
 }
 
 function viewSicil(){
@@ -2474,7 +2483,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.7 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.8 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4408,9 +4417,9 @@ function yzTabela(){
 
   ${!doldu&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
-  <div class="card tight center xs dim">Bitiren <b>${a.bitiren}</b> · açamayan <b>+${a.acamayan}</b> ·
-    çifte <b>×${a.cifteCarpan}</b>. Hangisi olduysa <b>sayısını</b> yaz.
-    Bitirdi/açamadı dökümü tutulacaksa masa "Detaylı" açılmalı.</div>`;
+  <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; 101'de eksi de yazılır (örn. −100).
+    Ceza ve ödül kutuları gerekiyorsa masa <b>⚖️ Ceza / Ödül</b> şıkkıyla açılmalı;
+    orada her oyuncu için sayı, ceza (+) ve ödül (−) ayrı ayrı girilir.</div>`;
 }
 
 function yzTbYaz(r,id,deger){

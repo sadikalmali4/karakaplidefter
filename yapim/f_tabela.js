@@ -281,9 +281,9 @@ function yzTabela(){
 
   ${!doldu&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
-  <div class="card tight center xs dim">Bitiren <b>${a.bitiren}</b> · açamayan <b>+${a.acamayan}</b> ·
-    çifte <b>×${a.cifteCarpan}</b>. Hangisi olduysa <b>sayısını</b> yaz.
-    Bitirdi/açamadı dökümü tutulacaksa masa "Detaylı" açılmalı.</div>`;
+  <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; 101'de eksi de yazılır (örn. −100).
+    Ceza ve ödül kutuları gerekiyorsa masa <b>⚖️ Ceza / Ödül</b> şıkkıyla açılmalı;
+    orada her oyuncu için sayı, ceza (+) ve ödül (−) ayrı ayrı girilir.</div>`;
 }
 
 function yzTbYaz(r,id,deger){

@@ -55,7 +55,7 @@ function sicilKarne(oyun){
           <td class="${p.ihaleTam?'pos':''}">${p.ihaleTam}</td><td class="${p.ihaleBat?'neg':''}">${p.ihaleBat}</td>
           <td>${p.ihale?Math.round(p.batOran*100):'–'}</td></tr>`).join('')}
       </tbody></table></div>
-      <div class="xs dim" style="margin-top:8px">Yalnız "Detaylı" açılmış masalarda dolar.</div></div>`;
+      <div class="xs dim" style="margin-top:8px">Yalnız <b>İhaleli</b> açılmış Batak masalarında dolar.</div></div>`;
   }
   if(!v.some(p=>p.elBitirdi||p.acamadi||p.cifte||p.enAgirCeza)) return '';
   return `<div class="card"><h3>El Karnesi</h3>
@@ -65,7 +65,8 @@ function sicilKarne(oyun){
         <td class="${p.elBitirdi?'pos':''}">${p.elBitirdi}</td><td class="${p.acamadi?'neg':''}">${p.acamadi}</td>
         <td>${p.cifte}</td><td class="dim">${p.enAgirCeza||'–'}</td></tr>`).join('')}
     </tbody></table></div>
-    <div class="xs dim" style="margin-top:8px">Bitirdi/açamadı dökümü yalnız "Detaylı" masalarda tutulur; ham tabelada "en ağır" yine sayılır.</div></div>`;
+    <div class="xs dim" style="margin-top:8px">Bitirdi işareti el yazarken konur; açamadı/çifte sütunları eski kayıtlardan gelir.
+      Ceza ve ödül toplamları puanın içinde, tabelanın altındaki kırılımda görünür.</div></div>`;
 }
 
 function viewSicil(){

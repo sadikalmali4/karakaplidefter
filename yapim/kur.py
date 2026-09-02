@@ -298,19 +298,9 @@ s = s.replace(eski,
 s = s.replace('<div class="sub" id="hdrSub">Batak &amp; 101 tabelası</div>',
               '<div class="sub" id="hdrSub">bağlanıyor…</div>')
 
-# Giriş şekli adları: "Hızlı" artık kâğıt tabelası, "Detaylı" ihaleli döküm.
-# Eski adlar yanıltıyordu (hızlı = sadece kim kazandı sanılıyordu).
-GIRIS_ADLARI = [
-    ('>⚡ Hızlı<',   '>📝 Tabela<'),
-    ('>📋 Detaylı<', '>📋 İhaleli<'),
-    ("? 'Tek ekran: kim kazandı, kim kaybetti. Kuralları bilmeyen de girebilir.'",
-     "? 'Kâğıttaki tabela: sayıyı sen yazarsın. Ceza ve ödül sütunu da açılabilir.'"),
-    ("    : 'El el giriş: ihale/ceza puanları otomatik hesaplanır, istatistikler zenginleşir.';",
-     "    : 'İhale, koz ve çıkan el girilir; puanı uygulama hesaplar. İhale/batak/şlem istatistiği ancak böyle birikir.';"),
-]
-for _e, _y in GIRIS_ADLARI:
-    if _e in s:
-        s = s.replace(_e, _y)
+# NOT: Giriş şekli adları (Tabela / İhaleli / Ceza-Ödül) artık temel.html içinde
+# doğrudan yazılı ve oyuna göre değişiyor. Eskiden burada metin değiştirilirdi;
+# o yama "bulamazsa sessizce atla" davranışındaydı, silindi.
 
 yaz(HEDEF, s)
 print('yazildi:', HEDEF, len(s), 'karakter', s.count('\n'), 'satir')
