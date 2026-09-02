@@ -458,20 +458,34 @@ async function yenile(sessiz){
 /* --------- canlı yayın ---------
    Tabelacıysam kendi yazdığımı geri çekmem; yazarken ekranım sıfırlanmasın. */
 let _yenileZaman=null;
+/* CANLI YAYIN — masadaki herkesin eklediği her şey kendiliğinden gelsin.
+   Dinlenen tablolar, Supabase'de de yayına ekli olmalı (bkz. yama 06);
+   biri eksikse o değişiklik hiç ulaşmaz. */
 function kanalKur(){
   if(!DB.aktifGrup) return;
   if(KANAL){ sb.removeChannel(KANAL); KANAL=null; }
-  const f='masa_id=eq.'+DB.aktifGrup;
+  const f='masa_id=eq.'+DB.aktifGrup;          // masaya bağlı tablolar
+  const fId='id=eq.'+DB.aktifGrup;             // masalar tablosunun kendisi
+
   const olay=()=>{
-    if(_bekleyenYazi||tabelaciMiyim()) return;
+    /* Kendi yazım havadaysa bekle — yoksa gecikmeli yazı geri alınmış görünür. */
+    if(_bekleyenYazi) return;
+    /* AÇIK TABELAM varsa dokunma: yenileme DB.aktif'i değiştirir, yazdığım
+       eller uçar. Tabelacı olmam tek başına engel değil; ekranda olmam engel. */
+    if(DB.aktif && tabelaciMiyim()) return;
+    /* Form/pencere açıkken yenileme, kullanıcının yazdığı gider. */
     if(document.getElementById('modalHost')?.innerHTML) return;
     clearTimeout(_yenileZaman);
     _yenileZaman=setTimeout(()=>yenile(true),700);
   };
+
   KANAL=sb.channel('masa_'+DB.aktifGrup)
-    .on('postgres_changes',{event:'*',schema:'public',table:'maclar',filter:f},olay)
-    .on('postgres_changes',{event:'*',schema:'public',table:'iddialar',filter:f},olay)
-    .on('postgres_changes',{event:'*',schema:'public',table:'oyuncular',filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'akis',        filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'maclar',      filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'iddialar',    filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'oyuncular',   filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'masa_uyeleri',filter:f},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'masalar',     filter:fId},olay)
     .subscribe();
 }
 
