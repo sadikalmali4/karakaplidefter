@@ -72,13 +72,55 @@ function fiksturAyristir(metin){
 
     /* 6) takımlar */
     const kalan=s.replace(/\s+/g,' ').trim();
-    const tm=kalan.split(/\s+(?:-|–|—|vs\.?)\s+|(?<=\S)\s*[-–—]\s*(?=\S)/i);
-    const ev=(tm[0]||'').trim().replace(/^[-–—\s]+|[-–—\s]+$/g,'');
-    const dep=(tm[1]||'').trim().replace(/^[-–—\s]+|[-–—\s]+$/g,'');
-    if(!ev||!dep){ hata.push(asil); return; }
+    const t2=takimlariAyir(kalan);
+    if(!t2){ hata.push(asil); return; }
+    const ev=t2[0], dep=t2[1];
     cikti.push({ev,deplasman:dep,baslangic:d.toISOString()});
   });
   return {mac:cikti,hata};
+}
+
+/* ---- takım adlarını ayırma ----
+   Ayraç (v / vs / - / x) varsa iş kolay. Fikstür sitelerinden kopyalanan
+   satırlarda ayraç OLMUYOR: "04.09.2026 20:00 Başakşehir Galatasaray".
+   O zaman kelimeleri ikiye bölmek gerekiyor ve tek doğru cevap yok:
+   "Sporting CP Galatasaray" 2+1, "Liverpool Atletico Madrid" 1+2.
+
+   Kural: kelime sayısı çiftse yarı yarıya. Tekse fazlalık EV sahibine
+   gider; ancak son kelime bir takım adının İKİNCİ parçası olabilecek
+   kelimelerdense (Madrid, City, United...) fazlalık deplasmana geçer.
+   Sonuç her hâlükârda önizlemede gösteriliyor; yanlışsa satıra "v"
+   koymak yeter. */
+const IKINCI_PARCA=new Set(['madrid','city','united','munih','münih','munich','villa',
+  'prag','praha','donetsk','leipzig','bilbao','brugge','bruges','atina','linz','wien',
+  'zagreb','belgrad','bratislava','betis','sofya','moskova','kiev','lizbon','lisbon',
+  'dortmund','eindhoven','glimt','sociedad','graz','salzburg','pilsen','plzen',
+  'hoffenheim','leverkusen','frankfurt','mönchengladbach','bremen',
+  'sofia','pireus','pire','selanik','saraybosna','skopje','tiran','baku','bakü']);
+
+function takimlariAyir(kalan){
+  const temiz=x=>String(x||'').trim().replace(/^[-–—|\s]+|[-–—|\s]+$/g,'');
+
+  /* a) açık ayraç */
+  const ayrac=kalan.split(/\s+(?:vs\.?|v|x|-|–|—|\|)\s+|(?<=\S)\s*[–—|]\s*(?=\S)/i);
+  if(ayrac.length>=2){
+    const a=temiz(ayrac[0]), b=temiz(ayrac.slice(1).join(' '));
+    if(a&&b) return [a,b];
+  }
+  /* b) tireli ama boşluksuz: "Fenerbahçe-Beşiktaş" */
+  if(/\S-\S/.test(kalan)){
+    const i=kalan.indexOf('-');
+    const a=temiz(kalan.slice(0,i)), b=temiz(kalan.slice(i+1));
+    if(a&&b) return [a,b];
+  }
+  /* c) ayraçsız: kelimeleri böl */
+  const k=kalan.split(/\s+/).filter(Boolean);
+  if(k.length<2) return null;
+  let evSay=Math.ceil(k.length/2);
+  if(k.length%2===1 && IKINCI_PARCA.has(k[k.length-1].toLocaleLowerCase('tr-TR')))
+    evSay=Math.floor(k.length/2);
+  const a=temiz(k.slice(0,evSay).join(' ')), b=temiz(k.slice(evSay).join(' '));
+  return (a&&b)?[a,b]:null;
 }
 
 /* ---------------- hafta ---------------- */
@@ -94,13 +136,43 @@ function haftaAc(){
       <textarea id="hfMac" rows="7" placeholder="Cts 20:00  Fenerbahçe - Beşiktaş
 Paz 19:00  Galatasaray - Trabzonspor
 06.09 22:00  Real Madrid - Galatasaray"></textarea>
-      <div class="xs dim" style="margin-top:6px">Gün adı, tarih (06.09 ya da 2026-09-06) ve saat tanınır.
-        Takımları <b>-</b> ya da <b>vs</b> ile ayır.</div></div>
+      <div class="xs dim" style="margin-top:6px">Gün adı, tarih (06.09 · 04.09.2026 · 2026-09-06) ve saat tanınır.
+        Takımları ayırmasan da okur; <b>v</b> ya da <b>-</b> koyarsan kesin olur.</div></div>
+
+    <details style="margin-top:4px"><summary>➕ Maçı elle ekle (tarihi kendin seç)</summary><div>
+      <div class="xs dim" style="margin:8px 0">Ayrıştırıcı bir satırı yanlış okuduysa burada tek tek girip
+        listeye eklersin; yukarıdaki metne düzgün biçimde yazılır.</div>
+      <div class="two">
+        <div><label class="fl">Tarih</label><input type="date" id="elTarih" value="${bugun()}"></div>
+        <div><label class="fl">Saat</label><input type="time" id="elSaat" value="20:00"></div>
+      </div>
+      <div class="two" style="margin-top:9px">
+        <div><label class="fl">Ev sahibi</label><input id="elEv" maxlength="40" placeholder="Fenerbahçe"></div>
+        <div><label class="fl">Deplasman</label><input id="elDep" maxlength="40" placeholder="Beşiktaş"></div>
+      </div>
+      <button class="btn-b btn-full btn-sm" style="margin-top:10px" onclick="elleMacEkle()">Listeye Ekle</button>
+    </div></details>
+
     <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="fiksturDene()">Ayrıştırmayı Göster</button>
     <div id="hfOnizleme"></div>
     <button class="btn-p btn-full" id="hfBtn" style="margin-top:12px" onclick="haftaKaydet()">Haftayı Aç</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }
+/* Elle girilen maçı metin alanına KANONİK biçimde yazar; ayrıştırıcı
+   kendi satırını her zaman doğru okur. */
+function elleMacEkle(){
+  const t=$('#elTarih')?.value, sa=$('#elSaat')?.value||'20:00';
+  const ev=($('#elEv')?.value||'').trim(), dep=($('#elDep')?.value||'').trim();
+  if(!t) return toast('Tarih seç',true);
+  if(!ev||!dep) return toast('İki takımı da yaz',true);
+  const ta=$('#hfMac'); if(!ta) return;
+  const satir=`${t} ${sa} ${ev} v ${dep}`;
+  ta.value=(ta.value.trim()?ta.value.replace(/\s*$/,'')+'\n':'')+satir;
+  $('#elEv').value=''; $('#elDep').value=''; $('#elEv').focus();
+  fiksturDene();
+  toast(`${ev} – ${dep} eklendi`);
+}
+
 function fiksturDene(){
   const r=fiksturAyristir($('#hfMac').value);
   const k=$('#hfOnizleme');
