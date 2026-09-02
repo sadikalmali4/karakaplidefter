@@ -74,15 +74,35 @@ async function kadroKur(){
    ========================================================= */
 let DAVET=null;
 
+/* Davet, sayfa yenilenince kaybolmamalı.
+   Mobilde bu çok oluyor: kişi linke dokunuyor, WhatsApp'ın içindeki
+   tarayıcı açılıyor, uygulamayı arka plana atıp dönünce sekme yeniden
+   yükleniyor. Adres çubuğunu temizlediğimiz için kod da gidiyordu ve
+   kişiye "grup kodu" sorulmaya başlıyordu. O yüzden daveti saklıyoruz. */
+const DAVET_ANAHTAR='kkd_davet';
+const DAVET_OMUR=7*24*3600*1000;          // 7 gün
+
+function davetYaz(d){ try{ localStorage.setItem(DAVET_ANAHTAR,JSON.stringify(d)); }catch(e){} }
+function davetSil(){ try{ localStorage.removeItem(DAVET_ANAHTAR); }catch(e){} }
+
 function davetOku(){
   const q=new URLSearchParams(location.search);
   const kod=q.get('kod');
-  if(!kod) return;
-  DAVET={kod:kod.toUpperCase(),oyuncu:q.get('oyuncu')||null,
-         ad:q.get('ad')||'',kad:q.get('kad')||''};
-  if(DAVET.ad||DAVET.kad) GIRIS_MOD='kayit';
-  /* adres çubuğunu temizle: link paylaşılınca kimlik bilgisi taşınmasın */
-  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  if(kod){
+    DAVET={kod:kod.toUpperCase(),oyuncu:q.get('oyuncu')||null,
+           ad:q.get('ad')||'',kad:q.get('kad')||'',ts:Date.now()};
+    davetYaz(DAVET);
+    /* adres çubuğunu temizle: link paylaşılınca kimlik bilgisi taşınmasın */
+    try{ history.replaceState(null,'',location.pathname); }catch(e){}
+  }else{
+    /* linkte yok ama saklanmış bir davet olabilir */
+    try{
+      const d=JSON.parse(localStorage.getItem(DAVET_ANAHTAR)||'null');
+      if(d&&d.kod&&(Date.now()-(d.ts||0))<DAVET_OMUR) DAVET=d;
+      else if(d) davetSil();          // bayat davet sonraki oturumu kaçırmasın
+    }catch(e){ davetSil(); }
+  }
+  if(DAVET&&(DAVET.ad||DAVET.kad)) GIRIS_MOD='kayit';
 }
 
 async function davetiIsle(){
@@ -95,17 +115,26 @@ async function davetiIsle(){
       const r=Array.isArray(data)?data[0]:data;
       DB.aktifGrup=r.masa_id;
       localStorage.setItem('kkd_aktif_masa',r.masa_id);
+      davetSil();                     // kullanıldı
       await verileriGetir(); kanalKur();
       toast(`Hoş geldin ${r.oyuncu_ad}. ${r.masa_ad} grubundasın.`);
     }else{
       const {data,error}=await sb.rpc('masaya_katil',{p_kod:d.kod});
       if(error) throw error;
       const r=Array.isArray(data)?data[0]:data;
+      davetSil();
       await verileriGetir(); kanalKur();
       toast(r?.durum==='onayli'?`${r.masa_ad} grubundasın.`
         :`${r?.masa_ad||'Grup'} için istek gönderildi, kurucu onaylayacak.`, r?.durum!=='onayli');
     }
-  }catch(e){ toast(hataMetni(e),true); }
+  }catch(e){
+    /* İnternet koptuysa davet dursun, bir dahaki açılışta yine denenir.
+       Ama davet geçersizse boşuna sormaya devam etmesin. */
+    const m=String(e&&e.message||'');
+    if(/kod|bulunamad|gecersiz|geçersiz|kullanıl/i.test(m)) davetSil();
+    else DAVET=d;
+    toast(hataMetni(e),true);
+  }
 }
 
 const davetKad=ad2=>String(ad2||'').toLocaleLowerCase('tr-TR')

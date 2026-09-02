@@ -78,7 +78,7 @@ async function cikisYap(){
   await sb.auth.signOut();
   OTURUM=null; PROFIL=null; UYELIKLER=[];
   DB.gruplar=[]; DB.oyuncular=[]; DB.celseler=[]; DB.iddialar=[]; DB.akis=[];
-  DB.acik=[]; DB.aktif=null; DB.ben=null; SECILI_MAC=null; DAVET=null;
+  DB.acik=[]; DB.aktif=null; DB.ben=null; SECILI_MAC=null; DAVET=null; davetSil();
   localStorage.removeItem('kkd_aktif_masa');
   DURUM='giris'; kapatModal(); render();
 }
