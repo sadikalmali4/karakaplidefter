@@ -120,6 +120,7 @@ async function verileriGetir(){
                              ayar:u.masalar.ayar||{},uyeler:[]}));
   if(!DB.gruplar.length){
     DB.oyuncular=[];DB.celseler=[];DB.iddialar=[];DB.akis=[];
+    DB.haftalar=[];DB.karsilasmalar=[];DB.tahminler=[];
     DB.acik=[];DB.aktif=null;DB.aktifGrup=null;DB.ben=null;SECILI_MAC=null;
     BEKLEYENLER=[];MASA_UYELERI=[];
     return;
@@ -130,13 +131,18 @@ async function verileriGetir(){
   localStorage.setItem('kkd_aktif_masa',DB.aktifGrup);
 
   const masaIds=DB.gruplar.map(g=>g.id);
-  const [oyn,mac,idd,akm]=await Promise.all([
+  const [oyn,mac,idd,akm,hft,krs,thm]=await Promise.all([
     sb.from('oyuncular').select('*').in('masa_id',masaIds),
     sb.from('maclar').select('id,masa_id,bitti,tarih,tabelaci_id,olusturma,celse').in('masa_id',masaIds)
       .order('tarih',{ascending:false}).order('olusturma',{ascending:false}),
     sb.from('iddialar').select('*').in('masa_id',masaIds),
     sb.from('akis').select('id,masa_id,tip,yazan_id,metin,veri,olusturma,yanit_id,akis_tepkileri(profil_id,emoji)')
-      .eq('masa_id',DB.aktifGrup).order('olusturma',{ascending:false}).limit(300)
+      .eq('masa_id',DB.aktifGrup).order('olusturma',{ascending:false}).limit(300),
+    /* tahmin yarismasi: hafta/karsilasma/tahmin. Tablolar henuz kurulmamis
+       olabilir (yama 08) — hata firlatmiyoruz, bos gecmesi yeter. */
+    sb.from('haftalar').select('*').in('masa_id',masaIds).order('olusturma',{ascending:false}),
+    sb.from('karsilasmalar').select('*'),
+    sb.from('tahminler').select('*')
   ]);
   if(oyn.error) throw oyn.error;
   if(mac.error) throw mac.error;
@@ -175,6 +181,13 @@ async function verileriGetir(){
   DB.akis=(akm.error?[]:(akm.data||[])).map(a=>({id:a.id,grupId:a.masa_id,tip:a.tip,yazanId:a.yazan_id,
     metin:a.metin,veri:a.veri||{},olusturma:a.olusturma,yanitId:a.yanit_id,
     tepkiler:(a.akis_tepkileri||[]).map(t=>({profilId:t.profil_id,emoji:t.emoji}))}));
+
+  DB.haftalar=(hft&&!hft.error?(hft.data||[]):[]).map(h=>({id:h.id,masaId:h.masa_id,ad:h.ad,
+    kapandi:!!h.kapandi,olusturan:h.olusturan,olusturma:h.olusturma}));
+  DB.karsilasmalar=(krs&&!krs.error?(krs.data||[]):[]).map(k=>({id:k.id,haftaId:k.hafta_id,sira:k.sira,
+    ev:k.ev,deplasman:k.deplasman,baslangic:k.baslangic,evSkor:k.ev_skor,depSkor:k.dep_skor}));
+  DB.tahminler=(thm&&!thm.error?(thm.data||[]):[]).map(t=>({karsilasmaId:t.karsilasma_id,
+    profilId:t.profil_id,ev:t.ev,dep:t.dep}));
 
   const g=grup(DB.aktifGrup)||{};
   DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
@@ -267,5 +280,10 @@ function kanalKur(){
     .on('postgres_changes',{event:'*',schema:'public',table:'oyuncular',   filter:f},olay)
     .on('postgres_changes',{event:'*',schema:'public',table:'masa_uyeleri',filter:f},olay)
     .on('postgres_changes',{event:'*',schema:'public',table:'masalar',     filter:fId},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'haftalar',    filter:f},olay)
+    /* karsilasmalar/tahminler masa_id tasimadigi icin suzulemez;
+       hafta uzerinden bagli olduklari icin genel dinleniyorlar. */
+    .on('postgres_changes',{event:'*',schema:'public',table:'karsilasmalar'},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tahminler'},olay)
     .subscribe();
 }

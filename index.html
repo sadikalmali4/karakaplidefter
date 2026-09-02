@@ -339,6 +339,7 @@ async function verileriGetir(){
                              ayar:u.masalar.ayar||{},uyeler:[]}));
   if(!DB.gruplar.length){
     DB.oyuncular=[];DB.celseler=[];DB.iddialar=[];DB.akis=[];
+    DB.haftalar=[];DB.karsilasmalar=[];DB.tahminler=[];
     DB.acik=[];DB.aktif=null;DB.aktifGrup=null;DB.ben=null;SECILI_MAC=null;
     BEKLEYENLER=[];MASA_UYELERI=[];
     return;
@@ -349,13 +350,18 @@ async function verileriGetir(){
   localStorage.setItem('kkd_aktif_masa',DB.aktifGrup);
 
   const masaIds=DB.gruplar.map(g=>g.id);
-  const [oyn,mac,idd,akm]=await Promise.all([
+  const [oyn,mac,idd,akm,hft,krs,thm]=await Promise.all([
     sb.from('oyuncular').select('*').in('masa_id',masaIds),
     sb.from('maclar').select('id,masa_id,bitti,tarih,tabelaci_id,olusturma,celse').in('masa_id',masaIds)
       .order('tarih',{ascending:false}).order('olusturma',{ascending:false}),
     sb.from('iddialar').select('*').in('masa_id',masaIds),
     sb.from('akis').select('id,masa_id,tip,yazan_id,metin,veri,olusturma,yanit_id,akis_tepkileri(profil_id,emoji)')
-      .eq('masa_id',DB.aktifGrup).order('olusturma',{ascending:false}).limit(300)
+      .eq('masa_id',DB.aktifGrup).order('olusturma',{ascending:false}).limit(300),
+    /* tahmin yarismasi: hafta/karsilasma/tahmin. Tablolar henuz kurulmamis
+       olabilir (yama 08) — hata firlatmiyoruz, bos gecmesi yeter. */
+    sb.from('haftalar').select('*').in('masa_id',masaIds).order('olusturma',{ascending:false}),
+    sb.from('karsilasmalar').select('*'),
+    sb.from('tahminler').select('*')
   ]);
   if(oyn.error) throw oyn.error;
   if(mac.error) throw mac.error;
@@ -394,6 +400,13 @@ async function verileriGetir(){
   DB.akis=(akm.error?[]:(akm.data||[])).map(a=>({id:a.id,grupId:a.masa_id,tip:a.tip,yazanId:a.yazan_id,
     metin:a.metin,veri:a.veri||{},olusturma:a.olusturma,yanitId:a.yanit_id,
     tepkiler:(a.akis_tepkileri||[]).map(t=>({profilId:t.profil_id,emoji:t.emoji}))}));
+
+  DB.haftalar=(hft&&!hft.error?(hft.data||[]):[]).map(h=>({id:h.id,masaId:h.masa_id,ad:h.ad,
+    kapandi:!!h.kapandi,olusturan:h.olusturan,olusturma:h.olusturma}));
+  DB.karsilasmalar=(krs&&!krs.error?(krs.data||[]):[]).map(k=>({id:k.id,haftaId:k.hafta_id,sira:k.sira,
+    ev:k.ev,deplasman:k.deplasman,baslangic:k.baslangic,evSkor:k.ev_skor,depSkor:k.dep_skor}));
+  DB.tahminler=(thm&&!thm.error?(thm.data||[]):[]).map(t=>({karsilasmaId:t.karsilasma_id,
+    profilId:t.profil_id,ev:t.ev,dep:t.dep}));
 
   const g=grup(DB.aktifGrup)||{};
   DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
@@ -486,6 +499,11 @@ function kanalKur(){
     .on('postgres_changes',{event:'*',schema:'public',table:'oyuncular',   filter:f},olay)
     .on('postgres_changes',{event:'*',schema:'public',table:'masa_uyeleri',filter:f},olay)
     .on('postgres_changes',{event:'*',schema:'public',table:'masalar',     filter:fId},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'haftalar',    filter:f},olay)
+    /* karsilasmalar/tahminler masa_id tasimadigi icin suzulemez;
+       hafta uzerinden bagli olduklari icin genel dinleniyorlar. */
+    .on('postgres_changes',{event:'*',schema:'public',table:'karsilasmalar'},olay)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tahminler'},olay)
     .subscribe();
 }
 
@@ -2111,7 +2129,7 @@ function h2h(id,oyun){
 /* DİVAN — masanın sosyal tarafı tek sekmede, alt bölümlere ayrılmış.
    Unvanlar · Borç Hesabı · Rekorlar · Aramızda · Efsaneler */
 function viewRozet(){
-  const b=[['unvan','🏅 Unvan'],['borc','🥃 Borç'],['rekor','📖 Rekor'],
+  const b=[['unvan','🏅 Unvan'],['borc','🥃 Borç'],['tahmin','⚽ Tahmin'],['rekor','📖 Rekor'],
            ['aramizda','⚔️ Aramızda'],['efsane','📜 Efsane']];
   const nav=`<div class="row" style="overflow-x:auto;gap:7px;padding-bottom:4px;margin-bottom:12px">
     ${b.map(([k,ad2])=>`<div class="chip ${DIVAN===k?'on':''}" style="flex-shrink:0"
@@ -2122,6 +2140,7 @@ function viewRozet(){
     <button class="${ROZET_OYUN==='101'?'on':''}" onclick="ROZET_OYUN='101';render()">101</button></div>`;
 
   if(DIVAN==='borc')     return nav+borcHesabi();
+  if(DIVAN==='tahmin')   return nav+tahminKart();
   /* Efsane bölümü masanın hafızası; lakaplar da oraya ait — ayrı sekme açmaya değmez */
   if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'');
   if(DIVAN==='rekor')    return nav+oyunSec+rekorKart(ROZET_OYUN);
@@ -4422,6 +4441,493 @@ async function devret(){
     toast(hataMetni(e),true);
     if(btn){ btn.disabled=false; btn.textContent='Devret'; }
   }
+}
+
+/* =========================================================
+   TAHMİN YARIŞMASI
+   Haftanın maçları girilir, herkes skor yazar. Tahminler AÇIK —
+   herkes birbirini görür. Maç başlayınca kilitlenir; kilit
+   veritabanında (yama 08), arayüzde değil.
+
+   PUAN SKALASI
+     tam skor .................. 5
+     doğru sonuç + gol farkı ... 3
+     sadece doğru sonuç ........ 2
+     toplam gol de tutarsa ..... +1   (yalnız puan aldıysa)
+     yoksa ..................... 0
+   ========================================================= */
+
+let TAHMIN_HAFTA=null;          // seçili hafta id
+
+/* --------------------------- puanlama --------------------------- */
+const isaret=x=>x>0?1:(x<0?-1:0);
+function tahminPuan(t,k){
+  if(!t||k.evSkor==null||k.depSkor==null) return null;
+  if(t.ev===k.evSkor&&t.dep===k.depSkor) return 5;
+  let p=0;
+  if(isaret(t.ev-t.dep)===isaret(k.evSkor-k.depSkor))
+    p = ((t.ev-t.dep)===(k.evSkor-k.depSkor)) ? 3 : 2;
+  if(p>0 && (t.ev+t.dep)===(k.evSkor+k.depSkor)) p+=1;
+  return p;
+}
+const puanEtiketi=p=>p===null?'':(p===0?'0':'+'+p);
+
+/* --------------------------- veri ------------------------------- */
+const haftalar     = ()=>(DB.haftalar||[]).filter(h=>h.masaId===DB.aktifGrup);
+const haftaMaclari = hid=>(DB.karsilasmalar||[]).filter(k=>k.haftaId===hid)
+                            .sort((a,b)=>a.sira-b.sira||String(a.baslangic).localeCompare(String(b.baslangic)));
+const macTahminleri= kid=>(DB.tahminler||[]).filter(t=>t.karsilasmaId===kid);
+const benimTahmin   = kid=>macTahminleri(kid).find(t=>t.profilId===OTURUM.id)||null;
+const kilitli        = k=>new Date(k.baslangic).getTime()<=Date.now();
+const skorVar        = k=>k.evSkor!=null&&k.depSkor!=null;
+
+function saatMetni(iso){
+  const d=new Date(iso);
+  if(isNaN(d)) return '';
+  const g=['Paz','Pzt','Sal','Çar','Per','Cum','Cts'][d.getDay()];
+  const ik=n=>String(n).padStart(2,'0');
+  return `${g} ${ik(d.getDate())}.${ik(d.getMonth()+1)} ${ik(d.getHours())}:${ik(d.getMinutes())}`;
+}
+function kalanMetni(iso){
+  const fark=new Date(iso).getTime()-Date.now();
+  if(fark<=0) return 'kilitli';
+  const dk=Math.round(fark/60000);
+  if(dk<60) return dk+' dk kaldı';
+  const sa=Math.round(dk/60);
+  if(sa<48) return sa+' saat kaldı';
+  return Math.round(sa/24)+' gün kaldı';
+}
+
+/* haftanın puan tablosu: profilId → {puan, tam, adet} */
+function haftaPuanlari(hid){
+  const t={};
+  const kur=id=>t[id]=t[id]||{puan:0,tam:0,adet:0};
+  haftaMaclari(hid).filter(skorVar).forEach(k=>{
+    macTahminleri(k.id).forEach(x=>{
+      const p=tahminPuan(x,k); if(p===null) return;
+      const s=kur(x.profilId); s.puan+=p; s.adet++; if(p===5) s.tam++;
+    });
+  });
+  return t;
+}
+/* sezon: bütün haftalar */
+function sezonPuanlari(){
+  const t={};
+  const kur=id=>t[id]=t[id]||{puan:0,tam:0,adet:0,hafta:0};
+  haftalar().forEach(h=>{
+    const hp=haftaPuanlari(h.id);
+    const sirali=Object.entries(hp).sort((a,b)=>b[1].puan-a[1].puan);
+    const en=sirali.length?sirali[0][1].puan:0;
+    Object.entries(hp).forEach(([id,s])=>{
+      const g=kur(id); g.puan+=s.puan; g.tam+=s.tam; g.adet+=s.adet;
+      if(s.puan===en&&en>0) g.hafta++;      // haftalık şampiyonluk
+    });
+  });
+  return t;
+}
+const profilAd=pid=>{
+  const o=DB.oyuncular.find(x=>x.profilId===pid&&x.masaId===DB.aktifGrup);
+  if(o) return o.ad;
+  return MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller?.ad||'?';
+};
+const profilOyuncu=pid=>DB.oyuncular.find(x=>x.profilId===pid&&x.masaId===DB.aktifGrup)||null;
+function profilAvatar(pid,b){
+  const o=profilOyuncu(pid);
+  if(o) return avatar(o.id,b||24);
+  const p=MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller;
+  return `<div class="avatar" style="background:${esc(p?.renk||'#5a524c')};width:${b||24}px;height:${b||24}px;
+    font-size:${Math.round((b||24)*.43)}px">${esc(bas(p?.ad))}</div>`;
+}
+
+/* --------------------------- görünüm ---------------------------- */
+function tahminKart(){
+  const hs=haftalar().slice().sort((a,b)=>String(b.olusturma).localeCompare(String(a.olusturma)));
+  const k=kurucuMu();
+  if(!hs.length) return `<div class="card"><div class="empty">
+    <div class="big">⚽</div>Henüz tahmin haftası açılmadı.
+    <div class="sm" style="margin-top:6px">Haftanın maçlarını yapıştır, masa tahmin etsin.</div>
+    ${k?`<button class="btn-p" style="margin-top:14px" onclick="haftaAc()">+ Hafta Aç</button>`:''}
+  </div></div>`;
+
+  if(!TAHMIN_HAFTA||!hs.some(h=>h.id===TAHMIN_HAFTA)) TAHMIN_HAFTA=hs[0].id;
+  const h=hs.find(x=>x.id===TAHMIN_HAFTA);
+  const mac=haftaMaclari(h.id);
+  const hp=haftaPuanlari(h.id);
+  const sirali=Object.entries(hp).sort((a,b)=>b[1].puan-a[1].puan||b[1].tam-a[1].tam);
+
+  return `
+  ${hs.length>1?`<div class="row wrap" style="gap:6px;margin-bottom:10px">${hs.map(x=>
+    `<div class="chip ${x.id===TAHMIN_HAFTA?'on':''}" onclick="TAHMIN_HAFTA='${x.id}';render()">
+      ${esc(x.ad)}${x.kapandi?' ✔':''}</div>`).join('')}</div>`:''}
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><div class="serif" style="font-size:17px">⚽ ${esc(h.ad)}</div>
+        <div class="xs dim">${mac.length} maç · ${mac.filter(skorVar).length} sonuçlandı
+          ${h.kapandi?' · hafta kapandı':''}</div></div>
+      ${k?`<div style="display:flex;gap:5px;flex-shrink:0">
+        <button class="btn-xs btn-gh" onclick="macEkleAc('${h.id}')">+ Maç</button>
+        <button class="btn-xs btn-dn" onclick="haftaSil('${h.id}')">Sil</button></div>`:''}
+    </div>
+    ${!mac.length?`<div class="sep"></div><div class="sm dim">Bu haftaya maç girilmemiş.
+      ${k?'Yukarıdaki "+ Maç" ile haftanın fikstürünü yapıştır.':''}</div>`
+     :`<div class="sep"></div>${mac.map(macSatiri).join('<div class="sep" style="margin:10px -14px"></div>')}`}
+  </div>
+
+  ${sirali.length?`<div class="card">
+    <h3>🏆 Hafta Sıralaması</h3>
+    <table><thead><tr><th>Kişi</th><th>Puan</th><th>Tam</th><th>Maç</th></tr></thead><tbody>
+    ${sirali.map(([pid,s],i)=>`<tr>
+      <td><div class="row" style="gap:8px"><span class="rank ${i===0?'r1':''}">${i+1}</span>
+        ${profilAvatar(pid,24)}<span style="font-weight:600">${esc(profilAd(pid))}</span></div></td>
+      <td><b class="${s.puan>0?'pos':'zero'}">${s.puan}</b></td>
+      <td>${s.tam?'🎯 '+s.tam:'–'}</td><td class="dim">${s.adet}</td></tr>`).join('')}
+    </tbody></table>
+    ${k&&mac.length&&mac.every(skorVar)&&!h.kapandi
+      ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="haftaKapat('${h.id}')">
+          Haftayı Kapat → Zabıt</button>`:''}
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="tahminZabtiAc('${h.id}')">
+      📋 Hafta Özetini Kopyala</button>
+  </div>`:''}
+
+  ${sezonKart()}
+
+  ${k?`<div class="card tight center"><button class="btn-p btn-sm" onclick="haftaAc()">+ Yeni Hafta</button></div>`:''}
+  <div class="card tight xs dim">Tam skor <b>5</b> · doğru sonuç + gol farkı <b>3</b> ·
+    sadece doğru sonuç <b>2</b> · toplam gol de tutarsa <b>+1</b>. Sonucu tutmayan tahmin 0 alır.
+    Tahminler açıktır, herkes birbirini görür; maç başlayınca kilitlenir.</div>`;
+}
+
+function macSatiri(k){
+  const t=benimTahmin(k.id), hepsi=macTahminleri(k.id), kl=kilitli(k), bitti=skorVar(k);
+  const digerleri=hepsi.filter(x=>x.profilId!==OTURUM.id);
+  return `<div>
+    <div class="row" style="justify-content:space-between;gap:8px">
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:600;font-size:14px" class="ell">${esc(k.ev)} – ${esc(k.deplasman)}</div>
+        <div class="xs dim">${saatMetni(k.baslangic)} · ${bitti?'sonuçlandı':(kl?'kilitli':kalanMetni(k.baslangic))}</div>
+      </div>
+      ${bitti?`<div class="serif" style="font-size:20px;flex-shrink:0">${k.evSkor}–${k.depSkor}</div>`
+        :(kurucuMu()&&kl?`<button class="btn-xs btn-g" style="flex-shrink:0" onclick="skorGirAc('${k.id}')">Skor</button>`:'')}
+      ${kurucuMu()?`<button class="btn-xs btn-gh" style="flex-shrink:0" onclick="macSil('${k.id}')">✕</button>`:''}
+    </div>
+
+    ${!kl?`<div class="row" style="gap:6px;margin-top:8px;align-items:center">
+      <input type="number" id="th-e-${k.id}" min="0" max="30" value="${t?t.ev:''}" placeholder="–"
+        style="width:56px;text-align:center;font:600 16px Georgia,serif">
+      <span class="dim">–</span>
+      <input type="number" id="th-d-${k.id}" min="0" max="30" value="${t?t.dep:''}" placeholder="–"
+        style="width:56px;text-align:center;font:600 16px Georgia,serif">
+      <button class="btn-sm btn-p" onclick="tahminKaydet('${k.id}')">${t?'Değiştir':'Tahmin Et'}</button>
+    </div>`
+    :(t?`<div class="xs" style="margin-top:6px">Tahminin: <b>${t.ev}–${t.dep}</b>
+        ${bitti?` · <b class="${tahminPuan(t,k)>0?'pos':'zero'}">${puanEtiketi(tahminPuan(t,k))}</b>`:''}</div>`
+      :`<div class="xs dim" style="margin-top:6px">Tahmin girmedin.</div>`)}
+
+    ${digerleri.length?`<div class="row wrap" style="gap:5px;margin-top:7px">${digerleri.map(x=>{
+      const p=bitti?tahminPuan(x,k):null;
+      return `<span class="pill ${p===5?'gold':(p>0?'green':(bitti?'':'blue'))}">
+        ${esc(profilAd(x.profilId))} ${x.ev}–${x.dep}${p!==null?' '+puanEtiketi(p):''}</span>`;}).join('')}
+      </div>`:(kl?'':`<div class="xs dim" style="margin-top:6px">Henüz başka tahmin yok.</div>`)}
+  </div>`;
+}
+
+function sezonKart(){
+  const t=sezonPuanlari();
+  const s=Object.entries(t).filter(([,x])=>x.adet>0).sort((a,b)=>b[1].puan-a[1].puan||b[1].tam-a[1].tam);
+  if(s.length<1||haftalar().length<2) return '';
+  return `<div class="card"><h3>📅 Sezon Sıralaması</h3>
+    <table><thead><tr><th>Kişi</th><th>Puan</th><th>🎯</th><th>Hafta</th></tr></thead><tbody>
+    ${s.map(([pid,x],i)=>`<tr>
+      <td><div class="row" style="gap:8px"><span class="rank ${i===0?'r1':''}">${i+1}</span>
+        ${profilAvatar(pid,24)}<span style="font-weight:600">${esc(profilAd(pid))}</span></div></td>
+      <td><b>${x.puan}</b></td><td>${x.tam||'–'}</td>
+      <td class="dim">${x.hafta?x.hafta+' 🏆':'–'}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+/* =========================================================
+   TAHMİN YARIŞMASI — eylemler
+   Fikstür YAPIŞTIRILARAK giriliyor: dış servise, API anahtarına ve
+   kotaya bağımlılık yok. Anahtar statik sayfada saklanamaz zaten.
+   ========================================================= */
+
+/* ---------------- fikstür ayrıştırıcı ----------------
+   Tanıdığı biçimler (satır başına bir maç):
+     Cts 20:00 Fenerbahçe - Beşiktaş
+     06.09 20:00  Galatasaray - Trabzonspor
+     2026-09-06 22:00 Real Madrid vs Galatasaray
+     20:00 Fenerbahçe-Beşiktaş
+   Gün adı yazılmışsa bu haftanın o gününe denk getirilir.        */
+const GUNLER={paz:0,pzt:1,pts:1,sal:2,car:3,'çar':3,per:4,cum:5,cts:6,cmt:6,
+              pazar:0,pazartesi:1,sali:2,'salı':2,carsamba:3,'çarşamba':3,
+              persembe:4,'perşembe':4,cuma:5,cumartesi:6};
+
+const GUN_DESEN=/\b(pzt|pts|sal|çar|car|per|cum|cts|cmt|paz|pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)\b/i;
+
+/* Sıra önemli: ÖNCE tarih ayrılır, SONRA saat aranır.
+   Tersi yapılınca "06.09 22:00" satırında 06.09 saat sanılıyor ve
+   22:00 takım adına karışıyordu — yaşanan hata buydu.
+   Ayırt etme kuralı: ':' varsa o kesin saattir; "gg.aa" ise ay 1-12
+   olmak zorunda, yani "20.00" (ay=00) tarih olamaz, saattir. */
+function fiksturAyristir(metin){
+  const cikti=[], hata=[];
+  const bugun=new Date();
+
+  String(metin||'').split(/\r?\n/).forEach(ham=>{
+    const asil=ham.trim(); if(!asil) return;
+    let s=asil, d=null, saat=null, dk=null, tarihYazili=false;
+    const cikar=x=>{ s=s.replace(x,' '); };
+
+    /* 1) ISO tarih: 2026-09-06 */
+    let m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(m){ d=new Date(+m[1],+m[2]-1,+m[3]); tarihYazili=true; cikar(m[0]); }
+
+    /* 2) ':' ayraçlı saat — tereddütsüz saattir */
+    m=s.match(/(\d{1,2}):(\d{2})/);
+    if(m && +m[1]<=23 && +m[2]<=59){ saat=+m[1]; dk=+m[2]; cikar(m[0]); }
+
+    /* 3) gg.aa[.yyyy] — ay 1-12 olmalı, yoksa tarih değildir */
+    if(!d){
+      m=s.match(/\b(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?\b/);
+      if(m && +m[1]>=1 && +m[1]<=31 && +m[2]>=1 && +m[2]<=12){
+        const yil=m[3]?(+m[3]<100?2000+ +m[3]:+m[3]):bugun.getFullYear();
+        d=new Date(yil,+m[2]-1,+m[1]); tarihYazili=true; cikar(m[0]);
+      }
+    }
+
+    /* 4) saat hâlâ yoksa nokta ile yazılmış olabilir: 20.00 */
+    if(saat===null){
+      m=s.match(/\b(\d{1,2})[.](\d{2})\b/);
+      if(m && +m[1]<=23 && +m[2]<=59){ saat=+m[1]; dk=+m[2]; cikar(m[0]); }
+    }
+    if(saat===null){ hata.push(asil); return; }
+
+    /* 5) tarih yoksa gün adına bak: bu haftanın o günü (geçtiyse sonraki) */
+    const g=s.match(GUN_DESEN);
+    if(!d && g){
+      const gi=GUNLER[g[1].toLocaleLowerCase('tr-TR')];
+      if(gi!==undefined){
+        d=new Date(bugun);
+        d.setDate(bugun.getDate()+((gi-bugun.getDay()+7)%7));
+      }
+    }
+    if(g) cikar(g[0]);
+    if(!d) d=new Date(bugun);
+    d.setHours(saat,dk,0,0);
+    /* Sadece saat yazılmışsa ve o saat geçmişse yarını kastediyordur */
+    if(!tarihYazili && !g && d.getTime()<Date.now()) d.setDate(d.getDate()+1);
+
+    /* 6) takımlar */
+    const kalan=s.replace(/\s+/g,' ').trim();
+    const tm=kalan.split(/\s+(?:-|–|—|vs\.?)\s+|(?<=\S)\s*[-–—]\s*(?=\S)/i);
+    const ev=(tm[0]||'').trim().replace(/^[-–—\s]+|[-–—\s]+$/g,'');
+    const dep=(tm[1]||'').trim().replace(/^[-–—\s]+|[-–—\s]+$/g,'');
+    if(!ev||!dep){ hata.push(asil); return; }
+    cikti.push({ev,deplasman:dep,baslangic:d.toISOString()});
+  });
+  return {mac:cikti,hata};
+}
+
+/* ---------------- hafta ---------------- */
+function haftaAc(){
+  if(!kurucuMu()) return toast('Haftayı yalnız masayı kuran açar',true);
+  const n=haftalar().length+1;
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Tahmin Haftası Aç</h2>
+    <div class="xs dim" style="margin-bottom:14px">Haftanın maçlarını herhangi bir yerden kopyalayıp
+      yapıştır; uygulama ayrıştırır. Tahminler açık olur, maç başlayınca kilitlenir.</div>
+    <div class="field"><label class="fl">Hafta adı</label>
+      <input id="hfAd" value="${n}. Hafta" maxlength="60"></div>
+    <div class="field"><label class="fl">Maçlar <span style="text-transform:none;letter-spacing:0">(satır başına bir maç)</span></label>
+      <textarea id="hfMac" rows="7" placeholder="Cts 20:00  Fenerbahçe - Beşiktaş
+Paz 19:00  Galatasaray - Trabzonspor
+06.09 22:00  Real Madrid - Galatasaray"></textarea>
+      <div class="xs dim" style="margin-top:6px">Gün adı, tarih (06.09 ya da 2026-09-06) ve saat tanınır.
+        Takımları <b>-</b> ya da <b>vs</b> ile ayır.</div></div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="fiksturDene()">Ayrıştırmayı Göster</button>
+    <div id="hfOnizleme"></div>
+    <button class="btn-p btn-full" id="hfBtn" style="margin-top:12px" onclick="haftaKaydet()">Haftayı Aç</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+function fiksturDene(){
+  const r=fiksturAyristir($('#hfMac').value);
+  const k=$('#hfOnizleme');
+  k.innerHTML=`<div class="card tight" style="margin-top:10px;background:var(--panel2)">
+    ${r.mac.length?`<div class="xs dim" style="margin-bottom:6px">${r.mac.length} maç okundu:</div>
+      ${r.mac.map(m=>`<div class="sm" style="padding:2px 0">${esc(m.ev)} – ${esc(m.deplasman)}
+        <span class="xs dim">· ${saatMetni(m.baslangic)}</span></div>`).join('')}`
+     :'<div class="sm dim">Hiç maç okunamadı.</div>'}
+    ${r.hata.length?`<div class="xs" style="color:#DD8A8A;margin-top:8px">Anlaşılmayan satırlar:
+      ${r.hata.map(x=>esc(x)).join(' / ')}</div>`:''}
+  </div>`;
+}
+async function haftaKaydet(){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  const ad2=$('#hfAd').value.trim();
+  if(!ad2) return toast('Hafta adı gerekli',true);
+  const r=fiksturAyristir($('#hfMac').value);
+  if(!r.mac.length) return toast('Hiç maç okunamadı — "Ayrıştırmayı Göster" ile bak',true);
+  const btn=$('#hfBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  try{
+    const {data:h,error}=await sb.from('haftalar')
+      .insert({masa_id:DB.aktifGrup,ad:ad2,olusturan:OTURUM.id}).select().single();
+    if(error) throw error;
+    const {error:e2}=await sb.from('karsilasmalar').insert(
+      r.mac.map((m,i)=>({hafta_id:h.id,sira:i+1,ev:m.ev,deplasman:m.deplasman,baslangic:m.baslangic})));
+    if(e2) throw e2;
+    await akisEkle('mesaj',`${ad2} tahmin haftası açılmıştır. ${r.mac.length} maç için tahminler `+
+      `maç başlangıcına kadar alınacaktır; tahminler açıktır, taraflar birbirini görür.`,{tahminHafta:h.id});
+    TAHMIN_HAFTA=h.id;
+    kapatModal(); await yenile(true);
+    toast(`${ad2} açıldı, ${r.mac.length} maç girildi.`);
+  }catch(e){ toast(hataMetni(e),true); btn.disabled=false; btn.textContent='Haftayı Aç'; }
+}
+async function haftaSil(hid){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  const h=haftalar().find(x=>x.id===hid); if(!h) return;
+  if(!confirm(`"${h.ad}" ve içindeki bütün maçlar ve tahminler silinsin mi?`)) return;
+  const {error}=await sb.from('haftalar').delete().eq('id',hid);
+  if(error) return toast(hataMetni(error),true);
+  TAHMIN_HAFTA=null; await yenile(true); toast('Hafta silindi');
+}
+
+/* ---------------- maç ekle / sil / skor ---------------- */
+function macEkleAc(hid){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Maç Ekle</h2>
+    <div class="xs dim" style="margin-bottom:14px">Bu haftaya maç eklenir; yapıştırma biçimi aynı.</div>
+    <div class="field"><label class="fl">Maçlar</label>
+      <textarea id="hfMac" rows="5" placeholder="Cum 21:45  Beşiktaş - Fenerbahçe"></textarea></div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="fiksturDene()">Ayrıştırmayı Göster</button>
+    <div id="hfOnizleme"></div>
+    <button class="btn-p btn-full" id="hfBtn" style="margin-top:12px" onclick="macEkle('${hid}')">Ekle</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+async function macEkle(hid){
+  const r=fiksturAyristir($('#hfMac').value);
+  if(!r.mac.length) return toast('Hiç maç okunamadı',true);
+  const btn=$('#hfBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const bas=haftaMaclari(hid).length;
+  const {error}=await sb.from('karsilasmalar').insert(
+    r.mac.map((m,i)=>({hafta_id:hid,sira:bas+i+1,ev:m.ev,deplasman:m.deplasman,baslangic:m.baslangic})));
+  if(error){ toast(hataMetni(error),true); btn.disabled=false; btn.textContent='Ekle'; return; }
+  kapatModal(); await yenile(true); toast(`${r.mac.length} maç eklendi.`);
+}
+async function macSil(kid){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  const k=(DB.karsilasmalar||[]).find(x=>x.id===kid); if(!k) return;
+  if(!confirm(`${k.ev} – ${k.deplasman} maçı ve tahminleri silinsin mi?`)) return;
+  const {error}=await sb.from('karsilasmalar').delete().eq('id',kid);
+  if(error) return toast(hataMetni(error),true);
+  await yenile(true); toast('Maç silindi');
+}
+function skorGirAc(kid){
+  if(!kurucuMu()) return toast('Sonucu yalnız masayı kuran girer',true);
+  const k=(DB.karsilasmalar||[]).find(x=>x.id===kid); if(!k) return;
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Maç Sonucu</h2>
+    <div class="sm" style="margin-bottom:14px">${esc(k.ev)} – ${esc(k.deplasman)}
+      <span class="xs dim">· ${saatMetni(k.baslangic)}</span></div>
+    <div class="row" style="gap:8px;align-items:center;justify-content:center">
+      <input type="number" id="skE" min="0" max="30" value="${k.evSkor??''}" placeholder="0"
+        style="width:70px;text-align:center;font:600 20px Georgia,serif">
+      <span class="dim">–</span>
+      <input type="number" id="skD" min="0" max="30" value="${k.depSkor??''}" placeholder="0"
+        style="width:70px;text-align:center;font:600 20px Georgia,serif">
+    </div>
+    <button class="btn-p btn-full" id="skBtn" style="margin-top:16px" onclick="skorKaydet('${kid}')">Kaydet</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+async function skorKaydet(kid){
+  const e=parseInt($('#skE').value,10), d=parseInt($('#skD').value,10);
+  if(!Number.isInteger(e)||!Number.isInteger(d)||e<0||d<0) return toast('İki skoru da yaz',true);
+  const btn=$('#skBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const {error}=await sb.from('karsilasmalar').update({ev_skor:e,dep_skor:d}).eq('id',kid);
+  if(error){ toast(hataMetni(error),true); btn.disabled=false; btn.textContent='Kaydet'; return; }
+  kapatModal(); await yenile(true); toast('Sonuç işlendi, puanlar güncellendi.');
+}
+
+/* ---------------- tahmin ---------------- */
+async function tahminKaydet(kid){
+  const k=(DB.karsilasmalar||[]).find(x=>x.id===kid); if(!k) return;
+  if(kilitli(k)){ await yenile(true); return toast('Maç başladı, tahmin kapandı.',true); }
+  const e=parseInt($(`#th-e-${kid}`).value,10), d=parseInt($(`#th-d-${kid}`).value,10);
+  if(!Number.isInteger(e)||!Number.isInteger(d)||e<0||d<0) return toast('İki skoru da yaz',true);
+  const {error}=await sb.from('tahminler')
+    .upsert({karsilasma_id:kid,profil_id:OTURUM.id,ev:e,dep:d,guncelleme:new Date().toISOString()},
+            {onConflict:'karsilasma_id,profil_id'});
+  if(error){
+    /* kilit veritabanında: maç başladıysa kural engeller */
+    if(/row-level security|violates/i.test(error.message||'')){
+      await yenile(true); return toast('Maç başladı, tahmin kapandı.',true);
+    }
+    return toast(hataMetni(error),true);
+  }
+  await yenile(true);
+  toast(`${k.ev} – ${k.deplasman}: ${e}–${d} yazıldı.`);
+}
+
+/* ---------------- hafta zabıtı ---------------- */
+function tahminZabtiUret(hid){
+  const h=haftalar().find(x=>x.id===hid); if(!h) return '';
+  const g=aktifGrup()||{ad:'Masa',emoji:''};
+  const mac=haftaMaclari(hid), hp=haftaPuanlari(hid);
+  const sirali=Object.entries(hp).sort((a,b)=>b[1].puan-a[1].puan||b[1].tam-a[1].tam);
+  const L=[`${g.emoji||''} ${String(g.ad).toLocaleUpperCase('tr-TR')} — ${String(h.ad).toLocaleUpperCase('tr-TR')} TAHMİN ZABTI`,''];
+
+  const bitmis=mac.filter(skorVar);
+  if(bitmis.length){
+    L.push('SONUÇLAR:');
+    bitmis.forEach(k=>L.push(`  ${k.ev} ${k.evSkor}–${k.depSkor} ${k.deplasman}`));
+    L.push('');
+  }
+  const bekleyen=mac.filter(k=>!skorVar(k));
+  if(bekleyen.length){
+    L.push(`SONUCU BEKLENEN: ${bekleyen.map(k=>`${k.ev}–${k.deplasman}`).join(', ')}.`);
+    L.push('');
+  }
+  if(!sirali.length){ L.push('Henüz puanlanmış tahmin yok.'); return L.join('\n'); }
+
+  L.push('SIRALAMA:');
+  sirali.forEach(([pid,s],i)=>L.push(`  ${i+1}. ${profilAd(pid)} — ${s.puan} puan`+
+    (s.tam?` (${s.tam} tam skor)`:'')));
+  L.push('');
+
+  const en=sirali[0][1].puan;
+  const sampiyonlar=sirali.filter(([,s])=>s.puan===en).map(([pid])=>profilAd(pid));
+  L.push(`HÜKÜM: ${liste(sampiyonlar)} ${en} puanla haftanın birincisi olmuştur.`+
+    (sampiyonlar.length>1?' Beraberlik hâlinde unvan ortak taşınır.':''));
+
+  const son=sirali[sirali.length-1];
+  if(sirali.length>1&&son[1].puan<en)
+    L.push(`${profilAd(son[0])} ${son[1].puan} puanda kalmıştır. Futbol bilgisi hususu tartışmaya açılmamıştır.`);
+
+  const tamci=sirali.filter(([,s])=>s.tam>0);
+  if(tamci.length) L.push(`TAM SKOR: ${liste(tamci.map(([pid,s])=>`${profilAd(pid)} (${s.tam})`))}.`);
+  else L.push('Bu hafta tam skor tutan çıkmamıştır.');
+
+  const sifir=sirali.filter(([,s])=>s.puan===0).map(([pid])=>profilAd(pid));
+  if(sifir.length) L.push(`Sıfır çeken: ${liste(sifir)}. Tahmin serbestliği anayasal bir haktır.`);
+
+  L.push('');
+  L.push('Zabıt okundu, imza altına alındı.');
+  return L.join('\n');
+}
+function tahminZabtiAc(hid){
+  const m=tahminZabtiUret(hid);
+  acModal(`<h2 class="serif" style="margin:0 0 10px">Hafta Zabtı</h2>
+    <div class="zabit" id="hzMetin">${esc(m)}</div>
+    <button class="btn-g btn-full" style="margin-top:12px"
+      onclick="kopyala(document.getElementById('hzMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+async function haftaKapat(hid){
+  if(!kurucuMu()) return toast('Yetkin yok',true);
+  const h=haftalar().find(x=>x.id===hid); if(!h) return;
+  if(!confirm(`"${h.ad}" kapatılsın mı? Zabıt akışa işlenecek.`)) return;
+  const {error}=await sb.from('haftalar').update({kapandi:true}).eq('id',hid);
+  if(error) return toast(hataMetni(error),true);
+  await akisEkle('mesaj',tahminZabtiUret(hid),{tahminZabit:hid});
+  await yenile(true); toast('Hafta kapandı, zabıt akışa düştü.');
 }
 
 /* =========================================================

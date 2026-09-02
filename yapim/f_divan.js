@@ -2,7 +2,7 @@
 /* DİVAN — masanın sosyal tarafı tek sekmede, alt bölümlere ayrılmış.
    Unvanlar · Borç Hesabı · Rekorlar · Aramızda · Efsaneler */
 function viewRozet(){
-  const b=[['unvan','🏅 Unvan'],['borc','🥃 Borç'],['rekor','📖 Rekor'],
+  const b=[['unvan','🏅 Unvan'],['borc','🥃 Borç'],['tahmin','⚽ Tahmin'],['rekor','📖 Rekor'],
            ['aramizda','⚔️ Aramızda'],['efsane','📜 Efsane']];
   const nav=`<div class="row" style="overflow-x:auto;gap:7px;padding-bottom:4px;margin-bottom:12px">
     ${b.map(([k,ad2])=>`<div class="chip ${DIVAN===k?'on':''}" style="flex-shrink:0"
@@ -13,6 +13,7 @@ function viewRozet(){
     <button class="${ROZET_OYUN==='101'?'on':''}" onclick="ROZET_OYUN='101';render()">101</button></div>`;
 
   if(DIVAN==='borc')     return nav+borcHesabi();
+  if(DIVAN==='tahmin')   return nav+tahminKart();
   /* Efsane bölümü masanın hafızası; lakaplar da oraya ait — ayrı sekme açmaya değmez */
   if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'');
   if(DIVAN==='rekor')    return nav+oyunSec+rekorKart(ROZET_OYUN);

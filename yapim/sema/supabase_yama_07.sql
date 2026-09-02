@@ -72,7 +72,10 @@ comment on policy p_mac_guncelle on public.maclar is
 -- =====================================================================
 --  Kontrol: politikalar yerinde mi?
 -- =====================================================================
-select polname, cmd
+-- NOT: pg_policies gorunumunde sutun adi policyname'dir (polname degil;
+-- o, pg_policy katalogunun sutunu). Yanlis ad yazilirsa hata en sonda
+-- cikar ama Supabase betigi tek islem calistirdigi icin HEPSI geri alinir.
+select policyname, cmd
 from pg_policies
 where schemaname='public' and tablename='maclar'
-order by polname;
+order by policyname;
