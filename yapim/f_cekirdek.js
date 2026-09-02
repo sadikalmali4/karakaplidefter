@@ -79,7 +79,8 @@ function hataMetni(e){
   return m || 'Bilinmeyen hata';
 }
 const kurucuMu=()=>UYELIKLER.some(u=>u.masa_id===DB.aktifGrup&&u.rol==='kurucu'&&u.durum==='onayli');
-const tabelaciMiyim=()=>!!(DB.aktif&&OTURUM&&DB.aktif._hesap===OTURUM.id);
+/* Misafir de yazar: gerçek denetim sunucuda (misafir_celse_yaz). */
+const tabelaciMiyim=()=>!!MISAFIR||!!(DB.aktif&&OTURUM&&DB.aktif._hesap===OTURUM.id);
 
 async function baslat(){
   if(!window.supabase||!window.supabase.createClient){
@@ -89,6 +90,25 @@ async function baslat(){
   sb.auth.onAuthStateChange((olay)=>{
     if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
   });
+  /* ?misafir=<kod> ile gelindiyse hiç normal yola girmiyoruz:
+     hesap yok, grup yok, tek maç var. */
+  const _misafirKod=misafirKodu();
+  if(_misafirKod){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      /* Aynı cihazda daha önce oturmuşsa adı sormadan devam et */
+      try{
+        const {data,error}=await sb.rpc('misafir_mac',{p_kod:_misafirKod});
+        if(!error&&data){
+          let ad2=''; try{ ad2=localStorage.getItem('kkd_misafir_ad')||''; }catch(e){}
+          MISAFIR={kod:_misafirKod,ad:ad2||'Misafir',macId:data.mac.id,elBeklenen:data.mac.el_sayisi};
+          misafirPencereKur(data); DURUM='misafir'; misafirNabizKur(); return render();
+        }
+      }catch(e){}
+    }
+    DURUM='misafirGiris'; return render();
+  }
+
   davetOku();                       // ?kod=…&oyuncu=… ile gelindiyse yakala
   const _cagri=cagriOku();          // ?cagri=… ile gelindiyse Masa sekmesine düş
   try{
@@ -228,6 +248,7 @@ function kaydet(){
   if(DB.aktif.talik) talikKendiCozuldu(DB.aktif);
   /* Yerel ayna + bıkmayan yeniden deneme f_dayanikli.js'te.
      Buradaki gövde onun için duruyor; celseKaydet varsa o kullanılıyor. */
+  if(MISAFIR) return misafirKaydet();
   if(typeof celseKaydet==='function') return celseKaydet();
   _bekleyenYazi=true; yazIsigi();
   clearTimeout(_yazZaman);

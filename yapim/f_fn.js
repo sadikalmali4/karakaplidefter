@@ -3,6 +3,15 @@ function render(){
   const tb=document.querySelector('nav.tabbar');
   const v=$('#view');
   const tam = DURUM==='hazir';
+  if(DURUM==='misafirGiris'||DURUM==='misafir'){
+    tb.style.display='none'; document.body.style.paddingBottom='24px';
+    $('#hdrSub').textContent = DURUM==='misafir'
+      ? `misafir · ${MISAFIR?.ad||''}` : 'misafir girişi';
+    $('#hdrRight').innerHTML='';
+    v.innerHTML = DURUM==='misafir' ? misafirEkran() : misafirGirisEkrani(misafirKodu());
+    if(DURUM==='misafirGiris') setTimeout(()=>$('#msAd')?.focus(),60);
+    return;
+  }
   tb.style.display = tam?'':'none';
   document.body.style.paddingBottom = tam?'':'24px';
 
