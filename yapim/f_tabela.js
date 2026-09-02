@@ -43,10 +43,10 @@ function tbHucre(r,i,deger,kilit){
 }
 function tbEkHucre(r,i,j,deger,kilit){
   return `<input type="number" inputmode="numeric" data-r="${r}" data-ek="${i}${j}"
-    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül':'ceza'}"
+    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül +':'ceza −'}"
     onchange="tbEkYaz(${r},${i},${j},this.value)"
     style="width:100%;text-align:center;font:600 13px/1 inherit;padding:8px 1px;
-      color:${j?'var(--green)':'var(--red)'};
+      color:${j?'var(--green)':'var(--gold)'};
       background:${kilit?'transparent':'var(--panel3)'};
       border-color:${kilit?'transparent':'var(--line)'}">`;
 }
@@ -56,7 +56,8 @@ function tbSatirHtml(r,cift,kilit){
     <div class="xs dim center">${r+1}</div>
     ${tbHucre(r,0,cift?cift[0]:'',kilit)}${tbHucre(r,1,cift?cift[1]:'',kilit)}
   </div>`;
-  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B) */
+  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B)
+     Batak'ta ceza DÜŞER, ödül ARTIRIR — 101'in tersi. */
   return `<div style="${TB_IZGARA_EK};margin-bottom:5px" data-satir="${r}">
     <div class="xs dim center">${r+1}</div>
     ${[0,1].map(i=>
@@ -171,7 +172,8 @@ function batakTabela(){
   ${!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
-    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: ceza puanı artırır, ödül düşer.
+    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: 61'e çıkılan oyun olduğu için
+    <b>ceza düşer (−)</b>, <b>ödül eklenir (+)</b>.
     İhale, koz ve şlem dökümü tutulacaksa masa "İhaleli" açılmalı.</div>`;
 }
 

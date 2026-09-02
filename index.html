@@ -599,12 +599,14 @@ function grupCelseleri(){
 
    Şlemi ihaleyi ALMAYAN takım yaparsa (alinan=0) zaten ihale batmış
    olur: alan takım -ihale yazar, karşı takım 13 yazar. O yön doğruydu. */
-/* el.ek = [[A ceza, A ödül],[B ceza, B ödül]] — ceza artırır, ödül düşer.
+/* el.ek = [[A ceza, A ödül],[B ceza, B ödül]]
+   BATAK'ta hedef 61'e ÇIKMAK: ceza puanı DÜŞÜRÜR, ödül ARTIRIR.
+   (101'de tersi: orada az sayı iyi olduğu için ceza ekler, ödül düşer.)
    Hem kâğıt satırında hem ihaleli elde geçerli; tek yerden hesaplanıyor. */
 function batakEkPuan(el,i){
   const e=el&&el.ek;
   if(!Array.isArray(e)||!Array.isArray(e[i])) return 0;
-  return (Number(e[i][0])||0) - (Number(e[i][1])||0);
+  return (Number(e[i][1])||0) - (Number(e[i][0])||0);
 }
 function batakElPuan(el,a){
   /* HAM SATIR: tabelaya kâğıttaki gibi iki sayı doğrudan yazılmış.
@@ -1730,10 +1732,11 @@ function aktifBatak(){
     <details style="margin-top:10px"><summary>⚖️ Bu ele ceza / ödül ekle</summary><div>
       ${[0,1].map(i=>`<div class="row" style="gap:7px;align-items:center;margin-top:7px">
         <span class="pill ${i?'blue':'green'}" style="flex-shrink:0">${c.takimlar[i].ad}</span>
-        <input type="number" inputmode="numeric" id="bCeza${i}" placeholder="ceza +" style="flex:1">
-        <input type="number" inputmode="numeric" id="bOdul${i}" placeholder="ödül −" style="flex:1">
+        <input type="number" inputmode="numeric" id="bCeza${i}" placeholder="ceza −" style="flex:1">
+        <input type="number" inputmode="numeric" id="bOdul${i}" placeholder="ödül +" style="flex:1">
       </div>`).join('')}
-      <div class="xs dim" style="margin-top:7px">Ceza puanı artırır, ödül düşer. Boş bırakılırsa yazılmaz.</div>
+      <div class="xs dim" style="margin-top:7px">Batak'ta 61'e çıkılır: <b>ceza puanı düşürür</b>,
+        <b>ödül artırır</b>. Boş bırakılırsa yazılmaz.</div>
     </div></details>
 
     <button class="btn-p btn-full" style="margin-top:14px" onclick="batakElEkle()">Eli Yaz</button>
@@ -2471,7 +2474,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 6.7 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4167,10 +4170,10 @@ function tbHucre(r,i,deger,kilit){
 }
 function tbEkHucre(r,i,j,deger,kilit){
   return `<input type="number" inputmode="numeric" data-r="${r}" data-ek="${i}${j}"
-    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül':'ceza'}"
+    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="${j?'ödül +':'ceza −'}"
     onchange="tbEkYaz(${r},${i},${j},this.value)"
     style="width:100%;text-align:center;font:600 13px/1 inherit;padding:8px 1px;
-      color:${j?'var(--green)':'var(--red)'};
+      color:${j?'var(--green)':'var(--gold)'};
       background:${kilit?'transparent':'var(--panel3)'};
       border-color:${kilit?'transparent':'var(--line)'}">`;
 }
@@ -4180,7 +4183,8 @@ function tbSatirHtml(r,cift,kilit){
     <div class="xs dim center">${r+1}</div>
     ${tbHucre(r,0,cift?cift[0]:'',kilit)}${tbHucre(r,1,cift?cift[1]:'',kilit)}
   </div>`;
-  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B) */
+  /* ceza/ödül açık: sayı · ceza · ödül  (A) | sayı · ceza · ödül  (B)
+     Batak'ta ceza DÜŞER, ödül ARTIRIR — 101'in tersi. */
   return `<div style="${TB_IZGARA_EK};margin-bottom:5px" data-satir="${r}">
     <div class="xs dim center">${r+1}</div>
     ${[0,1].map(i=>
@@ -4295,7 +4299,8 @@ function batakTabela(){
   ${!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
-    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: ceza puanı artırır, ödül düşer.
+    <b>⚖️ Ceza / Ödül</b> düğmesi her satıra iki sütun daha açar: 61'e çıkılan oyun olduğu için
+    <b>ceza düşer (−)</b>, <b>ödül eklenir (+)</b>.
     İhale, koz ve şlem dökümü tutulacaksa masa "İhaleli" açılmalı.</div>`;
 }
 
