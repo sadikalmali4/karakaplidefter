@@ -8,7 +8,7 @@
     { "ad": "Tuğrul",  "kad": "tugrul",  "foto": "tugrul.jpg" },
     { "ad": "Volkan",  "kad": "volkan",  "foto": "volkan.jpg" },
     { "ad": "Emre",    "kad": "emre",    "foto": "emre.jpg" },
-    { "ad": "Ufuk",    "kad": "ufuk",    "foto": null },
+    { "ad": "Ufuk",    "kad": "ufuk",    "foto": "ufuk.jpg" },
     { "ad": "Ali",     "kad": "ali",     "foto": null },
     { "ad": "Sadık",   "kad": "sadik",   "foto": "sadik.jpg", "ben": true }
   ]
