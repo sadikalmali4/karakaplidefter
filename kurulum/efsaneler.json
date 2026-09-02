@@ -44,12 +44,20 @@
     },
     {
       "baslik": "62'ye Eksi 14",
-      "metin": "Masa tarihinin en ağır farkı: Tuğrul ile Mustafa, Sadık ve Volkan karşısında 62'ye EKSİ 14 yenilmişlerdir. Sonuç dillere destan olmuş, aradaki fark bugüne kadar aşılamamıştır.",
+      "metin": "Masa tarihinin en ağır farkı: Tuğrul ile Mustafa, Sadık ve Volkan karşısında 62'ye EKSİ 14 yenilmişlerdir. Sonuç öyle bir hâl almıştır ki, Mustafa'nın 42. yaş gününde MATBU PANKART bastırılmış ve salona asılmıştır: «Batak masasında tarih yazıldı… Bu skor unutulmaz, bu mağlubiyet efsane!» Pankartta yer alan «Bazı oyunlar kazanılır, bazıları yıllarca konuşulur» ibaresi, masanın resmî görüşü olarak kabul edilmiştir. Fark bugüne kadar aşılamamıştır.",
       "adlar": [
         "Tuğrul",
         "Mustafa"
       ],
       "tip": "uyari"
+    },
+    {
+      "baslik": "Batak Bilmez",
+      "metin": "Ufuk batak bilmez; yalnız 101 oynar. Bilmediği oyuna oturmama basireti masa tarafından takdirle karşılanmakla birlikte, oturduğu oyunda gösterdiği şans kuşku uyandırmaktadır.",
+      "adlar": [
+        "Ufuk"
+      ],
+      "tip": "efsane"
     }
   ]
 }
