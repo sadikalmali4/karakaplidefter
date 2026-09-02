@@ -1,5 +1,5 @@
 {
-  "aciklama": "Masanın kayda geçmiş hafızası. 'adlar' iki kişiyse, o ikili Batak'ta eş düştüğünde maç kurulumunda uyarı olarak çıkar.",
+  "aciklama": "Masanın kayda geçmiş hafızası. 'adlar' iki kişiyse, o ikili Batak'ta eş düştüğünde maç kurulumunda uyarı olarak çıkar. 'vurgu' olan efsane pankart olarak basılır; 'fotolar' ve 'video' alanları medya/ klasöründen okunur.",
   "efsaneler": [
     {
       "baslik": "Şansın Tecellisi",
@@ -7,7 +7,8 @@
       "adlar": [
         "Hüseyin"
       ],
-      "tip": "efsane"
+      "tip": "efsane",
+      "serh": "Kâğıdı dağıtan kişi değiştirilmiş, sonuç değişmemiştir."
     },
     {
       "baslik": "Kredi Meselesi",
@@ -16,7 +17,8 @@
         "Hüseyin",
         "Volkan"
       ],
-      "tip": "uyari"
+      "tip": "uyari",
+      "serh": "Kredinin faiz oranı zabta geçirilmemiş; taraflar da sorulmasını istememiştir."
     },
     {
       "baslik": "Unutkan Üstat",
@@ -24,7 +26,8 @@
       "adlar": [
         "Tuğrul"
       ],
-      "tip": "efsane"
+      "tip": "efsane",
+      "serh": "Bu efsaneyi de unutmuş olması kuvvetle muhtemeldir."
     },
     {
       "baslik": "Kart Sayan Adam",
@@ -32,7 +35,8 @@
       "adlar": [
         "Mustafa"
       ],
-      "tip": "efsane"
+      "tip": "efsane",
+      "serh": "Sayının doğruluğu, sonucun doğruluğunu garanti etmez."
     },
     {
       "baslik": "Anunnakilerden",
@@ -40,24 +44,43 @@
       "adlar": [
         "Emre"
       ],
-      "tip": "efsane"
+      "tip": "efsane",
+      "serh": "Kadim kuşağın kart hafızası tartışmasız olup, yaş meselesi gündeme getirilmemiştir."
     },
     {
       "baslik": "62'ye Eksi 14",
-      "metin": "Masa tarihinin en ağır farkı: Tuğrul ile Mustafa, Sadık ve Volkan karşısında 62'ye EKSİ 14 yenilmişlerdir. Sonuç öyle bir hâl almıştır ki, Mustafa'nın 42. yaş gününde MATBU PANKART bastırılmış ve salona asılmıştır: «Batak masasında tarih yazıldı… Bu skor unutulmaz, bu mağlubiyet efsane!» Pankartta yer alan «Bazı oyunlar kazanılır, bazıları yıllarca konuşulur» ibaresi, masanın resmî görüşü olarak kabul edilmiştir. Fark bugüne kadar aşılamamıştır.",
+      "metin": "Masa tarihinin en ağır farkı. Tuğrul ile Mustafa, Sadık ve Volkan karşısında 62'ye EKSİ 14 yenilmişlerdir. Eksi hanesine düşmek tek başına kayda değer bir hâl iken, farkın 76 puana ulaşması masa teamülünde emsali görülmemiştir.\n\nSonuç öyle bir hâl almıştır ki, aradan geçen zamana rağmen unutulmamış; Mustafa'nın 42. yaş gününde MATBU PANKART bastırılıp salona asılmıştır. Pankartta «Batak masasında tarih yazıldı… Bu skor unutulmaz, bu mağlubiyet efsane!» ibaresi ile birlikte tabelanın kendisi de basılmış, doğum günü pastasının arkasına konumlandırılmıştır.\n\nMahkeme, bir kişinin doğum gününde kendi yenilgisinin altında poz vermek zorunda bırakılmasını ağır bir müeyyide olarak değerlendirmekle birlikte, pankartta yer alan «Bazı oyunlar kazanılır, bazıları yıllarca konuşulur» ibaresini masanın resmî görüşü olarak kabul etmiştir.\n\nKart sayma kabiliyeti tescilli olan Mustafa'nın bu skora ortak olması, iyi oynamanın tek başına sonuç doğurmadığı yönündeki içtihadı pekiştirmiştir. Fark bugüne kadar aşılamamış olup, aşılması da beklenmemektedir.",
       "adlar": [
         "Tuğrul",
         "Mustafa"
       ],
-      "tip": "uyari"
+      "tip": "uyari",
+      "ustBaslik": "Masa tarihinin en ağır farkı",
+      "vurgu": true,
+      "skor": {
+        "sol": "62",
+        "ayrac": "'ye",
+        "sag": "−14"
+      },
+      "kazananlar": [
+        "Sadık",
+        "Volkan"
+      ],
+      "fotolar": [
+        "medya/pankart-masa.jpg",
+        "medya/pankart-ikili.jpg"
+      ],
+      "video": "medya/pankart-video.mp4",
+      "serh": "İtiraz süresi, pankartın salona asıldığı gün itibarıyla dolmuştur."
     },
     {
-      "baslik": "Batak Bilmez",
-      "metin": "Ufuk batak bilmez; yalnız 101 oynar. Bilmediği oyuna oturmama basireti masa tarafından takdirle karşılanmakla birlikte, oturduğu oyunda gösterdiği şans kuşku uyandırmaktadır.",
+      "baslik": "Dayı",
+      "metin": "Ufuk, masada DAYI olarak anılır. Batak bilmez; yalnız 101 oynar. Bilmediği oyuna oturmama basireti takdirle karşılanmakla birlikte, oturduğu oyunda gösterdiği şans masada kuşku uyandırmaktadır. Lakabın nereden geldiği hususu araştırılmamış, sorulması da uygun görülmemiştir.",
       "adlar": [
         "Ufuk"
       ],
-      "tip": "efsane"
+      "tip": "efsane",
+      "serh": "Lakabın menşei araştırılmamış, sorulması da uygun görülmemiştir."
     }
   ]
 }

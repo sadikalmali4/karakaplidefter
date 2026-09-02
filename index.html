@@ -13,7 +13,7 @@
 :root{
   --bg:#12100F; --panel:#1C1917; --panel2:#262220; --panel3:#2F2A27;
   --line:#39322D; --ink:#EDE6DC; --ink2:#A2968A; --ink3:#6E635A;
-  --accent:#A32E38; --accent2:#C4444E; --gold:#C9A227; --green:#4E8B5B; --red:#B4453B; --blue:#4A7A9B;
+  --accent:#2E6B4F; --accent2:#3E8A66; --gold:#C9A227; --green:#4E8B5B; --red:#A8695E; --blue:#4A7A9B;
   --r:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -27,8 +27,8 @@ header{position:sticky;top:0;z-index:40;background:linear-gradient(#12100F,#1210
   backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
   padding:calc(11px + env(safe-area-inset-top)) 16px 11px}
 header .brand{display:flex;align-items:center;gap:10px}
-header .seal{width:31px;height:31px;border-radius:50%;flex:0 0 31px;border:2px solid var(--accent);
-  color:var(--accent);display:grid;place-items:center;font:600 15px Georgia,serif}
+header .seal{width:31px;height:31px;border-radius:50%;flex:0 0 31px;border:2px solid var(--gold);
+  color:var(--gold);display:grid;place-items:center;font:600 15px Georgia,serif}
 header h1{margin:0;font-size:17px;line-height:1.15}
 header .sub{font-size:11px;color:var(--ink3);margin-top:1px}
 main{padding:16px;max-width:760px;margin:0 auto}
@@ -62,14 +62,14 @@ button:disabled{opacity:.38;cursor:default}
 .btn-b{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn-g{background:var(--gold);border-color:var(--gold);color:#231d09}
 .btn-gh{background:none}
-.btn-dn{background:none;border-color:#5a2b2b;color:#C97C7C}
+.btn-dn{background:none;border-color:#5c3b33;color:#C99A8C}
 .btn-full{width:100%}
 .btn-sm{padding:7px 11px;font-size:12.5px;border-radius:9px}
 .btn-xs{padding:5px 9px;font-size:11.5px;border-radius:8px}
 
 input,select,textarea{font:15px inherit;background:var(--panel2);color:var(--ink);
   border:1px solid var(--line);border-radius:10px;padding:10px 11px;width:100%}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 input[type=number]{-moz-appearance:textfield}
 input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 label.fl{display:block;font-size:11.5px;color:var(--ink3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:5px;font-weight:700}
@@ -88,7 +88,7 @@ tr:last-child td{border-bottom:0}
 .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;
   border-radius:99px;background:var(--panel3);color:var(--ink2);white-space:nowrap}
 .pill.gold{background:#3A300E;color:var(--gold)}
-.pill.red{background:#3A1D1D;color:#DD8A8A}
+.pill.red{background:#33251F;color:#D2A08F}
 .pill.green{background:#1E3324;color:#8CC79B}
 .pill.blue{background:#1C2A35;color:#8FB6D1}
 
@@ -134,7 +134,7 @@ details>div{margin-top:10px}
 .dots{display:inline-flex;gap:4px;align-items:center}
 .dots b{width:9px;height:9px;border-radius:50%;background:var(--panel3);display:block}
 .dots b.on{background:var(--gold)}
-.cikis{background:linear-gradient(90deg,#3A1D1D,#2A1A1A);border:1px solid #6B2F2F}
+.cikis{background:linear-gradient(90deg,#16301F,#12241A);border:1px solid #2E6B4F}
 
 .rozet{display:flex;gap:10px;align-items:flex-start;padding:9px;border-radius:11px;background:var(--panel2);border:1px solid var(--line)}
 .rozet .k{font-size:21px;line-height:1.1;width:26px;text-align:center;flex-shrink:0}
@@ -154,7 +154,7 @@ details>div{margin-top:10px}
 .orta{min-height:66vh;display:flex;flex-direction:column;justify-content:center}
 .uyari{background:#2B2410;border:1px solid var(--gold);border-radius:12px;padding:11px 13px;font-size:12.5px;color:#E8D9A8}
 .toast.hata{background:var(--red);color:#fff}
-.canli{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);
+.canli{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);
   animation:nabiz 1.4s ease-in-out infinite;margin-right:6px;vertical-align:2px}
 @keyframes nabiz{0%,100%{opacity:1}50%{opacity:.2}}
 .yaziyor{font-size:10px;color:var(--gold);margin-left:5px}
@@ -1305,7 +1305,7 @@ function acikMasaSatir(c){
   return `<div class="row" style="gap:10px;align-items:flex-start">
     <div class="grow" style="min-width:0">
       <div class="row wrap" style="gap:6px">
-        <span class="pill ${c.oyun==='batak'?'red':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
+        <span class="pill ${c.oyun==='batak'?'green':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
         <span class="pill gold">${esc(c.masaAd||'Masa')}</span>
         ${c.giris==='hizli'?'<span class="pill">⚡</span>':''}
         <span class="xs dim">✍️ ${esc(yazan?.ad||'tabelacı')}</span>
@@ -1387,7 +1387,8 @@ function liderKart(){
   const sat=(p,i,oyun)=>`<div class="row" style="padding:5px 0">
     <span class="rank ${i===0?'r1':''}">${i+1}</span>${avatar(p.id,24)}
     <span class="grow" style="font-weight:600;font-size:13.5px;margin-left:7px">${esc(ad(p.id))}</span>
-    <span class="sm dim">${p.gal}/${p.celse} · %${Math.round(p.oran*100)}</span></div>`;
+    <div class="bar" style="width:54px;flex-shrink:0"><i style="width:${Math.round((p.oran||0)*100)}%;background:var(--gold)"></i></div>
+    <span class="sm dim" style="min-width:62px;text-align:right">${p.gal}/${p.celse} · %${Math.round(p.oran*100)}</span></div>`;
   return `<div class="card">
     ${b.length?`<h3>Kürsü · Batak</h3>${b.map((p,i)=>sat(p,i,'batak')).join('')}`:''}
     ${y.length?`<h3 style="margin-top:${b.length?14:0}px">Kürsü · 101</h3>${y.map((p,i)=>sat(p,i,'101')).join('')}`:''}
@@ -1467,7 +1468,7 @@ function chipSec(el,max){
   if(ek&&max===4) ek.innerHTML = s.length===4?`
     <div class="card tight" style="margin:0;background:var(--panel2)">
       <div class="row" style="justify-content:space-between;gap:8px">
-        <div class="sm"><span class="pill red">A</span> ${esc(ad(s[0]))} &amp; ${esc(ad(s[1]))}</div>
+        <div class="sm"><span class="pill green">A</span> ${esc(ad(s[0]))} &amp; ${esc(ad(s[1]))}</div>
         <div class="sm"><span class="pill blue">B</span> ${esc(ad(s[2]))} &amp; ${esc(ad(s[3]))}</div>
       </div></div>`+efsaneUyari([[s[0],s[1]],[s[2],s[3]]]):'';
 }
@@ -1539,7 +1540,7 @@ function hizliEkran(){
       <div class="xs dim center" style="margin-bottom:12px">Her takım kaç parti aldı? Dokunarak arttır.</div>
       ${[0,1].map(i=>`
         <div class="row" style="padding:8px 0;gap:10px">
-          <span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+          <span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span>
           <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
           <button class="btn-sm" onclick="hzParti(${i},-1)">−</button>
           <div class="serif" style="font-size:24px;min-width:28px;text-align:center;color:${kz===i?'var(--gold)':'var(--ink)'}">${h.partiSkor[i]}</div>
@@ -1606,7 +1607,7 @@ function macSerit(c){
     const m=batakMac(c);
     return `<div class="card tight" style="background:var(--panel2)">
       <div class="row" style="justify-content:space-between">
-        <div class="sm ell"><span class="pill red">A</span> ${esc(c.takimlar[0].oyuncular.map(ad).join(' & '))}</div>
+        <div class="sm ell"><span class="pill green">A</span> ${esc(c.takimlar[0].oyuncular.map(ad).join(' & '))}</div>
         <div class="serif" style="font-size:18px">${m.partiSkor[0]} – ${m.partiSkor[1]}</div>
         <div class="sm right ell"><span class="pill blue">B</span> ${esc(c.takimlar[1].oyuncular.map(ad).join(' & '))}</div>
       </div>
@@ -1641,7 +1642,7 @@ function aktifBatak(){
     <div class="sep"></div>
     ${[0,1].map(i=>`<div style="margin-bottom:${i?0:12}px">
       <div class="row" style="justify-content:space-between;margin-bottom:5px">
-        <div class="row" style="gap:6px"><span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+        <div class="row" style="gap:6px"><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span>
           <span style="font-weight:600;font-size:13.5px">${esc(T(i))}</span></div>
         <div class="serif" style="font-size:22px;color:${pKz===i?'var(--gold)':'var(--ink)'}">${top[i]}</div>
       </div>
@@ -1965,6 +1966,8 @@ function viewSicil(){
     : v.slice().sort((a,b)=>a.ortSira-b.ortSira||a.ortPuan-b.ortPuan);
   const form=f=>f.slice(-5).map(x=>{const r=x==='G'?'var(--green)':(x==='M'?'var(--red)':'var(--ink3)');
     return `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${r};margin-right:3px"></span>`;}).join('');
+  const oranBar=o=>`<div class="bar" style="width:56px;display:inline-block;vertical-align:middle">
+    <i style="width:${Math.round(Math.max(0,Math.min(1,o))*100)}%;background:var(--gold)"></i></div>`;
   return secim+`
   <div class="card">
     <h3>Genel Sicil · ${oyun==='batak'?'Batak':'101'}</h3>
@@ -2062,7 +2065,8 @@ function viewRozet(){
     <button class="${ROZET_OYUN==='101'?'on':''}" onclick="ROZET_OYUN='101';render()">101</button></div>`;
 
   if(DIVAN==='borc')     return nav+borcHesabi();
-  if(DIVAN==='efsane')   return nav+(efsaneKart()||'<div class="card"><div class="empty"><div class="big">📜</div>Efsane yok.</div></div>');
+  /* Efsane bölümü masanın hafızası; lakaplar da oraya ait — ayrı sekme açmaya değmez */
+  if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'');
   if(DIVAN==='rekor')    return nav+oyunSec+rekorKart(ROZET_OYUN);
   if(DIVAN==='aramizda') return nav+oyunSec+(aramizdaKart(ROZET_OYUN)
     ||'<div class="card"><div class="empty"><div class="big">⚔️</div>Henüz karşılaşma yok.</div></div>');
@@ -2135,7 +2139,7 @@ function arsivSatir(c,sade){
   return `<div class="row" style="gap:10px;align-items:flex-start">
     <div class="grow">
       <div class="row wrap" style="gap:6px">
-        <span class="pill ${c.oyun==='batak'?'red':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
+        <span class="pill ${c.oyun==='batak'?'green':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
         ${c.giris==='hizli'?'<span class="pill">⚡</span>':''}
         ${g?`<span class="pill">${g.emoji} ${esc(g.ad)}</span>`:''}
         <span class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</span>
@@ -2879,7 +2883,7 @@ function akisKart(a,yrm){
 
   const govde = a.tip==='zabit'
     ? `<div class="row wrap" style="gap:6px;margin:2px 0 8px">
-         <span class="pill ${a.veri?.oyun==='batak'?'red':'blue'}">${a.veri?.oyun==='batak'?'BATAK':'101'}</span>
+         <span class="pill ${a.veri?.oyun==='batak'?'green':'blue'}">${a.veri?.oyun==='batak'?'BATAK':'101'}</span>
          ${a.veri?.masaAd?`<span class="pill">${esc(a.veri.masaAd)}</span>`:''}
          ${a.veri?.kazanan?`<span class="pill gold">🏆 ${esc(a.veri.kazanan)}</span>`:''}
        </div>
@@ -3048,9 +3052,24 @@ async function kadroKur(){
           foto_url=sb.storage.from('avatarlar').getPublicUrl(yol).data.publicUrl;
         }
         /* "ben" işaretli oyuncu bu hesaba bağlanır — ama zaten bağlıysam dokunma */
+        /* Lakap ada GÖMÜLMÜYOR: ayar.lakaplar'da tutulur, aşağıda işlenir.
+           Ada gömülse her zabıtta tırnak içinde çıkar, metni kirletir. */
         await oyuncuEkle(o.ad,foto_url,o.dogum||null,!!o.ben&&!bendeOyuncuVar,o.renk||null);
         eklenen++;
       }catch(e){ hata++; console.warn(o.ad,e); }
+    }
+    /* lakapları ada göre eşleştirip ayara yaz (oyuncular oluştuktan sonra) */
+    if(kurucuMu()){
+      await verileriGetir();
+      const m=Object.assign({},lakaplar());
+      let lk=0;
+      for(const o of k.oyuncular){
+        if(!o.lakap) continue;
+        const oy=grupOyunculari().find(x=>
+          x.ad.toLocaleLowerCase('tr-TR')===o.ad.toLocaleLowerCase('tr-TR'));
+        if(oy && m[oy.id]!==o.lakap){ m[oy.id]=o.lakap; lk++; }
+      }
+      if(lk){ DB.ayar.lakaplar=m; await ayarYaz(true); }
     }
   }catch(e){ toast(hataMetni(e),true); }
   await verileriGetir(); kapatModal(); render();
@@ -3200,7 +3219,7 @@ function gcBatakGovde(){
   const T=l=>l.length?l.map(ad).join(' & '):'—';
 
   return `
-  <div class="field"><label class="fl"><span class="pill red">A</span> A takımı — 2 kişi
+  <div class="field"><label class="fl"><span class="pill green">A</span> A takımı — 2 kişi
     <span class="dim" style="text-transform:none;letter-spacing:0">(${GC_A.length}/2)</span></label>
     <div class="row wrap">${cip('A')}</div></div>
 
@@ -3210,7 +3229,7 @@ function gcBatakGovde(){
 
   <div class="card tight" style="margin:12px 0 0;background:var(--panel2)">
     <div class="row" style="justify-content:space-between;gap:8px">
-      <div class="sm"><span class="pill red">A</span> ${esc(T(GC_A))}</div>
+      <div class="sm"><span class="pill green">A</span> ${esc(T(GC_A))}</div>
       <div class="sm"><span class="pill blue">B</span> ${esc(T(GC_B))}</div>
     </div></div>
 
@@ -3545,8 +3564,11 @@ function aramizdaKart(oyun){
         <div style="font-size:13.5px;font-weight:600" class="ell">${esc(ad(ilk))} <span class="dim">vs</span> ${esc(ad(son))}</div>
         <div class="xs dim">${g+mg} karşılaşma · ${esc(husumetLafi(g-mg))}</div></div>
       ${avatar(son,26)}
-      <div class="serif" style="font-size:16px;min-width:52px;text-align:right">
-        <b class="${g>mg?'pos':'zero'}">${g}</b><span class="dim">–</span><b class="${mg>g?'neg':'zero'}">${mg}</b></div>
+      <div style="min-width:62px;text-align:right">
+        <div class="serif" style="font-size:16px">
+          <b class="${g>mg?'pos':'zero'}">${g}</b><span class="dim">–</span><b class="${mg>g?'neg':'zero'}">${mg}</b></div>
+        <div class="bar" style="margin-top:3px"><i style="width:${Math.round(g/Math.max(1,g+mg)*100)}%;background:var(--gold)"></i></div>
+      </div>
     </div>`;
   };
 
@@ -3611,26 +3633,96 @@ function adaGoreOyuncu(adi){
   return DB.oyuncular.find(o=>o.masaId===DB.aktifGrup&&o.ad.toLocaleLowerCase('tr-TR')===n)||null;
 }
 
+/* --------- görsel ekler: fotoğraf galerisi + video --------- */
+function efsaneFotolari(e){
+  return [].concat(e.fotolar||[], e.foto?[e.foto]:[]).filter(Boolean);
+}
+function efsaneMedya(e,boy){
+  const f=efsaneFotolari(e);
+  if(!f.length && !e.video) return '';
+  const h=boy||118;
+  return `<div style="margin-top:9px">
+    ${f.length?`<div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:3px;-webkit-overflow-scrolling:touch">
+      ${f.map(x=>`<img src="${esc(x)}" alt="" loading="lazy" onclick="medyaBuyut('${esc(x)}')"
+        style="height:${h}px;border-radius:9px;border:1px solid var(--line);cursor:zoom-in;flex-shrink:0;object-fit:cover"></img>`).join('')}
+    </div>`:''}
+    ${e.video?`<video src="${esc(e.video)}" controls preload="none" playsinline
+      ${f.length?`poster="${esc(f[0])}"`:''}
+      style="width:100%;max-width:430px;margin-top:7px;border-radius:10px;border:1px solid var(--line);background:#000"></video>
+      <div class="xs dim" style="margin-top:3px">▶︎ Kayıt · dokununca yüklenir</div>`:''}
+  </div>`;
+}
+function medyaBuyut(u){
+  acModal(`<img src="${esc(u)}" style="width:100%;border-radius:12px;display:block">
+    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="kapatModal()">Kapat</button>`);
+}
+
+/* --------- vurgulu efsane: masanın pankartlık hâli --------- */
+/* Masa kaşesi: pankartın köşesine basılan mühür. Süs değil, imza. */
+function masaKasesi(){
+  const g=grup(DB.aktifGrup);
+  const ad2=(g&&g.ad)||'MASA';
+  return `<div style="position:absolute;top:9px;right:9px;transform:rotate(-13deg);
+      border:2px solid var(--gold);border-radius:8px;padding:4px 7px;text-align:center;
+      opacity:.5;pointer-events:none;color:var(--gold);max-width:132px">
+    <div style="font:700 7px/1.15 inherit;letter-spacing:.06em;text-transform:uppercase;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ad2)}</div>
+    <div style="height:1px;background:currentColor;opacity:.5;margin:2px 0"></div>
+    <div style="font:700 9.5px/1.15 Georgia,serif;letter-spacing:.04em">TARİHE</div>
+    <div style="font:700 9.5px/1.15 Georgia,serif;letter-spacing:.04em">GEÇMİŞTİR</div>
+  </div>`;
+}
+
+function efsanePankart(e,i,k){
+  const ad2=(e.adlar||[]);
+  return `<div style="background:linear-gradient(160deg,#241E0C,#1A1712);border:1px solid var(--gold);
+      border-radius:13px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden">
+    ${masaKasesi()}
+    <div class="xs" style="color:var(--gold);letter-spacing:.13em;text-transform:uppercase;font-weight:700;
+      max-width:calc(100% - 142px)">
+      ${e.ustBaslik?esc(e.ustBaslik):'Masa tarihinin en ağır farkı'}</div>
+    ${e.skor?`<div class="serif center" style="margin:11px 0 4px;line-height:1">
+      <span style="font-size:44px;color:var(--gold)">${esc(e.skor.sol)}</span>
+      <span style="font-size:17px;color:var(--ink3);margin:0 8px">${esc(e.skor.ayrac||'ye')}</span>
+      <span style="font-size:44px;color:var(--red)">${esc(e.skor.sag)}</span></div>`:''}
+    ${ad2.length?`<div class="xs center" style="color:var(--ink2);margin-bottom:9px">
+      ${esc(ad2.join(' & '))}${e.kazananlar?` <span class="dim">karşısında</span> ${esc(e.kazananlar.join(' & '))}`:''}</div>`:''}
+    <div class="serif center" style="font-size:15px;margin:2px 0 8px">${esc(e.baslik||'')}</div>
+    <div class="xs muted" style="line-height:1.6">${esc(e.metin||'')}</div>
+    ${efsaneMedya(e,150)}
+    ${serhSatiri(e)}
+    ${k?`<button class="btn-xs btn-dn" style="margin-top:10px" onclick="efsaneSil(${i})">Sil</button>`:''}
+  </div>`;
+}
+
+/* Şerh: efsanenin altına düşülen kuru not. Asıl espri burada. */
+function serhSatiri(e){
+  if(!e.serh) return '';
+  return `<div style="margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);
+    font:italic 11.5px/1.5 Georgia,serif;color:var(--ink3)">— ${esc(e.serh)}</div>`;
+}
+
 function efsaneKart(){
   const l=efsaneler(), k=kurucuMu();
   if(!l.length&&!k) return '';
   return `<div class="card">
     <h3>📜 Masa Efsaneleri</h3>
     <div class="xs dim" style="margin-bottom:10px">Masanın hafızası. Bir daha "öyle olmamıştı" diyen olmaz.</div>
-    ${l.length?l.map((e,i)=>`<div class="rozet" style="margin-bottom:8px">
+    ${l.length?l.map((e,i)=> e.vurgu ? efsanePankart(e,i,k) : `<div class="rozet" style="margin-bottom:8px">
       <div class="k">${e.tip==='uyari'?'⚠️':'📖'}</div>
       <div class="grow" style="min-width:0">
         <div style="font-weight:700;font-size:13.5px">${esc(e.baslik||'Efsane')}</div>
         ${(e.adlar||[]).length?`<div class="xs" style="color:var(--gold);margin:2px 0">${esc((e.adlar||[]).join(' & '))}</div>`:''}
         <div class="xs muted" style="line-height:1.55">${esc(e.metin||'')}</div>
-        ${e.foto?`<img src="${esc(e.foto)}" alt="" loading="lazy"
-          style="width:100%;max-width:340px;border-radius:10px;margin-top:8px;border:1px solid var(--line)">`:''}
+        ${efsaneMedya(e)}
+        ${serhSatiri(e)}
       </div>
       ${k?`<button class="btn-xs btn-dn" style="flex-shrink:0" onclick="efsaneSil(${i})">Sil</button>`:''}
     </div>`).join('')
      :'<div class="sm dim">Henüz efsane yazılmadı.</div>'}
     ${k?`<button class="btn-b btn-full btn-sm" style="margin-top:10px" onclick="efsaneAc()">+ Efsane Yaz</button>
-      ${!l.length?`<button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="efsaneSeed()">⚡ Hazır efsaneleri yükle</button>`:''}`:''}
+      <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="efsaneSeed()">
+        ⚡ Hazır efsaneleri ${l.length?'güncelle':'yükle'}</button>`:''}
   </div>`;
 }
 
@@ -3681,11 +3773,24 @@ async function efsaneSeed(){
   if(!kurucuMu()) return toast('Yetkin yok',true);
   try{
     const d=await fetch('kurulum/efsaneler.json',{cache:'no-store'}).then(r=>r.json());
-    const gelen=(d.efsaneler||[]).filter(e=>!efsaneler().some(x=>x.baslik===e.baslik));
-    if(!gelen.length) return toast('Hazır efsaneler zaten yüklü');
-    DB.ayar.efsaneler=[...efsaneler(),...gelen];
+    // Aynı başlıklı efsane varsa ÜZERİNE BİRLEŞTİR: sonradan eklenen
+    // fotoğraf/video/vurgu alanları mevcut kayda da işlensin.
+    const mevcut=efsaneler().slice();
+    let yeni=0, guncel=0;
+    for(const e of (d.efsaneler||[])){
+      const j=mevcut.findIndex(x=>x.baslik===e.baslik);
+      if(j<0){ mevcut.push(e); yeni++; }
+      else{
+        const onceki=JSON.stringify(mevcut[j]);
+        mevcut[j]=Object.assign({},mevcut[j],e);
+        if(JSON.stringify(mevcut[j])!==onceki) guncel++;
+      }
+    }
+    if(!yeni&&!guncel) return toast('Hazır efsaneler zaten güncel');
+    DB.ayar.efsaneler=mevcut;
     await ayarYaz(true);
-    render(); toast(`${gelen.length} efsane yüklendi.`);
+    render();
+    toast(`${yeni} efsane eklendi, ${guncel} tanesi güncellendi.`);
   }catch(e){ toast('Efsane dosyası okunamadı',true); }
 }
 
@@ -3704,6 +3809,90 @@ function efsaneUyari(takimlar){
   if(!cikti.length) return '';
   return cikti.map(e=>`<div class="uyari" style="margin-top:10px">
     ⚠️ <b>${esc(e.baslik)}</b> — ${esc(e.metin)}</div>`).join('');
+}
+
+/* =========================================================
+   LAKAPLAR — masanın verdiği ad
+   Ada gömmüyoruz; ayrı tutuyoruz ki zabıtlar kirlenmesin.
+   masalar.ayar.lakaplar = { <oyuncuId>: "Dayı", ... }
+   Şemada sütun açmaya gerek yok, ayar zaten jsonb.
+   Yazan: yalnız masayı kuran.
+   ========================================================= */
+function lakaplar(){ return (DB.ayar&&DB.ayar.lakaplar)||{}; }
+function lakap(id){ return lakaplar()[id]||''; }
+
+/* Ad + lakap birlikte: kadro ve kartlarda kullanılır, zabıtta kullanılmaz */
+function adLakap(id){
+  const l=lakap(id);
+  return l ? `${ad(id)} <span style="color:var(--gold);font-weight:600">"${esc(l)}"</span>` : esc(ad(id));
+}
+/* düz metin hâli (kopyalanan yerler için) */
+function adLakapDuz(id){
+  const l=lakap(id);
+  return l ? `${ad(id)} "${l}"` : ad(id);
+}
+
+function lakapKart(){
+  const oyn=grupOyunculari(), k=kurucuMu();
+  if(!oyn.length) return '';
+  const yazili=oyn.filter(o=>lakap(o.id));
+  return `<div class="card">
+    <h3>🎖 Lakaplar</h3>
+    <div class="xs dim" style="margin-bottom:10px">Masanın verdiği ad. Kişinin kendi seçtiği değil —
+      teamül böyledir, itiraz mercii yoktur.</div>
+    ${yazili.length?yazili.map(o=>`<div class="row" style="padding:6px 0;gap:9px">
+      ${avatar(o.id,30)}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:600;font-size:13.5px">${esc(o.ad)}</div>
+        <div class="serif" style="font-size:15px;color:var(--gold)">“${esc(lakap(o.id))}”</div>
+      </div>
+      ${k?`<button class="btn-xs btn-gh" onclick="lakapAc('${o.id}')">Değiştir</button>`:''}
+    </div>`).join('')
+     :'<div class="sm dim">Henüz lakap takılmadı.</div>'}
+    ${oyn.length>yazili.length?`<div class="xs dim" style="margin-top:9px">
+      Lakabı olmayanlar: ${oyn.filter(o=>!lakap(o.id)).map(o=>esc(o.ad)).join(', ')}</div>`:''}
+    ${k?`<button class="btn-b btn-full btn-sm" style="margin-top:11px" onclick="lakapAc()">🎖 Lakap Tak</button>`:''}
+  </div>`;
+}
+
+function lakapAc(secili){
+  if(!kurucuMu()) return toast('Lakabı yalnız masayı kuran takar',true);
+  const oyn=grupOyunculari();
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Lakap Tak</h2>
+    <div class="xs dim" style="margin-bottom:14px">Kısa olsun, tek kelime en iyisi.
+      Boş bırakıp kaydedersen lakap kalkar.</div>
+    <div class="field"><label class="fl">Kim</label>
+      <div class="row wrap" id="lkKim">${oyn.map(o=>
+        `<div class="chip ${o.id===secili?'on':''}" data-id="${o.id}"
+          onclick="tekSecChip(this);lakapDoldur()">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div></div>
+    <div class="field"><label class="fl">Lakap</label>
+      <input id="lkAd" maxlength="18" placeholder="Dayı" onkeydown="if(event.key==='Enter')lakapKaydet()"></div>
+    <div class="xs dim" style="margin-top:6px">Zabıtlarda görünmez — orada asıl ad kullanılır.
+      Lakap kadroda, kartlarda ve kürsüde görünür.</div>
+    <button class="btn-p btn-full" id="lkBtn" style="margin-top:16px" onclick="lakapKaydet()">Kaydet</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+  lakapDoldur();
+  setTimeout(()=>$('#lkAd')?.focus(),60);
+}
+function tekSecChip(el){
+  el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+}
+function lakapDoldur(){
+  const id=document.querySelector('#lkKim .chip.on')?.dataset.id;
+  const i=$('#lkAd'); if(i) i.value=id?lakap(id):'';
+}
+async function lakapKaydet(){
+  const id=document.querySelector('#lkKim .chip.on')?.dataset.id;
+  if(!id) return toast('Kimi seçtiğini söyle',true);
+  const yeni=$('#lkAd').value.trim();
+  const btn=$('#lkBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const m=Object.assign({},lakaplar());
+  if(yeni) m[id]=yeni; else delete m[id];
+  DB.ayar.lakaplar=m;
+  await ayarYaz(true);
+  kapatModal(); render();
+  toast(yeni?`${ad(id)} bundan sonra “${yeni}”.`:`${ad(id)}'in lakabı kaldırıldı.`);
 }
 
 /* =========================================================
@@ -3912,14 +4101,17 @@ function borcHesabi(){
 
   const borclu=kayit.filter(r=>r.v<0).sort((a,b)=>a.v-b.v);
   const alacakli=kayit.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const enBuyuk=Math.max(1,...kayit.map(r=>Math.abs(r.v)));
 
   const satir=r=>`<div class="row" style="padding:8px 0;gap:9px">
     ${avatar(r.id,32)}
     <div class="grow" style="min-width:0">
       <div style="font-weight:600;font-size:14px" class="ell">${esc(ad(r.id))}</div>
       <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}</div></div>
-    <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px;min-width:34px;text-align:right">
-      ${r.v<0?Math.abs(r.v):'+'+r.v}</div>
+    <div style="min-width:58px;text-align:right">
+      <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px">${r.v<0?Math.abs(r.v):'+'+r.v}</div>
+      <div class="bar" style="margin-top:3px"><i style="width:${Math.round(Math.min(1,Math.abs(r.v)/enBuyuk)*100)}%;
+        background:${r.v<0?'var(--red)':'var(--green)'}"></i></div></div>
     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
       <button class="btn-xs btn-gh" onclick="ekstreAc('${r.id}')">Ekstre</button>
       ${r.v<0?`<button class="btn-xs btn-g" onclick="borcOdeAc('${r.id}','${esc(r.ne)}',${Math.abs(r.v)})">Ödedi</button>`:''}
@@ -4319,7 +4511,7 @@ function kuraGoster(){
       <div class="xs dim" style="margin-bottom:14px">Kurayı defter çeker; itiraz kabul edilmez.</div></div>
     <div class="card tight" style="margin:0 0 10px;background:var(--panel2)">
       <div class="row" style="gap:8px;padding:4px 0">
-        <span class="pill red">A</span>
+        <span class="pill green">A</span>
         <div class="grow" style="font-weight:700;font-size:14px">${esc(KURA.A.map(ad).join(' & '))}</div>
         ${KURA.A.map(id=>avatar(id,26)).join('')}
       </div>
@@ -4509,7 +4701,7 @@ function canliIzle(){
     const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
     return bas2+`
       ${[0,1].map(i=>`<div class="row" style="padding:7px 0">
-        <span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
+        <span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span>
         <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
         <div class="serif" style="font-size:22px;${m.macKazanan===i?'color:var(--gold)':''}">${m.gTop[i]}</div>
       </div>`).join('')}

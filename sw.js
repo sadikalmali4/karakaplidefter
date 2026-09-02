@@ -7,7 +7,7 @@
  *
  * Uygulamayı güncelledikten sonra SURUM'u bir artır; eski önbellek silinir.
  */
-const SURUM = 'kkd-v5-1';
+const SURUM = 'kkd-v5-2';
 const KABUK = [
   './',
   './index.html',
@@ -59,7 +59,23 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // İkon / manifest gibi durağan dosyalar: ÖNCE ÖNBELLEK.
+  // kurulum/*.json: KURULUM VERİSİ, değişir (kadro, efsaneler, devir).
+  // ÖNCE AĞ olmalı — yoksa efsaneleri güncelleyip yayınladığımızda
+  // uygulaması kurulu olan kimse yeni hâli göremez, eski kopyayı okur.
+  if (url.pathname.includes('/kurulum/')) {
+    e.respondWith(
+      fetch(istek, { cache: 'no-store' })
+        .then(y => {
+          const kopya = y.clone();
+          caches.open(SURUM).then(c => c.put(istek, kopya)).catch(() => {});
+          return y;
+        })
+        .catch(() => caches.match(istek).then(y => y || Response.error()))
+    );
+    return;
+  }
+
+  // İkon / manifest / medya gibi değişmeyen dosyalar: ÖNCE ÖNBELLEK.
   e.respondWith(
     caches.match(istek).then(y => y || fetch(istek).then(a => {
       const kopya = a.clone();

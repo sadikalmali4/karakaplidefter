@@ -1,43 +1,49 @@
 {
   "grup": "Parkverde",
   "emoji": "🍀",
-  "aciklama": "Tek dokunuşla kurulan başlangıç kadrosu. Renkler sabit; kırmızı kimseye verilmez (kırmızı takım/uyarı rengi).",
+  "aciklama": "Tek dokunuşla kurulan başlangıç kadrosu. Renkler sabit; kırmızı kimseye verilmez (negatif sayı rengi). 'lakap' ada gömülmez, masalar.ayar.lakaplar'a yazılır.",
   "oyuncular": [
     {
       "ad": "Mustafa",
       "kad": "mustafa",
       "foto": null,
-      "renk": "#4A8FA8"
+      "renk": "#4A8FA8",
+      "lakap": "Kart Sayan"
     },
     {
       "ad": "Hüseyin",
       "kad": "huseyin",
       "foto": null,
-      "renk": "#6E9B5C"
+      "renk": "#6E9B5C",
+      "lakap": "Assız El Görmez"
     },
     {
       "ad": "Tuğrul",
       "kad": "tugrul",
       "foto": "tugrul.jpg",
-      "renk": "#8A7BC4"
+      "renk": "#8A7BC4",
+      "lakap": "Unutkan Üstat"
     },
     {
       "ad": "Volkan",
       "kad": "volkan",
       "foto": "volkan.jpg",
-      "renk": "#C4784A"
+      "renk": "#C4784A",
+      "lakap": "Kredili"
     },
     {
       "ad": "Emre",
       "kad": "emre",
       "foto": "emre.jpg",
-      "renk": "#9B6EA8"
+      "renk": "#9B6EA8",
+      "lakap": "Anunnaki"
     },
     {
       "ad": "Ufuk",
       "kad": "ufuk",
       "foto": "ufuk.jpg",
-      "renk": "#5C8A9B"
+      "renk": "#5C8A9B",
+      "lakap": "Dayı"
     },
     {
       "ad": "Ali",
@@ -56,7 +62,8 @@
       "kad": "sadik",
       "foto": "sadik.jpg",
       "ben": true,
-      "renk": "#C9A227"
+      "renk": "#C9A227",
+      "lakap": "Zabıt Kâtibi"
     }
   ]
 }
