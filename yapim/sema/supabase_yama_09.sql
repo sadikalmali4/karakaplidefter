@@ -12,6 +12,13 @@
 --    misafir_mac(kod)                → SADECE o maçı ve oyuncularını okur
 --    misafir_celse_yaz(kod, celse, el) → SADECE o maçın celse alanını yazar
 --
+--  AD → OYUNCU EŞLEŞMESİ (kullanıcı isteği): misafirin yazdığı ad
+--  masanın kadrosunda VARSA o oyuncuya bağlanır — sicili bölünmez,
+--  "Ufuk" iki kere yazılmış olmaz. Kadroda YOKSA o adla yeni oyuncu
+--  açılır. Karşılaştırma büyük/küçük harf ve baş/son boşluk
+--  duyarsızdır. Kadroyu şişirmemek için maç başına misafir sayısı
+--  sınırlı (MISAFIR_SINIR).
+--
 --  Misafirin YAPAMADIKLARI (fonksiyon başka hiçbir alana dokunmuyor):
 --    · maçı bitirmek (bitti), kazanan/zabıt yazmak
 --    · tabelacıyı değiştirmek, maçı silmek
@@ -92,9 +99,17 @@ create table if not exists public.mac_misafirleri (
   mac_id    uuid not null references public.maclar(id) on delete cascade,
   profil_id uuid not null references public.profiller(id) on delete cascade,
   ad        text not null check (length(btrim(ad)) between 1 and 24),
+  oyuncu_id uuid references public.oyuncular(id) on delete set null,
+  yeni_acti boolean not null default false,   -- kadroya yeni oyuncu mu eklendi
   katilma   timestamptz not null default now(),
   primary key (mac_id, profil_id)
 );
+
+-- eski kurulumlar için (tablo zaten varsa sütunları ekle)
+alter table public.mac_misafirleri
+  add column if not exists oyuncu_id uuid references public.oyuncular(id) on delete set null;
+alter table public.mac_misafirleri
+  add column if not exists yeni_acti boolean not null default false;
 
 alter table public.mac_misafirleri enable row level security;
 
@@ -240,9 +255,12 @@ as $$
       where o.masa_id = m.masa_id
     ), '[]'::jsonb),
     'misafirler', coalesce((
-      select jsonb_agg(jsonb_build_object('ad',g.ad) order by g.katilma)
+      select jsonb_agg(jsonb_build_object('ad',g.ad,'oyuncu_id',g.oyuncu_id) order by g.katilma)
       from public.mac_misafirleri g where g.mac_id = m.id
-    ), '[]'::jsonb)
+    ), '[]'::jsonb),
+    'ben', (select jsonb_build_object('ad',g.ad,'oyuncu_id',g.oyuncu_id,'yeni_acti',g.yeni_acti)
+              from public.mac_misafirleri g
+              where g.mac_id = m.id and g.profil_id = auth.uid())
   )
   from public.maclar m
   join public.masalar s on s.id = m.masa_id
@@ -264,8 +282,16 @@ security definer
 set search_path = public
 as $$
 declare
-  v_mac uuid;
-  v_ad  text := btrim(coalesce(p_ad,''));
+  MISAFIR_SINIR constant int := 12;   -- maç başına misafir üst sınırı
+  v_mac    uuid;
+  v_masa   uuid;
+  v_ad     text := btrim(coalesce(p_ad,''));
+  v_oyuncu uuid;
+  v_yeni   boolean := false;
+  v_kac    int;
+  v_renk   text;
+  v_paleta text[] := array['#C9A227','#5C8A9B','#8A7BC4','#6E9B5C','#B08968',
+                           '#9B7B5C','#7B8FA1','#A8746A','#6F9B8E','#8E7BA1'];
 begin
   if auth.uid() is null then
     raise exception 'Oturum açılamadı';
@@ -277,7 +303,7 @@ begin
     v_ad := substr(v_ad, 1, 24);
   end if;
 
-  select id into v_mac
+  select id, masa_id into v_mac, v_masa
   from public.maclar
   where misafir_kod = btrim(coalesce(p_kod,''))
     and misafir_kod is not null
@@ -287,12 +313,45 @@ begin
     raise exception 'Bu link geçersiz ya da masa kapanmış';
   end if;
 
+  -- Zaten oturmuşsa (aynı cihaz, sayfa yenilenmiş) yeniden sayma
+  select oyuncu_id into v_oyuncu
+  from public.mac_misafirleri
+  where mac_id = v_mac and profil_id = auth.uid();
+
+  if v_oyuncu is null then
+    /* 1) ADI KADRODA ARA — büyük/küçük harf ve boşluk duyarsız.
+       Bulunursa o oyuncuya bağlanır: sicil bölünmez. */
+    select o.id into v_oyuncu
+    from public.oyuncular o
+    where o.masa_id = v_masa
+      and lower(btrim(o.ad)) = lower(v_ad)
+    order by o.aktif desc, o.olusturma
+    limit 1;
+
+    /* 2) YOKSA O ADLA YENİ OYUNCU AÇ.
+       Kadro şişmesin: maç başına misafir sınırı var. */
+    if v_oyuncu is null then
+      select count(*) into v_kac from public.mac_misafirleri where mac_id = v_mac;
+      if v_kac >= MISAFIR_SINIR then
+        raise exception 'Bu masaya en fazla % misafir oturabilir', MISAFIR_SINIR;
+      end if;
+      select count(*) into v_kac from public.oyuncular where masa_id = v_masa;
+      v_renk := v_paleta[1 + (v_kac % array_length(v_paleta,1))];
+      insert into public.oyuncular (masa_id, ad, renk, aktif)
+      values (v_masa, v_ad, v_renk, true)
+      returning id into v_oyuncu;
+      v_yeni := true;
+    end if;
+  end if;
+
   -- kendi profil adını yazdığı adla eşle (yalnız kendi satırı)
   update public.profiller set ad = v_ad where id = auth.uid();
 
-  insert into public.mac_misafirleri (mac_id, profil_id, ad)
-  values (v_mac, auth.uid(), v_ad)
-  on conflict (mac_id, profil_id) do update set ad = excluded.ad;
+  insert into public.mac_misafirleri (mac_id, profil_id, ad, oyuncu_id, yeni_acti)
+  values (v_mac, auth.uid(), v_ad, v_oyuncu, v_yeni)
+  on conflict (mac_id, profil_id) do update
+    set ad = excluded.ad,
+        oyuncu_id = coalesce(public.mac_misafirleri.oyuncu_id, excluded.oyuncu_id);
 
   return public.misafir_pencere(v_mac);
 end $$;
@@ -394,4 +453,8 @@ where table_schema='public' and table_name='maclar' and column_name='misafir_kod
 union all
 select 'anonim kilitleri', string_agg(policyname, ', ' order by policyname)
 from pg_policies
-where schemaname='public' and policyname in ('p_masa_kur','p_uye_istek','p_akis_yaz');
+where schemaname='public' and policyname in ('p_masa_kur','p_uye_istek','p_akis_yaz')
+union all
+select 'misafir sutunlari', string_agg(column_name, ', ' order by column_name)
+from information_schema.columns
+where table_schema='public' and table_name='mac_misafirleri';

@@ -25,12 +25,17 @@
        tabelaya yazabilir. Ekranda da bunu yazıyoruz; kapatma düğmesi
        tabelacının elinde.
 
+   AD → OYUNCU: misafirin yazdığı ad kadroda varsa O OYUNCUYA
+   bağlanıyor (sicili bölünmesin), yoksa o adla yeni oyuncu açılıyor.
+   Eşleşmeyi sunucu yapıyor (misafir_katil); burada yalnız sonucunu
+   gösteriyoruz.
+
    ÇAKIŞMA: JSONB tek parça yazıldığı için iki kişi aynı anda yazarsa
    biri diğerini ezerdi. Sunucu el sayısını karşılaştırıyor; eksik
    tabela reddediliyor, istemci tazeleyip uyarıyor.
    ========================================================= */
 
-let MISAFIR = null;          // {kod, ad, macId, elBeklenen}
+let MISAFIR = null;          // {kod, ad, macId, elBeklenen, oyuncuId, yeniActi}
 let _misafirZaman = null;    // gecikmeli yazma
 let _misafirNabiz = null;    // düzenli tazeleme
 
@@ -108,7 +113,10 @@ async function misafirKatil() {
     DURUM = 'misafir';
     misafirNabizKur();
     render(); window.scrollTo(0, 0);
-    toast(`Hoş geldin ${ad2} — tabela sende`, true);
+    /* Sunucu adı kadroda buldu mu, yeni mi açtı? */
+    toast(MISAFIR.yeniActi
+      ? `Hoş geldin ${ad2} — bu adla kadroya yeni eklendin`
+      : `Hoş geldin ${ad2} — kadrodaki kaydına bağlandın`, true);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Masaya Otur'; }
     const m = hataMetni(e);
@@ -143,7 +151,12 @@ function misafirPencereKur(p) {
   if (!Array.isArray(c.partiler) || !c.partiler.length) c.partiler = [{ eller: [], kazanan: null }];
   DB.acik = [c]; DB.aktif = c; SECILI_MAC = c.id;
   MISAFIRLER = (p.misafirler || []).map(x => x.ad);
-  if (MISAFIR) MISAFIR.elBeklenen = m.el_sayisi;
+  if (MISAFIR) {
+    MISAFIR.elBeklenen = m.el_sayisi;
+    MISAFIR.oyuncuId = p.ben?.oyuncu_id || null;
+    MISAFIR.yeniActi = !!p.ben?.yeni_acti;
+    if (p.ben?.ad) MISAFIR.ad = p.ben.ad;
+  }
 }
 let MISAFIRLER = [];
 
@@ -161,17 +174,33 @@ function misafirEkran() {
     ? (c.oyun === 'batak' ? batakTabela() : yzTabela())
     : (c.oyun === 'batak' ? aktifBatak() : aktifYz());
 
+  /* Bağlandığım oyuncu bu masada oturuyor mu? Oturmuyorsa tabelayı
+     başkası adına yazıyorum demektir; bunu söylemek gerekiyor. */
+  /* oy() bulamayinca {ad:'?'} donduruyor; gercekten kadroda olani ariyoruz. */
+  const benOyn = MISAFIR?.oyuncuId
+    ? (DB.oyuncular.find(o => o.id === MISAFIR.oyuncuId) || null) : null;
+  const benAd = benOyn?.ad || MISAFIR?.ad || 'Misafir';
+  const masada = benOyn ? macOyunculari(c).includes(benOyn.id) : false;
+
   return `
   <div class="card tight" style="border-color:var(--gold)">
     <div class="row" style="gap:9px">
-      <div style="font-size:20px;flex-shrink:0">📱</div>
+      ${benOyn ? avatar(benOyn.id, 34) : '<div style="font-size:20px;flex-shrink:0">📱</div>'}
       <div class="grow" style="min-width:0">
-        <div class="sm" style="font-weight:700">Misafir tabelacı: ${esc(MISAFIR?.ad || '')}</div>
+        <div class="sm" style="font-weight:700">${esc(MISAFIR?.ad || '')}
+          <span class="xs dim" style="font-weight:500">· misafir tabelacı</span></div>
         <div class="xs dim">${esc(DB.gruplar[0]?.ad || 'Masa')} · ${c.oyun === 'batak' ? 'Batak' : '101'}
           ${MISAFIRLER.length > 1 ? ` · masada ${MISAFIRLER.length} misafir` : ''}</div>
       </div>
       <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="misafirTazele(true)">↻</button>
     </div>
+    <div class="xs dim" style="margin-top:8px">${
+      !benOyn ? 'Kadroda bir kayda bağlanamadın; yazdıkların masaya işler.'
+      : MISAFIR.yeniActi ? `<b>${esc(benAd)}</b> adıyla kadroya yeni eklendin.
+          Bundan sonra bu ad senin sicilin olacak.`
+      : masada ? `Kadrodaki <b>${esc(benAd)}</b> kaydına bağlandın; bu masada oturuyorsun.`
+      : `Kadrodaki <b>${esc(benAd)}</b> kaydına bağlandın.
+          Bu masada oturmuyorsun — tabelayı oynayanlar adına yazıyorsun.`}</div>
   </div>
   ${tabela}
   <div class="card tight xs dim center">Yazdığın her sayı anında masaya gidiyor.

@@ -1748,7 +1748,9 @@ function aktifBatak(){
     ${pKz!==null?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
       ${m.partiSkor[pKz]>=c.partiHedef
-        ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:10px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
@@ -1787,7 +1789,7 @@ function aktifBatak(){
     <button class="btn-sm btn-dn" style="margin-top:10px;width:100%" onclick="elSil()">Son Eli Boz</button>
   </div>`:''}
   ${gecmisPartiler(c)}
-  ${pKz===null?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
+  ${!MISAFIR&&pKz===null?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
 }
 function tekSec(el){el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
 function batakElEkle(){
@@ -1837,7 +1839,9 @@ function aktifYz(){
     ${doldu?`<div class="sep"></div><div class="center">
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(liste((pKz||[]).map(ad)))} partiyi aldı</div>
       ${c.partiHedef<=1||sonParti
-        ?`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:10px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:10px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
@@ -1895,7 +1899,7 @@ function aktifYz(){
     <button class="btn-sm btn-dn" style="margin-top:10px;width:100%" onclick="elSil()">Son Eli Boz</button>
   </div>`:''}
   ${gecmisPartiler(c)}
-  ${!doldu&&parti.eller.length?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
+  ${!MISAFIR&&!doldu&&parti.eller.length?`<div class="card tight center"><button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}`;
 }
 function yzDurumSec(el){
   const kart=el.closest('.el-card');
@@ -2511,7 +2515,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.2 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.3 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4275,14 +4279,16 @@ function batakTabela(){
       ${/* batakMac, kapatılmamış partiyi de sayıyor — üstüne +1 eklenirse
             ilk partide maç bitmiş sanılır. Olduğu gibi karşılaştır. */''}
       ${m.partiSkor[pKz]>=c.partiHedef
-        ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:11px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
 
   ${gecmisPartiler(c)}
 
-  ${!bitti&&satir.length?`<div class="card tight center">
+  ${!MISAFIR&&!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
     İhale, koz ve şlem dökümü tutulacaksa masa <b>İhaleli</b> açılmalı.</div>`;
@@ -4387,14 +4393,16 @@ function yzTabela(){
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(liste((pKz||[]).map(ad)))} partiyi aldı</div>
       <div class="xs dim" style="margin-top:2px">sonuncu ${esc(ad(c.oyuncular.slice().sort((x,y)=>top[y]-top[x])[0]))}</div>
       ${c.partiHedef<=1||sonParti
-        ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:11px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
 
   ${gecmisPartiler(c)}
 
-  ${!doldu&&satir.length?`<div class="card tight center">
+  ${!MISAFIR&&!doldu&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; 101'de eksi de yazılır (örn. −100).
     Ceza ve ödül kutuları gerekiyorsa masa <b>⚖️ Ceza / Ödül</b> şıkkıyla açılmalı;
@@ -6533,12 +6541,17 @@ function kurtarmaAt(id) {
        tabelaya yazabilir. Ekranda da bunu yazıyoruz; kapatma düğmesi
        tabelacının elinde.
 
+   AD → OYUNCU: misafirin yazdığı ad kadroda varsa O OYUNCUYA
+   bağlanıyor (sicili bölünmesin), yoksa o adla yeni oyuncu açılıyor.
+   Eşleşmeyi sunucu yapıyor (misafir_katil); burada yalnız sonucunu
+   gösteriyoruz.
+
    ÇAKIŞMA: JSONB tek parça yazıldığı için iki kişi aynı anda yazarsa
    biri diğerini ezerdi. Sunucu el sayısını karşılaştırıyor; eksik
    tabela reddediliyor, istemci tazeleyip uyarıyor.
    ========================================================= */
 
-let MISAFIR = null;          // {kod, ad, macId, elBeklenen}
+let MISAFIR = null;          // {kod, ad, macId, elBeklenen, oyuncuId, yeniActi}
 let _misafirZaman = null;    // gecikmeli yazma
 let _misafirNabiz = null;    // düzenli tazeleme
 
@@ -6616,7 +6629,10 @@ async function misafirKatil() {
     DURUM = 'misafir';
     misafirNabizKur();
     render(); window.scrollTo(0, 0);
-    toast(`Hoş geldin ${ad2} — tabela sende`, true);
+    /* Sunucu adı kadroda buldu mu, yeni mi açtı? */
+    toast(MISAFIR.yeniActi
+      ? `Hoş geldin ${ad2} — bu adla kadroya yeni eklendin`
+      : `Hoş geldin ${ad2} — kadrodaki kaydına bağlandın`, true);
   } catch (e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Masaya Otur'; }
     const m = hataMetni(e);
@@ -6651,7 +6667,12 @@ function misafirPencereKur(p) {
   if (!Array.isArray(c.partiler) || !c.partiler.length) c.partiler = [{ eller: [], kazanan: null }];
   DB.acik = [c]; DB.aktif = c; SECILI_MAC = c.id;
   MISAFIRLER = (p.misafirler || []).map(x => x.ad);
-  if (MISAFIR) MISAFIR.elBeklenen = m.el_sayisi;
+  if (MISAFIR) {
+    MISAFIR.elBeklenen = m.el_sayisi;
+    MISAFIR.oyuncuId = p.ben?.oyuncu_id || null;
+    MISAFIR.yeniActi = !!p.ben?.yeni_acti;
+    if (p.ben?.ad) MISAFIR.ad = p.ben.ad;
+  }
 }
 let MISAFIRLER = [];
 
@@ -6669,17 +6690,33 @@ function misafirEkran() {
     ? (c.oyun === 'batak' ? batakTabela() : yzTabela())
     : (c.oyun === 'batak' ? aktifBatak() : aktifYz());
 
+  /* Bağlandığım oyuncu bu masada oturuyor mu? Oturmuyorsa tabelayı
+     başkası adına yazıyorum demektir; bunu söylemek gerekiyor. */
+  /* oy() bulamayinca {ad:'?'} donduruyor; gercekten kadroda olani ariyoruz. */
+  const benOyn = MISAFIR?.oyuncuId
+    ? (DB.oyuncular.find(o => o.id === MISAFIR.oyuncuId) || null) : null;
+  const benAd = benOyn?.ad || MISAFIR?.ad || 'Misafir';
+  const masada = benOyn ? macOyunculari(c).includes(benOyn.id) : false;
+
   return `
   <div class="card tight" style="border-color:var(--gold)">
     <div class="row" style="gap:9px">
-      <div style="font-size:20px;flex-shrink:0">📱</div>
+      ${benOyn ? avatar(benOyn.id, 34) : '<div style="font-size:20px;flex-shrink:0">📱</div>'}
       <div class="grow" style="min-width:0">
-        <div class="sm" style="font-weight:700">Misafir tabelacı: ${esc(MISAFIR?.ad || '')}</div>
+        <div class="sm" style="font-weight:700">${esc(MISAFIR?.ad || '')}
+          <span class="xs dim" style="font-weight:500">· misafir tabelacı</span></div>
         <div class="xs dim">${esc(DB.gruplar[0]?.ad || 'Masa')} · ${c.oyun === 'batak' ? 'Batak' : '101'}
           ${MISAFIRLER.length > 1 ? ` · masada ${MISAFIRLER.length} misafir` : ''}</div>
       </div>
       <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="misafirTazele(true)">↻</button>
     </div>
+    <div class="xs dim" style="margin-top:8px">${
+      !benOyn ? 'Kadroda bir kayda bağlanamadın; yazdıkların masaya işler.'
+      : MISAFIR.yeniActi ? `<b>${esc(benAd)}</b> adıyla kadroya yeni eklendin.
+          Bundan sonra bu ad senin sicilin olacak.`
+      : masada ? `Kadrodaki <b>${esc(benAd)}</b> kaydına bağlandın; bu masada oturuyorsun.`
+      : `Kadrodaki <b>${esc(benAd)}</b> kaydına bağlandın.
+          Bu masada oturmuyorsun — tabelayı oynayanlar adına yazıyorsun.`}</div>
   </div>
   ${tabela}
   <div class="card tight xs dim center">Yazdığın her sayı anında masaya gidiyor.

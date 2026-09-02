@@ -111,14 +111,16 @@ function batakTabela(){
       ${/* batakMac, kapatılmamış partiyi de sayıyor — üstüne +1 eklenirse
             ilk partide maç bitmiş sanılır. Olduğu gibi karşılaştır. */''}
       ${m.partiSkor[pKz]>=c.partiHedef
-        ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:11px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
 
   ${gecmisPartiler(c)}
 
-  ${!bitti&&satir.length?`<div class="card tight center">
+  ${!MISAFIR&&!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
     İhale, koz ve şlem dökümü tutulacaksa masa <b>İhaleli</b> açılmalı.</div>`;
@@ -223,14 +225,16 @@ function yzTabela(){
       <div class="serif" style="color:var(--gold);font-size:16px">${esc(liste((pKz||[]).map(ad)))} partiyi aldı</div>
       <div class="xs dim" style="margin-top:2px">sonuncu ${esc(ad(c.oyuncular.slice().sort((x,y)=>top[y]-top[x])[0]))}</div>
       ${c.partiHedef<=1||sonParti
-        ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        ?(MISAFIR
+          ?`<div class="xs dim center" style="margin-top:11px">Parti doldu. Maçı <b>tabelacı</b> bitirir.</div>`
+          :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`)
         :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
       </div>`:''}
   </div>
 
   ${gecmisPartiler(c)}
 
-  ${!doldu&&satir.length?`<div class="card tight center">
+  ${!MISAFIR&&!doldu&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
   <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; 101'de eksi de yazılır (örn. −100).
     Ceza ve ödül kutuları gerekiyorsa masa <b>⚖️ Ceza / Ödül</b> şıkkıyla açılmalı;
