@@ -200,17 +200,38 @@ async function grupGec(id){
 }
 
 //== yedekAl
+/* TAM yedek. Ücretsiz katmanda veritabanının geri dönüşü (PITR) yok;
+   biri masayı yanlışlıkla silerse tek dayanağımız bu dosya. O yüzden
+   akış (zabıtlar, mesajlar, BORÇ ÖDEMELERİ) ve tahmin verisi de giriyor —
+   önceki hâlde bunlar dışarı çıkmıyordu. */
 function yedekAl(){
   const g=aktifGrup();
-  const veri={v:4,kaynak:'bulut',masa:g?{ad:g.ad,emoji:g.emoji,kod:g.kod}:null,
-    ben:DB.ben,ayar:DB.ayar,
+  const hIds=(DB.haftalar||[]).filter(h=>h.masaId===DB.aktifGrup).map(h=>h.id);
+  const kars=(DB.karsilasmalar||[]).filter(k=>hIds.includes(k.haftaId));
+  const kIds=kars.map(k=>k.id);
+  const veri={
+    v:5, kaynak:'bulut', alindi:new Date().toISOString(),
+    masa:g?{ad:g.ad,emoji:g.emoji,kod:g.kod,kuran:g.kuran}:null,
+    ben:DB.ben, ayar:DB.ayar,
+    uyeler:(MASA_UYELERI||[]).map(u=>({profilId:u.profil_id,rol:u.rol,
+             ad:u.profiller?.ad||null})),
     oyuncular:DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup),
     celseler:DB.celseler.filter(c=>c.grupId===DB.aktifGrup),
-    iddialar:DB.iddialar.filter(i=>i.grupId===DB.aktifGrup)};
+    acik:(DB.acik||[]).filter(c=>c.grupId===DB.aktifGrup),   // yarım kalan tabelalar
+    iddialar:DB.iddialar.filter(i=>i.grupId===DB.aktifGrup),
+    akis:(DB.akis||[]).filter(a=>a.grupId===DB.aktifGrup),   // zabıtlar + ödemeler burada
+    haftalar:(DB.haftalar||[]).filter(h=>h.masaId===DB.aktifGrup),
+    karsilasmalar:kars,
+    tahminler:(DB.tahminler||[]).filter(t=>kIds.includes(t.karsilasmaId))
+  };
+  const say=`${veri.oyuncular.length} oyuncu · ${veri.celseler.length} maç · `+
+            `${veri.iddialar.length} iddia · ${veri.akis.length} akış · `+
+            `${veri.haftalar.length} tahmin haftası`;
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(veri,null,2)],{type:'application/json'}));
   a.download=`${(g?.ad||'masa').replace(/[^\wğüşıöçĞÜŞİÖÇ ]/g,'')}-${bugun()}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); toast('Yedek indirildi');
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Yedek indirildi: '+say,true);
 }
 
 //== yedekYukle

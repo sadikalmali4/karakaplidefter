@@ -2393,7 +2393,10 @@ function viewAyar(){
   <div class="card">
     <h3>Defter</h3>
     <div class="sm muted" style="margin-bottom:10px">Bu grupta ${DB.celseler.filter(c=>c.grupId===DB.aktifGrup).length} kapanmış maç var.
-      Kayıtlar bulutta; cihazını kaybetsen de durur. Yine de arada bir yedek al.</div>
+      Kayıtlar bulutta; cihazını kaybetsen, uygulamayı silsen de durur.</div>
+    <div class="uyari" style="margin-bottom:10px">Veritabanının otomatik geri dönüşü <b>yok</b>.
+      Biri bir kaydı yanlışlıkla silerse tek dayanak indirdiğin yedek dosyası olur.
+      Ayda bir "Yedek Al" demen yeterli — maçlar, iddialar, akış, borçlar ve tahminler dosyaya girer.</div>
     <div class="two">
       <button onclick="yedekAl()">⬇ Yedek Al</button>
       <button ${kilit} onclick="document.getElementById('yedekDosya').click()">⬆ Eski Defteri Aktar</button>
@@ -2609,17 +2612,38 @@ async function grupGec(id){
 }
 
 /* ---------- yedek ---------- */
+/* TAM yedek. Ücretsiz katmanda veritabanının geri dönüşü (PITR) yok;
+   biri masayı yanlışlıkla silerse tek dayanağımız bu dosya. O yüzden
+   akış (zabıtlar, mesajlar, BORÇ ÖDEMELERİ) ve tahmin verisi de giriyor —
+   önceki hâlde bunlar dışarı çıkmıyordu. */
 function yedekAl(){
   const g=aktifGrup();
-  const veri={v:4,kaynak:'bulut',masa:g?{ad:g.ad,emoji:g.emoji,kod:g.kod}:null,
-    ben:DB.ben,ayar:DB.ayar,
+  const hIds=(DB.haftalar||[]).filter(h=>h.masaId===DB.aktifGrup).map(h=>h.id);
+  const kars=(DB.karsilasmalar||[]).filter(k=>hIds.includes(k.haftaId));
+  const kIds=kars.map(k=>k.id);
+  const veri={
+    v:5, kaynak:'bulut', alindi:new Date().toISOString(),
+    masa:g?{ad:g.ad,emoji:g.emoji,kod:g.kod,kuran:g.kuran}:null,
+    ben:DB.ben, ayar:DB.ayar,
+    uyeler:(MASA_UYELERI||[]).map(u=>({profilId:u.profil_id,rol:u.rol,
+             ad:u.profiller?.ad||null})),
     oyuncular:DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup),
     celseler:DB.celseler.filter(c=>c.grupId===DB.aktifGrup),
-    iddialar:DB.iddialar.filter(i=>i.grupId===DB.aktifGrup)};
+    acik:(DB.acik||[]).filter(c=>c.grupId===DB.aktifGrup),   // yarım kalan tabelalar
+    iddialar:DB.iddialar.filter(i=>i.grupId===DB.aktifGrup),
+    akis:(DB.akis||[]).filter(a=>a.grupId===DB.aktifGrup),   // zabıtlar + ödemeler burada
+    haftalar:(DB.haftalar||[]).filter(h=>h.masaId===DB.aktifGrup),
+    karsilasmalar:kars,
+    tahminler:(DB.tahminler||[]).filter(t=>kIds.includes(t.karsilasmaId))
+  };
+  const say=`${veri.oyuncular.length} oyuncu · ${veri.celseler.length} maç · `+
+            `${veri.iddialar.length} iddia · ${veri.akis.length} akış · `+
+            `${veri.haftalar.length} tahmin haftası`;
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(veri,null,2)],{type:'application/json'}));
   a.download=`${(g?.ad||'masa').replace(/[^\wğüşıöçĞÜŞİÖÇ ]/g,'')}-${bugun()}.json`;
-  document.body.appendChild(a); a.click(); a.remove(); toast('Yedek indirildi');
+  document.body.appendChild(a); a.click(); a.remove();
+  toast('Yedek indirildi: '+say,true);
 }
 /* Eski tek-dosya prototipin (localStorage) yedeğini bu masaya taşır.
    Oyuncular ADA göre eşlenir; masada olmayan ad yeni oyuncu olarak açılır. */

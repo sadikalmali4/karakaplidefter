@@ -154,7 +154,10 @@ function viewAyar(){
   <div class="card">
     <h3>Defter</h3>
     <div class="sm muted" style="margin-bottom:10px">Bu grupta ${DB.celseler.filter(c=>c.grupId===DB.aktifGrup).length} kapanmış maç var.
-      Kayıtlar bulutta; cihazını kaybetsen de durur. Yine de arada bir yedek al.</div>
+      Kayıtlar bulutta; cihazını kaybetsen, uygulamayı silsen de durur.</div>
+    <div class="uyari" style="margin-bottom:10px">Veritabanının otomatik geri dönüşü <b>yok</b>.
+      Biri bir kaydı yanlışlıkla silerse tek dayanak indirdiğin yedek dosyası olur.
+      Ayda bir "Yedek Al" demen yeterli — maçlar, iddialar, akış, borçlar ve tahminler dosyaya girer.</div>
     <div class="two">
       <button onclick="yedekAl()">⬇ Yedek Al</button>
       <button ${kilit} onclick="document.getElementById('yedekDosya').click()">⬆ Eski Defteri Aktar</button>
