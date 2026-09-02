@@ -83,7 +83,13 @@ function sezonPuanlari(){
 const profilAd=pid=>{
   const o=DB.oyuncular.find(x=>x.profilId===pid&&x.masaId===DB.aktifGrup);
   if(o) return o.ad;
-  return MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller?.ad||'?';
+  const u=MASA_UYELERI.find(u=>u.profil_id===pid)?.profiller?.ad;
+  if(u) return u;
+  /* WhatsApp linkiyle katilan misafir: uyelik kaydi yok, adi
+     hafta_misafirleri tablosunda (yama 10). */
+  const g=(typeof HAFTA_MISAFIRLERI!=='undefined'?HAFTA_MISAFIRLERI:[])
+            .find(x=>x.profilId===pid);
+  return g ? g.ad : '?';
 };
 const profilOyuncu=pid=>DB.oyuncular.find(x=>x.profilId===pid&&x.masaId===DB.aktifGrup)||null;
 function profilAvatar(pid,b){
@@ -120,7 +126,7 @@ function tahminKart(){
       <div><div class="serif" style="font-size:17px">⚽ ${esc(h.ad)}</div>
         <div class="xs dim">${mac.length} maç · ${mac.filter(skorVar).length} sonuçlandı
           ${h.kapandi?' · hafta kapandı':''}</div></div>
-      ${k?`<div style="display:flex;gap:5px;flex-shrink:0">
+      ${k?`<div style="display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end">
         <button class="btn-xs btn-gh" onclick="macEkleAc('${h.id}')">+ Maç</button>
         <button class="btn-xs btn-dn" onclick="haftaSil('${h.id}')">Sil</button></div>`:''}
     </div>
@@ -130,6 +136,10 @@ function tahminKart(){
        ${mac.some(x=>!kilitli(x))?`
          <button class="btn-p btn-full" style="margin-top:14px" id="thHepBtn"
            onclick="tahminHepsiniKaydet('${h.id}')">💾 Yazdıklarımın Hepsini Kaydet</button>
+         ${k?`<button class="btn-g btn-full" style="margin-top:8px"
+           onclick="tahminPaylasAc('${h.id}')">📱 Haftayı Gruba At (WhatsApp)</button>
+         <div class="xs dim center" style="margin-top:6px">Linke tıklayan adını yazıp tahminini girer;
+           hesap açması gerekmez.</div>`:''}
          <div class="xs dim center" style="margin-top:6px">Kutudan çıkınca zaten kendiliğinden kaydediliyor;
            bu düğme hepsini bir arada yazar.</div>`:''}`}
   </div>

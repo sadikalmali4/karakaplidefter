@@ -90,6 +90,22 @@ async function baslat(){
   sb.auth.onAuthStateChange((olay)=>{
     if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
   });
+  /* ?tahmin=<kod>: tahmin haftasına misafir girişi (yama 10) */
+  const _tahminKod=tmisafirKodu();
+  if(_tahminKod){
+    const {data:{session}}=await sb.auth.getSession();
+    if(session){
+      try{
+        const {data,error}=await sb.rpc('tahmin_misafir_pencere',{p_kod:_tahminKod});
+        if(!error&&data&&data.ben){
+          tmPencereKur(data,_tahminKod);
+          DURUM='tmisafir'; tmNabizKur(); return render();
+        }
+      }catch(e){}
+    }
+    DURUM='tmisafirGiris'; return render();
+  }
+
   /* ?misafir=<kod> ile gelindiyse hiç normal yola girmiyoruz:
      hesap yok, grup yok, tek maç var. */
   const _misafirKod=misafirKodu();
@@ -153,7 +169,7 @@ async function verileriGetir(){
   localStorage.setItem('kkd_aktif_masa',DB.aktifGrup);
 
   const masaIds=DB.gruplar.map(g=>g.id);
-  const [oyn,mac,idd,akm,hft,krs,thm]=await Promise.all([
+  const [oyn,mac,idd,akm,hft,krs,thm,hmis]=await Promise.all([
     sb.from('oyuncular').select('*').in('masa_id',masaIds),
     sb.from('maclar').select('id,masa_id,bitti,tarih,tabelaci_id,olusturma,celse').in('masa_id',masaIds)
       .order('tarih',{ascending:false}).order('olusturma',{ascending:false}),
@@ -164,7 +180,8 @@ async function verileriGetir(){
        olabilir (yama 08) — hata firlatmiyoruz, bos gecmesi yeter. */
     sb.from('haftalar').select('*').in('masa_id',masaIds).order('olusturma',{ascending:false}),
     sb.from('karsilasmalar').select('*'),
-    sb.from('tahminler').select('*')
+    sb.from('tahminler').select('*'),
+    sb.from('hafta_misafirleri').select('*')
   ]);
   if(oyn.error) throw oyn.error;
   if(mac.error) throw mac.error;
@@ -208,6 +225,10 @@ async function verileriGetir(){
     kapandi:!!h.kapandi,olusturan:h.olusturan,olusturma:h.olusturma}));
   DB.karsilasmalar=(krs&&!krs.error?(krs.data||[]):[]).map(k=>({id:k.id,haftaId:k.hafta_id,sira:k.sira,
     ev:k.ev,deplasman:k.deplasman,baslangic:k.baslangic,evSkor:k.ev_skor,depSkor:k.dep_skor}));
+  /* Haftaya WhatsApp'tan katılan misafirlerin adları: sıralamada
+     "?" çıkmasın diye profilAd() buradan da bakıyor (yama 10). */
+  HAFTA_MISAFIRLERI=(hmis&&!hmis.error?(hmis.data||[]):[])
+    .map(g=>({haftaId:g.hafta_id,profilId:g.profil_id,ad:g.ad}));
   DB.tahminler=(thm&&!thm.error?(thm.data||[]):[]).map(t=>({karsilasmaId:t.karsilasma_id,
     profilId:t.profil_id,ev:t.ev,dep:t.dep}));
 
@@ -240,6 +261,7 @@ async function verileriGetir(){
 /* --------- açık tabelayı buluta yazma ---------
    Prototipte kaydet() localStorage'a yazıyordu; burada AÇIK MAÇI buluta
    yazar. Ayar / oyuncu / iddia gibi kayıtların kendi fonksiyonları var. */
+let HAFTA_MISAFIRLERI=[];
 let _yazZaman=null, _yazSira=Promise.resolve(), _bekleyenYazi=false;
 function kaydet(){
   if(!DB.aktif) return;

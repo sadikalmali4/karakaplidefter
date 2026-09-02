@@ -3,6 +3,15 @@ function render(){
   const tb=document.querySelector('nav.tabbar');
   const v=$('#view');
   const tam = DURUM==='hazir';
+  if(DURUM==='tmisafirGiris'||DURUM==='tmisafir'){
+    tb.style.display='none'; document.body.style.paddingBottom='24px';
+    $('#hdrSub').textContent = DURUM==='tmisafir'
+      ? `tahmin · ${TMISAFIR?.ad||''}` : 'tahmin yarışması';
+    $('#hdrRight').innerHTML='';
+    v.innerHTML = DURUM==='tmisafir' ? tmisafirEkran() : tmisafirGirisEkrani();
+    if(DURUM==='tmisafirGiris') setTimeout(()=>$('#tmAd')?.focus(),60);
+    return;
+  }
   if(DURUM==='misafirGiris'||DURUM==='misafir'){
     tb.style.display='none'; document.body.style.paddingBottom='24px';
     $('#hdrSub').textContent = DURUM==='misafir'
