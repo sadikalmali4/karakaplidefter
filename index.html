@@ -544,6 +544,9 @@ function grupCelseleri(){
    Şlemi ihaleyi ALMAYAN takım yaparsa (alinan=0) zaten ihale batmış
    olur: alan takım -ihale yazar, karşı takım 13 yazar. O yön doğruydu. */
 function batakElPuan(el,a){
+  /* HAM SATIR: tabelaya kâğıttaki gibi iki sayı doğrudan yazılmış.
+     İhale/koz dökümü yoktur; ne yazıldıysa o geçerlidir (eksi dahil). */
+  if(el && Array.isArray(el.ham)) return [Number(el.ham[0])||0, Number(el.ham[1])||0];
   const t=[0,0], alan=el.ihaleTakim, karsi=1-alan;
   const tuttu=el.alinan>=el.ihale, slem=el.alinan===a.toplamEl;
 
@@ -567,7 +570,9 @@ function batakPartiKazanan(p){
 }
 function batakMac(c){
   norm(c);
-  if(c.giris==='hizli'){
+  /* Eski özet kayıtlar (devir/arşiv) parti sayısını hizli.partiSkor'da tutar.
+     Tabelaya gerçek satır yazılmışsa artık onu kullanırız. */
+  if(c.giris==='hizli' && !c.partiler.some(p=>p.eller.length)){
     const ps=c.hizli?.partiSkor||[0,0];
     const mk = ps[0]>=c.partiHedef?0:(ps[1]>=c.partiHedef?1:(ps[0]===ps[1]?null:(ps[0]>ps[1]?0:1)));
     return {partiSkor:ps,gTop:c.hizli?.puan||[0,0],toplamEl:0,macKazanan:mk,aktifIdx:0,aktif:c.partiler[0]};
@@ -1419,10 +1424,9 @@ function celseBaslat(oyun){
       <div class="xs dim" id="mGirisNot" style="margin-top:6px"></div>
     </div>
 
-    <div class="two" style="margin-top:10px">
-      <div><label class="fl">Tarih</label><input type="date" id="mTarih" value="${bugun()}"></div>
-      <div><label class="fl">Yer</label><input id="mYer" placeholder="Ofis, kahve..."></div>
-    </div>
+    <div class="field" style="margin-top:10px"><label class="fl">Tarih</label>
+      <input type="date" id="mTarih" value="${bugun()}"></div>
+    ${yerSecici(sonYer())}
 
     <div class="field" id="mPartiKap"><label class="fl">Maç kaç parti üzerinden?</label>
       <div class="seg" id="mParti">${[1,2,3].map(n=>`<button class="${n===varP?'on':''}" data-p="${n}" onclick="segSec(this)">${n===1?'Tek parti':n+' parti alan'}</button>`).join('')}</div>
@@ -1481,7 +1485,7 @@ async function celseKur(oyun){
   const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
   const masaAd=($('#mMasaAd')?.value||'').trim()||varsayilanMasaAd();
-  const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:$('#mYer').value.trim(),
+  const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:yerOku(),
            tabelaci,partiHedef,not:'',bahis:bahisOku(),partiler:[{eller:[],kazanan:null}]};
   if(oyun==='batak'){
     if(s.length!==4) return toast('Batak için tam 4 oyuncu gerekli',true);
@@ -1526,36 +1530,9 @@ const macOyunculari=c=>c.oyun==='batak'?c.takimlar.flatMap(t=>t.oyuncular):(c.oy
 function hizliEkran(){
   const c=DB.aktif;
   if(c.oyun==='batak'){
-    const h=c.hizli, T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
-    const kz = h.partiSkor[0]===h.partiSkor[1] ? null : (h.partiSkor[0]>h.partiSkor[1]?0:1);
-    return `
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div><div class="serif" style="font-size:17px">⚡ Batak · Hızlı Giriş</div>
-          <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
-        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
-      </div>
-      <div class="sep"></div>
-      <div class="xs dim center" style="margin-bottom:12px">Her takım kaç parti aldı? Dokunarak arttır.</div>
-      ${[0,1].map(i=>`
-        <div class="row" style="padding:8px 0;gap:10px">
-          <span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span>
-          <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
-          <button class="btn-sm" onclick="hzParti(${i},-1)">−</button>
-          <div class="serif" style="font-size:24px;min-width:28px;text-align:center;color:${kz===i?'var(--gold)':'var(--ink)'}">${h.partiSkor[i]}</div>
-          <button class="btn-sm" onclick="hzParti(${i},1)">+</button>
-        </div>`).join('')}
-      <div class="sep"></div>
-      <details><summary>Puanı da yazayım (isteğe bağlı)</summary><div class="two">
-        <div><label class="fl">A toplam</label><input type="number" value="${h.puan[0]||''}" onchange="hzPuan(0,this.value)" placeholder="61"></div>
-        <div><label class="fl">B toplam</label><input type="number" value="${h.puan[1]||''}" onchange="hzPuan(1,this.value)" placeholder="43"></div>
-      </div></details>
-      <button class="btn-g btn-full" style="margin-top:14px" onclick="celseKapat()" ${kz===null?'disabled':''}>
-        ${kz===null?'Önce kazanan takımı yaz':'Tabelayı Kapat → Zabıt'}</button>
-    </div>
-    <div class="card tight center xs dim">Detaylı istatistik (ihale, batak, şlem) için bir dahaki sefere "Detaylı" seç.</div>`;
+    return batakTabela();
   }
+
   /* 101 hızlı: sıraya diz */
   const h=c.hizli, s=h.sira;
   return `
@@ -3182,7 +3159,7 @@ function gecmisAc(oyun){
 
     <div class="two" style="margin-top:10px">
       <div><label class="fl">Tarih</label><input type="date" id="gcTarih" max="${bugun()}" value="${bugun()}"></div>
-      <div><label class="fl">Yer</label><input id="gcYer" placeholder="Ofis, kahve..."></div>
+      <div><label class="fl">Yer</label><select id="gcYer">${yerListesi().map(y=>`<option>${esc(y)}</option>`).join('')}<option value="">— başka —</option></select></div>
     </div>
 
     <div id="gcGovde" style="margin-top:12px"></div>
@@ -3896,6 +3873,214 @@ async function lakapKaydet(){
 }
 
 /* =========================================================
+   YER — masanın mutat mekânları
+   Liste ayarda tutulur (ayar.yerler); yoksa varsayılan ikili kullanılır.
+   Listede olmayan bir yere gidilirse serbest yazılabilir.
+   ========================================================= */
+const YER_VARSAYILAN=['Parkverde','Kemerdere'];
+function yerListesi(){
+  const l=DB.ayar&&DB.ayar.yerler;
+  return (Array.isArray(l)&&l.length)?l:YER_VARSAYILAN;
+}
+/* son oynanan yer öne seçili gelsin — genelde bir dönem aynı yerde oynanır */
+function sonYer(){
+  const l=grupCelseleri().slice().sort((a,b)=>String(b.tarih||'').localeCompare(String(a.tarih||'')));
+  return (l[0]&&l[0].yer)||yerListesi()[0];
+}
+function yerSecici(secili){
+  const l=yerListesi();
+  const listedeMi=l.includes(secili);
+  return `<div class="field"><label class="fl">Yer</label>
+    <div class="row wrap" id="mYerSec">${l.map(y=>
+      `<div class="chip ${y===secili?'on':''}" data-y="${esc(y)}" onclick="yerSec(this)">📍 ${esc(y)}</div>`).join('')}</div>
+    <input id="mYer" placeholder="başka bir yerde oynandıysa yaz..." style="margin-top:8px"
+      value="${esc(listedeMi?'':(secili||''))}" oninput="yerYaziliyor()"></div>`;
+}
+function yerSec(el){
+  el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  const i=$('#mYer'); if(i) i.value='';
+}
+function yerYaziliyor(){
+  if(($('#mYer')?.value||'').trim())
+    document.querySelectorAll('#mYerSec .chip').forEach(x=>x.classList.remove('on'));
+}
+function yerOku(){
+  const s=($('#mYer')?.value||'').trim();
+  return s || document.querySelector('#mYerSec .chip.on')?.dataset.y || '';
+}
+
+/* =========================================================
+   TABELA — kâğıttaki hâliyle
+   İki sütun, alt alta sayılar, altta toplam. Bir sütun hedefe
+   (61) varınca parti biter. Artırma/azaltma düğmesi yok; sayı
+   doğrudan yazılır. Batakta eksi de yazılabilir (örn. -7).
+
+   Satırlar parti.eller içine {ham:[a,b]} olarak girer; böylece
+   parti/maç/zabıt motorları hiç değişmeden çalışır.
+
+   Hücre değişince TAM ÇİZİM YAPILMAZ — yalnız toplam ve yeni satır
+   güncellenir. Yoksa mobilde her dokunuşta odak kaçar.
+   ========================================================= */
+
+const TB_IZGARA='display:grid;grid-template-columns:26px 1fr 1fr;gap:7px;align-items:center';
+
+function hamSatirlar(p){
+  return (p.eller||[]).map(el=>{
+    if(Array.isArray(el.ham)) return [Number(el.ham[0])||0, Number(el.ham[1])||0];
+    const x=batakElPuan(el,DB.ayar.batak);      // detaylı satır da gösterilebilsin
+    return [x[0],x[1]];
+  });
+}
+function tbAktifParti(){ return batakMac(DB.aktif).aktif; }
+
+function tbHucre(r,i,deger,kilit){
+  return `<input type="number" inputmode="numeric" data-r="${r}" data-i="${i}"
+    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="·"
+    onchange="tbYaz(${r},${i},this.value)" onkeydown="tbTus(event,${r},${i})"
+    style="width:100%;text-align:center;font:600 17px/1 Georgia,serif;padding:9px 2px;
+      background:${kilit?'transparent':'var(--panel2)'};
+      border-color:${kilit?'transparent':'var(--line)'}">`;
+}
+function tbSatirHtml(r,cift,kilit){
+  return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
+    <div class="xs dim center">${r+1}</div>
+    ${tbHucre(r,0,cift?cift[0]:'',kilit)}${tbHucre(r,1,cift?cift[1]:'',kilit)}
+  </div>`;
+}
+function tbToplamHtml(){
+  const c=DB.aktif, a=DB.ayar.batak, parti=tbAktifParti();
+  const {top}=batakPartiToplam(parti);
+  const pKz=batakPartiKazanan(parti);
+  const yuz=i=>Math.min(100,Math.max(0,top[i]/a.hedef*100));
+  return `<div style="${TB_IZGARA}">
+    <div class="xs dim center">Σ</div>
+    ${[0,1].map(i=>`<div class="center">
+      <div class="serif" style="font-size:30px;line-height:1;
+        color:${pKz===i?'var(--gold)':(top[i]<0?'var(--red)':'var(--ink)')}">${top[i]}</div>
+      <div class="bar" style="margin-top:6px"><i style="width:${yuz(i)}%;
+        background:${i?'var(--blue)':'var(--accent2)'}"></i></div>
+    </div>`).join('')}
+  </div>
+  <div class="xs dim center" style="margin-top:7px">hedef ${a.hedef} · ${parti.eller.length} el yazıldı</div>`;
+}
+
+function batakTabela(){
+  const c=DB.aktif, a=DB.ayar.batak, m=batakMac(c);
+  const parti=m.aktif, pIdx=m.aktifIdx;
+  const {top}=batakPartiToplam(parti);
+  const pKz=batakPartiKazanan(parti);
+  const pAd=partiAd(c,pIdx), cikis=pAd==='Çıkıştırma';
+  const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+  const satir=hamSatirlar(parti);
+  const bitti=pKz!==null;
+
+  return `
+  ${macSerit(c)}
+  <div class="card ${cikis?'cikis':''}">
+    <div class="row" style="justify-content:space-between;align-items:flex-start">
+      <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
+        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
+      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+    </div>
+
+    <div class="sep"></div>
+
+    <div style="${TB_IZGARA};align-items:end">
+      <div></div>
+      ${[0,1].map(i=>`<div class="center">
+        <div><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span></div>
+        <div class="xs" style="font-weight:600;margin-top:3px;line-height:1.3">${esc(T(i))}</div>
+      </div>`).join('')}
+    </div>
+
+    <div style="height:1px;background:var(--line);margin:9px 0"></div>
+
+    <div id="tbGovde">
+      ${satir.map((cift,r)=>tbSatirHtml(r,cift,bitti)).join('')}
+      ${bitti?'':tbSatirHtml(satir.length,null,false)}
+    </div>
+
+    <div style="height:2px;background:var(--line);margin:8px 0"></div>
+    <div id="tbToplam">${tbToplamHtml()}</div>
+
+    ${satir.length&&!bitti?`<button class="btn-sm btn-dn btn-full" style="margin-top:11px"
+      onclick="tbSonSatirSil()">Son satırı sil</button>`:''}
+
+    ${bitti?`<div class="sep"></div><div class="center">
+      <div class="serif" style="color:var(--gold);font-size:16px">${esc(T(pKz))} partiyi aldı</div>
+      <div class="xs dim" style="margin-top:2px">${top[pKz]} – ${top[1-pKz]}</div>
+      ${m.partiSkor[pKz]+1>=c.partiHedef
+        ?`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(true)">Maçı Bitir → Zabıt</button>`
+        :`<button class="btn-g btn-full" style="margin-top:11px" onclick="partiKapat(false)">Partiyi Kapat → Sonraki Parti</button>`}
+      </div>`:''}
+  </div>
+
+  ${gecmisPartiler(c)}
+
+  ${!bitti&&satir.length?`<div class="card tight center">
+    <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
+  <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
+    İhale, koz ve şlem dökümü tutulacaksa masa "Detaylı" açılmalı.</div>`;
+}
+
+/* --- hücreye yazma --- */
+function tbYaz(r,i,deger){
+  const c=DB.aktif; if(!c) return;
+  const parti=tbAktifParti();
+  const bos=String(deger).trim()==='';
+  const v=bos?0:(parseInt(deger,10)||0);
+
+  while(parti.eller.length<=r) parti.eller.push({ham:[0,0]});
+  const el=parti.eller[r];
+  if(!Array.isArray(el.ham)) el.ham=[0,0];
+  el.ham[i]=v;
+
+  /* sondaki tamamen boş satırları at — yanlışlıkla açılmış satır kalmasın */
+  while(parti.eller.length){
+    const e=parti.eller[parti.eller.length-1];
+    if(Array.isArray(e.ham) && !e.ham[0] && !e.ham[1]) parti.eller.pop(); else break;
+  }
+  parti.kazanan=null;
+  kaydet();                                  // buluta gecikmeli yazar
+
+  if(batakPartiKazanan(parti)!==null){ render(); return; }   // parti bitti
+  tbTazele();
+}
+/* toplamı ve gerekirse yeni boş satırı yerinde güncelle */
+function tbTazele(){
+  const t=document.getElementById('tbToplam');
+  if(t) t.innerHTML=tbToplamHtml();
+  const g=document.getElementById('tbGovde');
+  if(!g) return;
+  const parti=tbAktifParti(), n=parti.eller.length;
+  const mevcut=g.querySelectorAll('[data-satir]').length;
+  if(mevcut<n+1){
+    g.insertAdjacentHTML('beforeend', tbSatirHtml(n,null,false));
+  }else if(mevcut>n+1){
+    for(let k=mevcut-1;k>=n+1;k--) g.querySelector(`[data-satir="${k}"]`)?.remove();
+  }
+}
+/* Enter: aynı satırın diğer hücresi, oradan sonraki satırın başı */
+function tbTus(e,r,i){
+  if(e.key!=='Enter') return;
+  e.preventDefault();
+  e.target.dispatchEvent(new Event('change'));
+  setTimeout(()=>tbOdak(i===0?r:r+1, i===0?1:0),0);
+}
+function tbOdak(r,i){
+  const s=document.querySelector(`#tbGovde input[data-r="${r}"][data-i="${i}"]`);
+  if(s&&!s.disabled){ s.focus(); try{ s.select(); }catch(e){} }
+}
+function tbSonSatirSil(){
+  const c=DB.aktif; if(!c) return;
+  const parti=tbAktifParti();
+  if(!parti.eller.length) return;
+  parti.eller.pop(); parti.kazanan=null;
+  kaydet(); render();
+}
+
+/* =========================================================
    NEYE OYNANIYOR + BORÇ TABELASI
    Her maça bir bahis yazılır (cin, çay, hesap...). Maç kapanınca
    kazanan alacaklı, kaybeden borçlu olur. Ödeme akışa işlenir ve
@@ -3915,27 +4100,68 @@ const BAHISLER=[
 const bahisIkon=ne=>(BAHISLER.find(b=>b.ad===ne)||{}).k||'🎁';
 const BORCSUZ=['Onur',''];
 
-/* maç kurulum penceresine konan bahis seçici */
+/* Bir maçın bahsi birden çok kalem olabilir: hem hesap, hem içecek.
+   ESKİ KAYIT {ne,adet} · YENİ KAYIT {kalemler:[{ne,adet},...]}
+   Okuyan her yer bu iki fonksiyondan geçsin ki eski maçlar bozulmasın. */
+function bahisKalemleri(b){
+  if(!b) return [];
+  if(Array.isArray(b.kalemler)) return b.kalemler.filter(x=>x&&x.ne)
+    .map(x=>({ne:x.ne,adet:Math.max(1,Number(x.adet)||1)}));
+  if(b.ne) return [{ne:b.ne,adet:Math.max(1,Number(b.adet)||1)}];
+  return [];
+}
+const bahisBorcluKalemler=b=>bahisKalemleri(b).filter(x=>!BORCSUZ.includes(x.ne));
+function bahisOzet(b){
+  const k=bahisKalemleri(b);
+  if(!k.length) return '';
+  return k.map(x=>`${x.adet>1?x.adet+' ':''}${x.ne}`).join(' + ');
+}
+
+/* maç kurulum penceresine konan bahis seçici — ÇOKLU seçim */
 function bahisSecici(varsayilan){
-  const v=varsayilan||'Cin';
-  return `<div class="field"><label class="fl">Neye oynanıyor?</label>
+  const v=[].concat(varsayilan||'Cin').filter(Boolean);
+  return `<div class="field">
+    <label class="fl">Neye oynanıyor?
+      <span style="text-transform:none;letter-spacing:0">(birden fazla seçebilirsin)</span></label>
     <div class="row wrap" id="mBahis">${BAHISLER.map(b=>
-      `<div class="chip ${b.ad===v?'on':''}" data-b="${b.ad}" onclick="tekSec(this)">${b.k} ${b.ad}</div>`).join('')}</div>
-    <div class="row" style="margin-top:8px;gap:8px;align-items:center">
-      <input id="mBahisSerbest" placeholder="ya da kendin yaz..." style="flex:1">
-      <div class="row" style="gap:6px;align-items:center">
-        <span class="xs dim">adet</span>
-        <input type="number" id="mBahisAdet" value="1" min="1" max="20" style="width:64px">
-      </div>
-    </div>
-    <div class="xs dim" style="margin-top:6px">Kaybeden borçlanır, kazanan alacaklı olur; Borç Tabelası'na işlenir.
-      "Onur" seçilirse borç doğmaz.</div></div>`;
+      `<div class="chip ${v.includes(b.ad)?'on':''}" data-b="${b.ad}" onclick="bahisSec(this)">${b.k} ${b.ad}</div>`).join('')}</div>
+    <div class="row" style="margin-top:8px">
+      <input id="mBahisSerbest" placeholder="listede yoksa kendin yaz..." style="flex:1"
+        oninput="bahisAdetCiz()"></div>
+    <div id="mBahisAdet"></div>
+    <div class="xs dim" style="margin-top:6px">Kaybeden seçilenlerin hepsini borçlanır, kazanan alacaklı olur.
+      "Onur" borç doğurmaz.</div></div>`;
+}
+function bahisSec(el){ el.classList.toggle('on'); bahisAdetCiz(); }
+function bahisSecililer(){
+  const l=[...document.querySelectorAll('#mBahis .chip.on')].map(e=>e.dataset.b);
+  const s=($('#mBahisSerbest')?.value||'').trim();
+  if(s && !l.includes(s)) l.push(s);
+  return l;
+}
+/* seçilen her kalem için ayrı adet — "1 hesap + 2 cin" yazılabilsin */
+function bahisAdetCiz(){
+  const kap=$('#mBahisAdet'); if(!kap) return;
+  const eski={}; kap.querySelectorAll('input').forEach(i=>{ eski[i.dataset.ne]=i.value; });
+  const l=bahisSecililer();
+  kap.innerHTML = !l.length ? '' : `<div style="margin-top:8px;padding:8px 10px;background:var(--panel2);
+      border:1px solid var(--line);border-radius:10px">
+    ${l.map(ne=>`<div class="row" style="gap:8px;padding:3px 0">
+      <span class="grow sm ell">${bahisIkon(ne)} ${esc(ne)}</span>
+      <span class="xs dim">adet</span>
+      <input type="number" data-ne="${esc(ne)}" value="${esc(eski[ne]||1)}" min="1" max="20" style="width:60px">
+    </div>`).join('')}</div>`;
 }
 function bahisOku(){
-  const serbest=($('#mBahisSerbest')?.value||'').trim();
-  const ne=serbest||document.querySelector('#mBahis .chip.on')?.dataset.b||'Cin';
-  const adet=Math.max(1,Math.min(20,parseInt($('#mBahisAdet')?.value,10)||1));
-  return {ne,adet};
+  const kap=$('#mBahisAdet');
+  const adetOf=ne=>{
+    let el=null;
+    if(kap) kap.querySelectorAll('input').forEach(i=>{ if(i.dataset.ne===ne) el=i; });
+    return Math.max(1,Math.min(20,parseInt(el&&el.value,10)||1));
+  };
+  const kalemler=bahisSecililer().map(ne=>({ne,adet:adetOf(ne)}));
+  if(!kalemler.length) kalemler.push({ne:'Onur',adet:1});
+  return {kalemler};
 }
 
 /* --------- tabela: maçlardan alacak/borç, akıştan ödeme --------- */
@@ -3945,15 +4171,14 @@ function borcTablosu(){
     const k=`${id}|${ne}`; t[k]=(t[k]||0)+n; };
 
   for(const c of grupCelseleri()){
-    const b=c.bahis; if(!b||!b.ne||BORCSUZ.includes(b.ne)) continue;
-    const n=Number(b.adet)||1;
+    const kalemler=bahisBorcluKalemler(c.bahis); if(!kalemler.length) continue;
     if(c.oyun==='batak'){
       const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
-      c.takimlar.forEach((tk,ti)=>tk.oyuncular.forEach(id=>ekle(id,b.ne,ti===kz?n:-n)));
+      c.takimlar.forEach((tk,ti)=>tk.oyuncular.forEach(id=>
+        kalemler.forEach(x=>ekle(id,x.ne,ti===kz?x.adet:-x.adet))));
     }else{
       const sr=yzMac(c).sira; if(!sr.length) continue;
-      ekle(sr[0].id,b.ne,n);
-      ekle(sr[sr.length-1].id,b.ne,-n);
+      kalemler.forEach(x=>{ ekle(sr[0].id,x.ne,x.adet); ekle(sr[sr.length-1].id,x.ne,-x.adet); });
     }
   }
   /* akıştaki elle borç kayıtları (devir, iddia, söz) */
@@ -4026,19 +4251,22 @@ async function borcOdeKaydet(id,ne,enfazla){
 
 /* zabıta bahis satırı */
 function bahisNotu(c){
-  const b=c.bahis;
-  if(!b||!b.ne) return '';
-  if(BORCSUZ.includes(b.ne)) return `BAHİS: Maç ${b.ne.toLocaleLowerCase('tr-TR')}una oynanmıştır; maddi bir sonuç doğmamıştır.`;
-  const n=Number(b.adet)||1;
+  const hepsi=bahisKalemleri(c.bahis);
+  if(!hepsi.length) return '';
+  const borclu=bahisBorcluKalemler(c.bahis);
+  if(!borclu.length)
+    return `BAHİS: Maç ${hepsi[0].ne.toLocaleLowerCase('tr-TR')}una oynanmıştır; maddi bir sonuç doğmamıştır.`;
+  const dokum=borclu.map(x=>`${x.adet} ${x.ne}`).join(' + ');
+  const coklu=borclu.length>1 ? ' Kalemler ayrı ayrı zimmete geçirilmiştir.' : '';
   if(c.oyun==='batak'){
     const kz=c.kazanan??batakMac(c).macKazanan;
     if(kz==null) return '';
     const kayb=c.takimlar[1-kz].oyuncular.map(ad);
-    return `BAHİS: ${n} ${b.ne}. ${liste(kayb)} borçlanmış olup, ifa süresi bir sonraki celseye kadardır.`;
+    return `BAHİS: ${dokum}. ${liste(kayb)} borçlanmış olup, ifa süresi bir sonraki celseye kadardır.${coklu}`;
   }
   const sr=yzMac(c).sira;
   if(!sr.length) return '';
-  return `BAHİS: ${n} ${b.ne}. ${ad(sr[sr.length-1].id)} borçlanmış, ${ad(sr[0].id)} alacaklı hâle gelmiştir.`;
+  return `BAHİS: ${dokum}. ${ad(sr[sr.length-1].id)} borçlanmış, ${ad(sr[0].id)} alacaklı hâle gelmiştir.${coklu}`;
 }
 
 /* =========================================================
@@ -4051,20 +4279,21 @@ function bahisNotu(c){
 function borcHareketleri(id){
   const h=[];
   for(const c of grupCelseleri()){
-    const b=c.bahis; if(!b||!b.ne||BORCSUZ.includes(b.ne)) continue;
-    const n=Number(b.adet)||1;
+    /* bir maçta birden çok bahis kalemi olabilir (hesap + içecek);
+       ekstrede her kalem ayrı hareket olarak görünür */
+    const kalemler=bahisBorcluKalemler(c.bahis); if(!kalemler.length) continue;
     if(c.oyun==='batak'){
       const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
       const ti=c.takimlar.findIndex(t=>t.oyuncular.includes(id)); if(ti<0) continue;
       const rakip=c.takimlar[1-ti].oyuncular.map(ad).join(' & ');
-      h.push({tarih:c.tarih,sira:c._sira||'',ne:b.ne,adet:ti===kz?n:-n,
-        aciklama:(ti===kz?'Batak galibiyeti · ':'Batak yenilgisi · ')+rakip,macId:c.id});
+      kalemler.forEach(x=>h.push({tarih:c.tarih,sira:c._sira||'',ne:x.ne,adet:ti===kz?x.adet:-x.adet,
+        aciklama:(ti===kz?'Batak galibiyeti · ':'Batak yenilgisi · ')+rakip,macId:c.id}));
     }else{
       const sr=yzMac(c).sira; if(!sr.length) continue;
-      if(sr[0].id===id) h.push({tarih:c.tarih,sira:c._sira||'',ne:b.ne,adet:n,
-        aciklama:'101 birinciliği',macId:c.id});
-      else if(sr[sr.length-1].id===id) h.push({tarih:c.tarih,sira:c._sira||'',ne:b.ne,adet:-n,
-        aciklama:'101 sonuncululuğu',macId:c.id});
+      if(sr[0].id===id) kalemler.forEach(x=>h.push({tarih:c.tarih,sira:c._sira||'',ne:x.ne,adet:x.adet,
+        aciklama:'101 birinciliği',macId:c.id}));
+      else if(sr[sr.length-1].id===id) kalemler.forEach(x=>h.push({tarih:c.tarih,sira:c._sira||'',ne:x.ne,adet:-x.adet,
+        aciklama:'101 sonuncululuğu',macId:c.id}));
     }
   }
   (DB.akis||[]).forEach(a=>{
@@ -4624,7 +4853,10 @@ async function devirSor(){
         → ${esc((b.alacaklilar||[]).join(' & '))} · <b>${b.adet} ${esc(b.ne)}</b></div>`).join('')}
     </div>`:''}
     ${eksik.size?`<div class="uyari" style="margin-bottom:10px">⚠️ Kadroda bulunamayan isimler:
-      <b>${esc([...eksik].join(', '))}</b>. Önce kadroyu kur, sonra devri yükle.</div>`:''}
+      <b>${esc([...eksik].join(', '))}</b>. Bunlar eklenmeden devir işlenemez.
+      ${kurucuMu()?`<button class="btn-sm btn-b btn-full" style="margin-top:9px" onclick="kapatModal();kadroSor()">
+        ⚡ Kadroyu Tamamla (${esc([...eksik].join(', '))})</button>`
+       :'<div class="xs" style="margin-top:6px">Masayı kuran eklemeli.</div>'}</div>`:''}
     <button class="btn-p btn-full" id="dvBtn" ${eksik.size?'disabled':''} onclick="devirYukle()">Devri İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }

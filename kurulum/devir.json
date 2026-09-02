@@ -4,34 +4,61 @@
     {
       "oyun": "batak",
       "tarih": "2026-06-15",
-      "A": ["Sadık", "Volkan"],
-      "B": ["Mustafa", "Tuğrul"],
+      "A": [
+        "Sadık",
+        "Volkan"
+      ],
+      "B": [
+        "Mustafa",
+        "Tuğrul"
+      ],
       "puanA": 62,
       "puanB": -14,
       "partiA": 2,
       "partiB": 0,
-      "bahis": { "ne": "Onur", "adet": 1 },
+      "bahis": {
+        "ne": "Onur",
+        "adet": 1
+      },
       "not": "Masa tarihinin en ağır farkı. Kayıt hafızadan tesis edilmiş olup, taraflarca esasa ilişkin bir itiraz ileri sürülmemiştir."
     }
   ],
   "borclar": [
     {
-      "borclular": ["Orkun", "Volkan"],
-      "alacaklilar": ["Sadık", "Tuğrul"],
+      "borclular": [
+        "Orkun",
+        "Volkan"
+      ],
+      "alacaklilar": [
+        "Sadık",
+        "Tuğrul"
+      ],
       "ne": "Hendrick's Gin",
       "adet": 1,
       "aciklama": "Devir borcu. Şişe teslim edilene kadar zimmet devam eder."
     },
     {
-      "borclular": ["Hüseyin", "Emre"],
-      "alacaklilar": ["Sadık", "Volkan"],
+      "borclular": [
+        "Hüseyin",
+        "Mustafa"
+      ],
+      "alacaklilar": [
+        "Sadık",
+        "Volkan"
+      ],
       "ne": "Hendrick's Gin",
       "adet": 1,
-      "aciklama": "Devir borcu. Alacaklılar aynı kişiler olmakla, tesadüf ihtimali zayıflamıştır."
+      "aciklama": "Devir borcu. Alacaklıların her iki dosyada da aynı kişiler olması, tesadüf ihtimalini zayıflatmıştır."
     },
     {
-      "borclular": ["Ali", "Hüseyin"],
-      "alacaklilar": ["Sadık", "Volkan"],
+      "borclular": [
+        "Ali",
+        "Hüseyin"
+      ],
+      "alacaklilar": [
+        "Sadık",
+        "Volkan"
+      ],
       "ne": "Beefeater Gin",
       "adet": 1,
       "aciklama": "Devir borcu. Hüseyin'in iki ayrı dosyada borçlu görünmesi kayda geçirilmiştir."
