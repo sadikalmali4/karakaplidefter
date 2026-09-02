@@ -33,9 +33,9 @@ header h1{margin:0;font-size:17px;line-height:1.15}
 header .sub{font-size:11px;color:var(--ink3);margin-top:1px}
 main{padding:16px;max-width:760px;margin:0 auto}
 
-nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(6,1fr);
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:grid;grid-template-columns:repeat(7,1fr);
   background:#191614f2;backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-nav.tabbar button{background:none;border:0;color:var(--ink3);padding:9px 1px 10px;
+nav.tabbar button{background:none;border:0;color:var(--ink3);padding:9px 0 10px;
   font:500 9.5px/1.25 inherit;letter-spacing:-.01em;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
 nav.tabbar button .ic{font-size:16px;line-height:1}
 nav.tabbar button.on{color:var(--gold)}
@@ -159,6 +159,8 @@ details>div{margin-top:10px}
 @keyframes nabiz{0%,100%{opacity:1}50%{opacity:.2}}
 .yaziyor{font-size:10px;color:var(--gold);margin-left:5px}
 select:disabled,input:disabled,button:disabled{opacity:.55}
+/* textarea tarayıcı varsayılanı olan daktilo yazı tipine düşüyordu */
+textarea{font-family:inherit;font-size:15px;line-height:1.5}
 </style>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -182,6 +184,7 @@ select:disabled,input:disabled,button:disabled{opacity:.55}
 
 <nav class="tabbar">
   <button data-t="celse" class="on"><span class="ic">🂡</span>Masa</button>
+  <button data-t="akis"><span class="ic">💬</span>Akış</button>
   <button data-t="sicil"><span class="ic">📊</span>Sicil</button>
   <button data-t="iddia"><span class="ic">🤝</span>İddia</button>
   <button data-t="rozet"><span class="ic">🏅</span>Unvan</button>
@@ -238,8 +241,11 @@ let HATA='';
 
 let DB={ ben:null, oyuncular:[], gruplar:[], aktifGrup:null,
          ayar:JSON.parse(JSON.stringify(VARSAYILAN_AYAR)),
-         celseler:[], iddialar:[], aktif:null };
+         celseler:[], iddialar:[], akis:[],
+         acik:[],        // bu grupta AÇIK olan bütün masalar
+         aktif:null };   // bunlardan hâlen ekranda olan
 
+let SECILI_MAC=null;     // hangi masanın tabelası açık
 let TAB='celse', SABIKA_ID=null, ARSIV_FILTRE='hepsi', SICIL_OYUN='batak', ROZET_OYUN='batak';
 
 const yid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -256,14 +262,18 @@ function norm(c){
    ========================================================= */
 function hataMetni(e){
   const m=String(e?.message||e?.error_description||e||'');
-  if(/ux_maclar_tek_acik/i.test(m))          return 'Bu masada zaten açık bir tabela var. Önce onu kapat.';
+  if(/Bu masanın onaylı üyesi değilsin/i.test(m)) return 'Bu grubun onaylı üyesi değilsin';
+  if(/Bu masada zaten bir oyuncuya bağlısın/i.test(m)) return 'Bu grupta zaten bir oyuncuya bağlısın';
+  if(/Böyle bir masa kodu yok/i.test(m))     return 'Böyle bir grup kodu yok';
+  if(/Bunu yalnız masayı kuran yapabilir/i.test(m)) return 'Bunu yalnız grubu kuran yapabilir';
+  if(/Masayı kuran taşıyabilir/i.test(m))    return 'Bu oyuncu başka bir hesaba bağlı. Grubu kuran taşıyabilir.';
   if(/Invalid login credentials/i.test(m))   return 'Kullanıcı adı veya şifre yanlış';
   if(/User already registered/i.test(m))     return 'Bu kullanıcı adı alınmış';
   if(/Password should be at least/i.test(m)) return 'Şifre en az 6 karakter olmalı';
   if(/Email logins are disabled/i.test(m))   return 'Supabase panelinde e-posta girişi kapalı (Authentication -> Providers -> Email)';
   if(/Email not confirmed/i.test(m))         return 'Supabase panelinde "Confirm email" hâlâ açık — kapatılmalı';
   if(/duplicate key|unique/i.test(m))        return 'Bu kayıt zaten var';
-  if(/row-level security|violates|permission denied/i.test(m)) return 'Yetkin yok — bunu masayı kuran yapabilir';
+  if(/row-level security|violates|permission denied/i.test(m)) return 'Yetkin yok — bunu grubu kuran yapabilir';
   if(/Failed to fetch|NetworkError|fetch failed/i.test(m))     return 'İnternete ulaşılamadı';
   if(/JWT|token is expired/i.test(m))        return 'Oturum süresi doldu, yeniden gir';
   return m || 'Bilinmeyen hata';
@@ -279,10 +289,15 @@ async function baslat(){
   sb.auth.onAuthStateChange((olay)=>{
     if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
   });
+  davetOku();                       // ?kod=…&oyuncu=… ile gelindiyse yakala
   try{
     const {data:{session}}=await sb.auth.getSession();
     OTURUM=session?.user||null;
-    if(OTURUM){ await verileriGetir(); kanalKur(); }
+    if(OTURUM){
+      await verileriGetir();
+      if(DAVET) await davetiIsle();
+      kanalKur();
+    }
     DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
   }catch(e){ DURUM='hata'; HATA=hataMetni(e); }
   render();
@@ -304,7 +319,8 @@ async function verileriGetir(){
                              kod:u.masalar.kod,kuran:u.masalar.kuran_id,rol:u.rol,
                              ayar:u.masalar.ayar||{},uyeler:[]}));
   if(!DB.gruplar.length){
-    DB.oyuncular=[];DB.celseler=[];DB.iddialar=[];DB.aktif=null;DB.aktifGrup=null;DB.ben=null;
+    DB.oyuncular=[];DB.celseler=[];DB.iddialar=[];DB.akis=[];
+    DB.acik=[];DB.aktif=null;DB.aktifGrup=null;DB.ben=null;SECILI_MAC=null;
     BEKLEYENLER=[];MASA_UYELERI=[];
     return;
   }
@@ -314,15 +330,20 @@ async function verileriGetir(){
   localStorage.setItem('kkd_aktif_masa',DB.aktifGrup);
 
   const masaIds=DB.gruplar.map(g=>g.id);
-  const [oyn,mac,idd]=await Promise.all([
+  const [oyn,mac,idd,akm]=await Promise.all([
     sb.from('oyuncular').select('*').in('masa_id',masaIds),
     sb.from('maclar').select('id,masa_id,bitti,tarih,tabelaci_id,olusturma,celse').in('masa_id',masaIds)
       .order('tarih',{ascending:false}).order('olusturma',{ascending:false}),
-    sb.from('iddialar').select('*').in('masa_id',masaIds)
+    sb.from('iddialar').select('*').in('masa_id',masaIds),
+    sb.from('akis').select('id,masa_id,tip,yazan_id,metin,veri,olusturma,yanit_id,akis_tepkileri(profil_id,emoji)')
+      .eq('masa_id',DB.aktifGrup).order('olusturma',{ascending:false}).limit(300)
   ]);
   if(oyn.error) throw oyn.error;
   if(mac.error) throw mac.error;
   if(idd.error) throw idd.error;
+  /* Akış olmasa da uygulama ayakta kalsın: yama 04 henüz çalıştırılmadıysa
+     yanit_id sütunu yoktur, burada patlayıp bütün ekranı düşürmesin. */
+  if(akm.error) console.warn('akış okunamadı:', akm.error.message);
 
   /* Pasif oyuncular da yüklenir — yoksa eski maçlarda adları "?" görünür.
      Yeni maça yalnız aktif olanlar seçilebilir (g.uyeler). */
@@ -331,7 +352,7 @@ async function verileriGetir(){
                                        aktif:o.aktif!==false}));
   DB.gruplar.forEach(g=>g.uyeler=DB.oyuncular.filter(o=>o.masaId===g.id&&o.aktif).map(o=>o.id));
 
-  DB.celseler=[]; DB.aktif=null;
+  DB.celseler=[]; DB.acik=[];
   (mac.data||[]).forEach(m=>{
     /* _sira: aynı gün oynanan maçların gerçek sırası. Sıralamada id (UUID)
        kullanılırsa "üst üste 3 galibiyet" gibi seriler yanlış çıkar. */
@@ -340,12 +361,20 @@ async function verileriGetir(){
        _sira:m.olusturma||''});
     norm(c);
     if(m.bitti) DB.celseler.push(c);
-    else if(m.masa_id===DB.aktifGrup) DB.aktif=c;
+    else if(m.masa_id===DB.aktifGrup) DB.acik.push(c);
   });
+  /* açık masalar açılış sırasına göre: "1. Masa" hep üstte kalsın */
+  DB.acik.sort((a,b)=>String(a._sira).localeCompare(String(b._sira)));
+  DB.aktif = DB.acik.find(c=>c.id===SECILI_MAC) || null;
+  if(!DB.aktif) SECILI_MAC=null;
 
   DB.iddialar=(idd.data||[]).map(i=>({id:i.id,grupId:i.masa_id,tarih:i.tarih,vade:i.vade||'',
     kim:i.kim_id,kime:i.kime_id,metin:i.metin,bahis:i.bahis||'',durum:i.durum,
     sonucNot:i.sonuc_not||'',kapanis:i.kapanis||''}));
+
+  DB.akis=(akm.error?[]:(akm.data||[])).map(a=>({id:a.id,grupId:a.masa_id,tip:a.tip,yazanId:a.yazan_id,
+    metin:a.metin,veri:a.veri||{},olusturma:a.olusturma,yanitId:a.yanit_id,
+    tepkiler:(a.akis_tepkileri||[]).map(t=>({profilId:t.profil_id,emoji:t.emoji}))}));
 
   const g=grup(DB.aktifGrup)||{};
   DB.ayar={ batak:Object.assign({},VARSAYILAN_AYAR.batak,(g.ayar||{}).batak||{}),
@@ -930,6 +959,7 @@ function render(){
   $('#hdrRight').innerHTML = `<div class="grupBar" onclick="grupSecici()">
       <span class="ell">${esc(g?g.emoji+' '+g.ad:'Masa')}</span><span class="dim">▾</span></div>`;
   if(TAB==='celse') v.innerHTML=viewCelse();
+  if(TAB==='akis')  v.innerHTML=viewAkis();
   if(TAB==='sicil') v.innerHTML=viewSicil();
   if(TAB==='iddia') v.innerHTML=viewIddia();
   if(TAB==='arsiv') v.innerHTML=viewArsiv();
@@ -1106,21 +1136,31 @@ function toplamMac(id){
 }
 
 /* ---------- CELSE ---------- */
+/* Bir grupta aynı anda birkaç masa açık olabilir.
+   SECILI_MAC yoksa masaların listesi, varsa o masanın tabelası. */
 function viewCelse(){
+  if(DB.aktif&&!tabelaciMiyim()) return canliIzle();
   if(DB.aktif&&!tabelaciMiyim()) return canliIzle();
   if(DB.aktif) return DB.aktif.giris==='hizli' ? hizliEkran() : (DB.aktif.oyun==='batak'?aktifBatak():aktifYz());
   if(!DB.ben) return karsilama();
+
   const oyn=grupOyunculari();
   if(oyn.length<3) return `<div class="card"><div class="empty">
       <div class="big">👥</div>
-      <div class="serif" style="font-size:17px;color:var(--ink)">Masa eksik</div>
-      <div class="sm" style="margin-top:8px">${aktifGrup()?'Bu grupta':'Defterde'} en az 3 oyuncu olmalı.</div>
-      <button class="btn-p" style="margin-top:16px" onclick="git('ayar')">Oyuncu Ekle</button></div></div>`;
+      <div class="serif" style="font-size:17px;color:var(--ink)">Kadro eksik</div>
+      <div class="sm" style="margin-top:8px">Oynamak için en az 3 oyuncu gerekiyor. Şu an ${oyn.length} var.</div>
+      <button class="btn-p" style="margin-top:16px" onclick="git('ayar')">Oyuncu Ekle</button>
+      ${kurucuMu()?`<button class="btn-b" style="margin-top:8px" onclick="kadroSor()">⚡ Parkverde kadrosunu kur</button>`:''}
+      </div></div>`;
 
   const son=grupCelseleri().slice().sort((a,b)=>(b.tarih+(b._sira||'')).localeCompare(a.tarih+(a._sira||'')))[0];
   return `
+    ${DB.acik.length?`<div class="card">
+      <h3><span class="canli"></span>Açık Masalar (${DB.acik.length})</h3>
+      ${DB.acik.map(acikMasaSatir).join('<div class="sep"></div>')}
+    </div>`:''}
     <div class="card">
-      <h3>Yeni Maç</h3>
+      <h3>${DB.acik.length?'Bir Masa Daha Aç':'Yeni Masa'}</h3>
       <div class="two">
         <button class="btn-p" style="flex-direction:column;padding:20px 10px;gap:5px" onclick="celseBaslat('batak')">
           <span style="font-size:24px">🂡</span><span>BATAK</span>
@@ -1129,12 +1169,52 @@ function viewCelse(){
           <span style="font-size:24px">🀄</span><span>101</span>
           <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">parti ${DB.ayar.yz.elSayisi} el<br>çok puanlı kaybeder</span></button>
       </div>
+      ${DB.acik.length?'<div class="xs dim" style="margin-top:9px">İki masa aynı anda yürüyebilir; her masanın tabelasını ayrı kişi yazar.</div>':''}
     </div>
     ${dogumKart()}
     ${acikIddiaKart()}
     ${son?`<div class="card"><h3>Son Maç</h3>${arsivSatir(son,true)}</div>`:''}
     ${liderKart()}`;
 }
+
+function macOzet(c){
+  const m=macDurum(c);
+  if(c.oyun==='batak'){
+    const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+    return {kim:`${T(0)}  vs  ${T(1)}`, skor:`${m.gTop[0]}–${m.gTop[1]}`,
+            alt:c.partiHedef>1?`parti ${m.partiSkor[0]}–${m.partiSkor[1]}`:''};
+  }
+  const s=m.sira;
+  return {kim:c.oyuncular.map(ad).join(', '),
+          skor:s.length?`${ad(s[0].id)} ${s[0].puan}`:'—',
+          alt:s.length>1?`sonuncu ${ad(s[s.length-1].id)} ${s[s.length-1].puan}`:''};
+}
+function acikMasaSatir(c){
+  const o=macOzet(c), benim=c._hesap===OTURUM.id;
+  const yazan=DB.oyuncular.find(x=>x.profilId===c._hesap&&x.masaId===c.grupId);
+  return `<div class="row" style="gap:10px;align-items:flex-start">
+    <div class="grow" style="min-width:0">
+      <div class="row wrap" style="gap:6px">
+        <span class="pill ${c.oyun==='batak'?'red':'blue'}">${c.oyun==='batak'?'BATAK':'101'}</span>
+        <span class="pill gold">${esc(c.masaAd||'Masa')}</span>
+        ${c.giris==='hizli'?'<span class="pill">⚡</span>':''}
+        <span class="xs dim">✍️ ${esc(yazan?.ad||'tabelacı')}</span>
+      </div>
+      <div class="sm" style="margin-top:5px;font-weight:600" >${esc(o.kim)}</div>
+      <div class="xs muted">${esc(o.skor)}${o.alt?' · '+esc(o.alt):''}</div>
+    </div>
+    <button class="btn-sm ${benim?'btn-p':''}" onclick="macSec('${c.id}')">${benim?'Tabela':'İzle'}</button>
+  </div>`;
+}
+function macSec(id){
+  SECILI_MAC=id; DB.aktif=DB.acik.find(c=>c.id===id)||null;
+  render(); window.scrollTo(0,0);
+}
+function macBirak(){
+  SECILI_MAC=null; DB.aktif=null;
+  render(); window.scrollTo(0,0);
+}
+const varsayilanMasaAd=()=>`${DB.acik.length+1}. Masa`;
 /* Hesabım var, masadayım — ama hangi oyuncu olduğum belli değil.
    Sahipsiz bir kaydı kendim üstlenirim; yoksa yeni kayıt açarım. */
 function karsilama(){
@@ -1144,7 +1224,7 @@ function karsilama(){
       <div class="big">§</div>
       <div class="serif" style="font-size:19px;color:var(--ink)">Sen hangisisin?</div>
       <div class="sm" style="margin-top:8px;max-width:360px;margin-left:auto;margin-right:auto">
-        Masada kendi sicilini görebilmen için hesabını bir oyuncu kaydına bağlaman gerekiyor.</div>
+        Grupta kendi sicilini görebilmen için hesabını bir oyuncu kaydına bağlaman gerekiyor.</div>
     </div>
     ${bos.length?`<div class="stack" style="margin-top:6px">${bos.map(o=>`
       <div class="row" style="gap:10px">${avatar(o.id,34)}
@@ -1154,7 +1234,7 @@ function karsilama(){
      :`<div class="sm dim center">Sahipsiz oyuncu kaydı kalmamış.</div>`}
     <div class="sep"></div>
     <button class="btn-b btn-full" onclick="oyuncuAc(null,true)">Kendimi Yeni Oyuncu Olarak Ekle</button>
-    <div class="xs dim center" style="margin-top:8px">Yanlış kaydı seçtiysen masayı kuran geri alabilir.</div>
+    <div class="xs dim center" style="margin-top:8px">Yanlış kaydı seçtiysen grubu kuran geri alabilir.</div>
   </div>`;
 }
 async function benimOl(id){
@@ -1213,6 +1293,10 @@ function celseBaslat(oyun){
     <div class="xs dim" style="margin-bottom:14px">${oyun==='batak'
       ? `Dört oyuncu seç; seçim sırası eşleri belirler. Her parti ${DB.ayar.batak.hedef} puana koşulur.`
       : `Masadaki oyuncuları seç (3–6). Her parti ${DB.ayar.yz.elSayisi} eldir.`}</div>
+
+    <div class="field"><label class="fl">Masa adı</label>
+      <input id="mMasaAd" value="${varsayilanMasaAd()}" maxlength="24" placeholder="1. Masa">
+      <div class="xs dim" style="margin-top:5px">Aynı anda birden çok masa açıksa hangisi olduğu buradan ayırt edilir.</div></div>
 
     <div class="field"><label class="fl">Giriş şekli</label>
       <div class="seg" id="mGiris">
@@ -1283,7 +1367,8 @@ async function celseKur(oyun){
   const giris=document.querySelector('#mGiris .on')?.dataset.g||'hizli';
   const partiHedef= giris==='hizli' ? (oyun==='batak'?2:1) : Number(document.querySelector('#mParti .on')?.dataset.p||1);
   const tabelaci=document.querySelector('#mTabelaci .chip.on')?.dataset.id || DB.ben || s[0];
-  const c={oyun,giris,tarih:$('#mTarih').value||bugun(),yer:$('#mYer').value.trim(),
+  const masaAd=($('#mMasaAd')?.value||'').trim()||varsayilanMasaAd();
+  const c={oyun,giris,masaAd,tarih:$('#mTarih').value||bugun(),yer:$('#mYer').value.trim(),
            tabelaci,partiHedef,not:'',partiler:[{eller:[],kazanan:null}]};
   if(oyun==='batak'){
     if(s.length!==4) return toast('Batak için tam 4 oyuncu gerekli',true);
@@ -1296,15 +1381,20 @@ async function celseKur(oyun){
     c.oyuncular=s; c.esler=c.mod==='esli'?[[s[0],s[2]],[s[1],s[3]]]:null;
     c.hizli={sira:s.slice(),puan:{}};
   }
+  /* Aynı oyuncu iki masada birden oturamaz */
+  const mesgul=s.filter(id=>DB.acik.some(a=>macOyunculari(a).includes(id)));
+  if(mesgul.length) return toast(`${liste(mesgul.map(ad))} zaten açık bir masada`,true);
+
   const btn=$('#mKurBtn'); if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
   try{
     const {data,error}=await sb.from('maclar').insert({
       masa_id:DB.aktifGrup, oyun, giris, tarih:c.tarih, yer:c.yer||null,
       tabelaci_id:OTURUM.id, parti_hedef:Math.min(5,Math.max(1,partiHedef)),
       mod:oyun==='101'?c.mod:null, celse:c, bitti:false
-    }).select('id').single();
+    }).select('id,olusturma').single();
     if(error) throw error;
-    DB.aktif=Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:OTURUM.id});
+    Object.assign(c,{id:data.id,grupId:DB.aktifGrup,bitti:false,_hesap:OTURUM.id,_sira:data.olusturma});
+    DB.acik.push(c); SECILI_MAC=c.id; DB.aktif=c;
     if(giris==='detay'&&kurucuMu()){
       DB.ayar[oyun==='batak'?'batak':'yz'].partiHedef=partiHedef;
       ayarYaz(true);
@@ -1315,6 +1405,7 @@ async function celseKur(oyun){
     if(btn){btn.disabled=false;btn.textContent='Tabelayı Aç';}
   }
 }
+const macOyunculari=c=>c.oyun==='batak'?c.takimlar.flatMap(t=>t.oyuncular):(c.oyuncular||[]);
 
 /* =========================================================
    HIZLI GİRİŞ EKRANI
@@ -1329,6 +1420,7 @@ function hizliEkran(){
       <div class="row" style="justify-content:space-between">
         <div><div class="serif" style="font-size:17px">⚡ Batak · Hızlı Giriş</div>
           <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
         <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
       </div>
       <div class="sep"></div>
@@ -1358,7 +1450,8 @@ function hizliEkran(){
     <div class="row" style="justify-content:space-between">
       <div><div class="serif" style="font-size:17px">⚡ 101 · Hızlı Giriş</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
     </div>
     <div class="sep"></div>
     <div class="xs dim center" style="margin-bottom:10px">Sıralamayı düzenle: en az puanlı en üstte, kaybeden en altta.</div>
@@ -1430,7 +1523,8 @@ function aktifBatak(){
     <div class="row" style="justify-content:space-between;align-items:flex-start">
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · hedef ${a.hedef} · ${parti.eller.length} el</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
     </div>
     <div class="sep"></div>
     ${[0,1].map(i=>`<div style="margin-bottom:${i?0:12}px">
@@ -1507,7 +1601,8 @@ function aktifYz(){
     <div class="row" style="justify-content:space-between;align-items:flex-start">
       <div><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
         <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''}${c.tabelaci?' · ✍️ '+esc(ad(c.tabelaci)):''} · ${c.mod==='esli'?'eşli':'herkes tek'}</div></div>
-      <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
+      <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-dn" onclick="celseIptal()">İptal</button>
     </div>
     <div class="row" style="margin-top:10px;gap:9px">
       <div class="grow bar"><i style="width:${Math.min(100,oynanan/N*100)}%;background:${doldu?'var(--gold)':'var(--blue)'}"></i></div>
@@ -1660,7 +1755,7 @@ async function celseKesinlestir(){
   const btn=document.querySelector('#modalHost .btn-g');
   if(btn){btn.disabled=true;btn.innerHTML='<span class="yukleniyor"></span>';}
   try{
-    await aktifYaz();                       // bekleyen yazma varsa önce o insin
+    await aktifYaz();
     const {error}=await sb.from('maclar').update({
       celse:aktifBelge(c), bitti:true, kazanan:c.kazanan??null,
       zabit:c.zabit, aciklama:c.not||null, tarih:c.tarih
@@ -1671,9 +1766,22 @@ async function celseKesinlestir(){
     return toast(hataMetni(e),true);
   }
   c.bitti=true;
-  DB.celseler.unshift(c); DB.aktif=null;
+  DB.acik=DB.acik.filter(x=>x.id!==c.id);
+  DB.celseler.unshift(c); DB.aktif=null; SECILI_MAC=null;
+
   const sonra=rozetSahipleri(c.oyun), yeni=[];
   muayyideler(c.oyun).forEach(r=>{ if(oncekiRozet[r.ad]!==sonra[r.ad]) yeni.push(r); });
+
+  /* Zabıt ve el değiştiren unvanlar akışa düşsün */
+  const kazananAd = c.oyun==='batak'
+    ? c.takimlar[c.kazanan]?.oyuncular.map(ad).join(' & ')
+    : ad(c.kazanan);
+  akisEkle('zabit',c.zabit,{mac_id:c.id,oyun:c.oyun,masaAd:c.masaAd||'',tarih:c.tarih,kazanan:kazananAd})
+    .then(()=>Promise.all(yeni.map(r=>
+      akisEkle('unvan',r.aciklama||'',{unvan:r.ad,k:r.k,kim:ad(r.kim),oyun:c.oyun}))))
+    .then(()=>{ if(TAB==='akis') render(); })
+    .catch(()=>{});
+
   kapatModal(); zabitGoster(c,yeni);
 }
 async function celseIptal(){
@@ -1682,7 +1790,9 @@ async function celseIptal(){
   clearTimeout(_yazZaman); _bekleyenYazi=false;
   const {error}=await sb.from('maclar').delete().eq('id',c.id);
   if(error) return toast(hataMetni(error),true);
-  DB.aktif=null; render(); toast('Tabela silindi');
+  DB.acik=DB.acik.filter(x=>x.id!==c.id);
+  DB.aktif=null; SECILI_MAC=null;
+  render(); toast('Tabela silindi');
 }
 function zabitGoster(c,yeni){
   acModal(`
@@ -1890,8 +2000,14 @@ function viewAyar(){
         <div class="xs dim">${aktifOyn.length} oyuncu · ${MASA_UYELERI.length} hesap · kod <b style="color:var(--gold)">${esc(g.kod||'')}</b></div></div>
       <button class="btn-xs btn-gh" onclick="grupAc('${DB.aktifGrup}')">Düzenle</button>
     </div>
-    <button class="btn-sm btn-gh btn-full" style="margin-top:10px" onclick="kodPaylas(grup('${DB.aktifGrup}'))">📋 Davet Kodunu Paylaş</button>
-    <div class="xs dim" style="margin-top:8px">Kodu bilen katılma isteği gönderir; ${k?'onayı sen verirsin':'masayı kuran onaylar'}.</div>
+    <div class="two" style="margin-top:10px">
+      <button class="btn-b btn-sm" onclick="davetHepsi()">✉️ Davet Linkleri</button>
+      <button class="btn-sm btn-gh" onclick="kodPaylas(grup('${DB.aktifGrup}'))">📋 Grup Kodu</button>
+    </div>
+    <div class="xs dim" style="margin-top:8px">
+      <b>Davet linki</b> kişiye özel ve tek kullanımlık: açan kişi sadece şifresini belirler,
+      onay beklemeden kendi oyuncu kaydına bağlanır.<br>
+      <b>Grup kodu</b> ise açık davet — kodu girenin isteği ${k?'sana':'grubu kurana'} düşer, onaydan geçer.</div>
   </div>
 
   ${BEKLEYENLER.length?`<div class="card" style="border-color:var(--gold)">
@@ -1903,12 +2019,13 @@ function viewAyar(){
         <button class="btn-xs" style="border-color:#2E5A3A;color:#8CC79B" onclick="uyeKarar('${b.profil_id}','onayli')">Al</button>
         <button class="btn-xs btn-dn" onclick="uyeKarar('${b.profil_id}','reddedildi')">Alma</button>
       </div>`).join('')}</div>
-    <div class="xs dim" style="margin-top:9px">Onaylamadığın kişi masanın hiçbir verisini göremez.</div>
+    <div class="xs dim" style="margin-top:9px">Onaylamadığın kişi grubun hiçbir verisini göremez.</div>
   </div>`:''}
 
   <div class="card">
     <h3>Oyuncular</h3>
-    <div class="xs dim" style="margin-bottom:10px">Oyuncu olmak için hesap şart değil — masaya oturan herkesi ekle.</div>
+    <div class="xs dim" style="margin-bottom:10px">Oyuncu olmak için hesap şart değil — masaya oturan herkesi ekle.
+      Sicili, fotoğrafı, unvanı hesapsız da tutulur.</div>
     ${aktifOyn.length?aktifOyn.map(o=>{const sv=seviye(toplamMac(o.id));
       const benimMi=o.profilId===OTURUM.id;
       const duzenleyebilir=k||benimMi;
@@ -1916,11 +2033,14 @@ function viewAyar(){
         <div class="grow" style="min-width:0">
           <div style="font-weight:600" class="ell">${esc(o.ad)}${benimMi?' <span class="pill gold">sen</span>':''}</div>
           <div class="xs dim">${sv.k} ${sv.ad} · ${toplamMac(o.id)} maç${o.profilId?` · 🔗 ${esc(hesapAdi(o.profilId))}`:' · hesapsız'}</div></div>
+        ${!o.profilId?`<button class="btn-xs btn-b" onclick="davetPaylas('${o.id}')">Davet</button>`:''}
         ${duzenleyebilir?`<button class="btn-xs btn-gh" onclick="oyuncuAc('${o.id}')">Düzenle</button>`:''}
         ${k?`<button class="btn-xs btn-dn" onclick="oyuncuPasif('${o.id}')">Kaldır</button>`:''}
       </div>`;}).join('')
       :'<div class="sm dim">Henüz oyuncu yok.</div>'}
     <button class="btn-p btn-full" style="margin-top:12px" onclick="oyuncuAc(null)">+ Yeni Oyuncu</button>
+    ${k?`<button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="kadroSor()">⚡ Hazır Kadroyu Kur</button>
+      <div class="xs dim" style="margin-top:6px">Parkverde kadrosunu fotoğraflarıyla birlikte tek dokunuşla ekler; var olanlara dokunmaz.</div>`:''}
     ${pasifOyn.length?`<details style="margin-top:12px"><summary>Kaldırılanlar (${pasifOyn.length})</summary><div>
       ${pasifOyn.map(o=>`<div class="row" style="padding:6px 0;gap:9px">${avatar(o.id,26)}
         <div class="grow sm dim ell">${esc(o.ad)}</div>
@@ -1950,7 +2070,7 @@ function viewAyar(){
 
   <div class="card">
     <h3>Batak Kuralları</h3>
-    ${k?'':'<div class="uyari" style="margin-bottom:12px">Kuralları yalnız masayı kuran değiştirebilir. Sen görüyorsun, değiştiremiyorsun.</div>'}
+    ${k?'':'<div class="uyari" style="margin-bottom:12px">Kuralları yalnız grubu kuran değiştirebilir. Sen görüyorsun, değiştiremiyorsun.</div>'}
     <div class="two">
       <div><label class="fl">Parti hedef puanı</label><input type="number" value="${a.batak.hedef}" ${kilit} onchange="ayarSet('batak','hedef',this.value,1)"></div>
       <div><label class="fl">En düşük ihale</label><input type="number" value="${a.batak.minIhale}" ${kilit} onchange="ayarSet('batak','minIhale',this.value,1)"></div>
@@ -1991,19 +2111,19 @@ function viewAyar(){
   </div>
 
   <div class="card">
-    <h3>Masalarım</h3>
+    <h3>Gruplarım</h3>
     ${DB.gruplar.map(x=>`<div class="row" style="padding:7px 0;gap:10px">
       <div style="font-size:20px;width:26px;text-align:center">${x.emoji}</div>
       <div class="grow"><div style="font-weight:600">${esc(x.ad)}${x.id===DB.aktifGrup?' <span class="pill gold">aktif</span>':''}</div>
         <div class="xs dim">${x.uyeler.length} oyuncu · ${DB.celseler.filter(c=>c.grupId===x.id).length} maç${x.rol==='kurucu'?' · kurucu':''}</div></div>
       ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
     </div>`).join('')}
-    <button class="btn-b btn-full" style="margin-top:12px" onclick="grupSecici()">Masa Değiştir / Katıl / Kur</button>
+    <button class="btn-b btn-full" style="margin-top:12px" onclick="grupSecici()">Grup Değiştir / Katıl / Kur</button>
   </div>
 
   <div class="card">
     <h3>Defter</h3>
-    <div class="sm muted" style="margin-bottom:10px">Bu masada ${DB.celseler.filter(c=>c.grupId===DB.aktifGrup).length} kapanmış maç var.
+    <div class="sm muted" style="margin-bottom:10px">Bu grupta ${DB.celseler.filter(c=>c.grupId===DB.aktifGrup).length} kapanmış maç var.
       Kayıtlar bulutta; cihazını kaybetsen de durur. Yine de arada bir yedek al.</div>
     <div class="two">
       <button onclick="yedekAl()">⬇ Yedek Al</button>
@@ -2019,10 +2139,10 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.0 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 4.1 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
-  if(!kurucuMu()) return toast('Kuralları yalnız masayı kuran değiştirebilir',true);
+  if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
   if(typeof v==='boolean') DB.ayar[g][k]=v;
   else if(typeof DB.ayar[g][k]==='number') DB.ayar[g][k]=tam?(parseInt(v,10)||0):(Number(v)||0);
   else DB.ayar[g][k]=String(v);
@@ -2032,7 +2152,7 @@ async function ayarYaz(sessiz){
   const {error}=await sb.from('masalar').update({ayar:DB.ayar}).eq('id',DB.aktifGrup);
   if(error) return toast(hataMetni(error),true);
   const g=grup(DB.aktifGrup); if(g) g.ayar=JSON.parse(JSON.stringify(DB.ayar));
-  if(!sessiz) toast('Kural güncellendi — masadaki herkes için');
+  if(!sessiz) toast('Kural güncellendi — gruptaki herkes için');
 }
 
 /* ---------- OYUNCU (masaya ait kayıt; hesap gerektirmez) ---------- */
@@ -2088,7 +2208,7 @@ async function oyuncuKaydet(id,benimIcin){
   if(!n) return toast('Ad gerekli',true);
   const cak=DB.oyuncular.some(o=>o.masaId===DB.aktifGrup&&o.id!==id&&o.aktif&&
                                  o.ad.toLocaleLowerCase('tr-TR')===n.toLocaleLowerCase('tr-TR'));
-  if(cak) return toast('Bu isim masada zaten var',true);
+  if(cak) return toast('Bu isim grupta zaten var',true);
   const dg=$('#pDogum')?.value||null;
   const btn=$('#pBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
   try{
@@ -2124,10 +2244,10 @@ async function oyuncuEkle(adi,foto_url,dogum,benim){
    görünmeye devam eder, yeni maça seçilemez. */
 async function oyuncuPasif(id,geri){
   const o=oy(id);
-  if(!geri&&!confirm(`${o.ad} masadan kaldırılsın mı? Eski maçlarda adı kalır, yeni maça seçilemez.`)) return;
+  if(!geri&&!confirm(`${o.ad} gruptan kaldırılsın mı? Eski maçlarda adı kalır, yeni maça seçilemez.`)) return;
   const {error}=await sb.from('oyuncular').update({aktif:!!geri}).eq('id',id);
   if(error) return toast(hataMetni(error),true);
-  await yenile(true); toast(geri?'Geri alındı':'Masadan kaldırıldı');
+  await yenile(true); toast(geri?'Geri alındı':'Gruptan kaldırıldı');
 }
 async function oyuncuCoz(id){
   if(!confirm(`${ad(id)} kaydının hesap bağı koparılsın mı?`)) return;
@@ -2141,19 +2261,19 @@ async function oyuncuCoz(id){
 function grupAc(id){
   const g=id?grup(id):null;
   if(!g){
-    return acModal(`<h2 class="serif" style="margin:0 0 4px">Yeni Masa</h2>
-      <div class="xs dim" style="margin-bottom:14px">Perşembe akşamı kimlerle oynuyorsan o. Sicil bu masaya özel tutulur.</div>
-      <div class="field"><label class="fl">Masa adı</label>
+    return acModal(`<h2 class="serif" style="margin:0 0 4px">Yeni Grup</h2>
+      <div class="xs dim" style="margin-bottom:14px">Perşembe akşamı kimlerle oynuyorsan o. Sicil bu gruba özel tutulur.</div>
+      <div class="field"><label class="fl">Grup adı</label>
         <input id="yMAd" placeholder="Parkverde" maxlength="40"></div>
       <div class="field"><label class="fl">Simge</label>
         <div class="row wrap" id="yMEmoji">${GRUP_EMOJI.map((e,i)=>
           `<div class="chip ${i===0?'on':''}" data-e="${e}" style="font-size:19px;padding:7px 11px" onclick="tekSec(this)">${e}</div>`).join('')}</div></div>
-      <button class="btn-p btn-full" style="margin-top:16px" onclick="masaKur()">Masayı Kur</button>`);
+      <button class="btn-p btn-full" style="margin-top:16px" onclick="masaKur()">Grubu Kur</button>`);
   }
   const k=kurucuMu();
   acModal(`<h2 class="serif" style="margin:0 0 4px">${esc(g.ad)}</h2>
-    <div class="xs dim" style="margin-bottom:14px">${k?'Masayı sen kurdun; adını ve kurallarını sen belirlersin.':'Masayı kuran değişiklik yapabilir.'}</div>
-    <div class="field"><label class="fl">Masa adı</label>
+    <div class="xs dim" style="margin-bottom:14px">${k?'Grubu sen kurdun; adını ve kurallarını sen belirlersin.':'Grubu kuran değişiklik yapabilir.'}</div>
+    <div class="field"><label class="fl">Grup adı</label>
       <input id="gAdi" value="${esc(g.ad)}" maxlength="40" ${k?'':'disabled'}></div>
     <div class="field"><label class="fl">Simge</label>
       <div class="row wrap" id="gEmoji">${GRUP_EMOJI.map(e=>
@@ -2163,52 +2283,52 @@ function grupAc(id){
       <div class="row"><input value="${esc(g.kod)}" disabled style="letter-spacing:.2em;font-weight:700">
         <button class="btn-b" onclick="kodPaylas(grup('${g.id}'))">Paylaş</button></div></div>
     ${k?`<button class="btn-p btn-full" style="margin-top:16px" onclick="grupKaydet('${g.id}')">Kaydet</button>
-        <button class="btn-dn btn-full btn-sm" style="margin-top:8px" onclick="grupSil('${g.id}')">Masayı Sil</button>`
-       :`<button class="btn-dn btn-full btn-sm" style="margin-top:16px" onclick="masadanCik()">Masadan Ayrıl</button>`}`);
+        <button class="btn-dn btn-full btn-sm" style="margin-top:8px" onclick="grupSil('${g.id}')">Grubu Sil</button>`
+       :`<button class="btn-dn btn-full btn-sm" style="margin-top:16px" onclick="masadanCik()">Gruptan Ayrıl</button>`}`);
 }
 async function grupKaydet(id){
   const adi=$('#gAdi').value.trim();
-  if(!adi) return toast('Masa adı gerekli',true);
+  if(!adi) return toast('Grup adı gerekli',true);
   const emoji=document.querySelector('#gEmoji .chip.on')?.dataset.e||GRUP_EMOJI[0];
   const {error}=await sb.from('masalar').update({ad:adi,emoji}).eq('id',id);
   if(error) return toast(hataMetni(error),true);
-  await verileriGetir(); kapatModal(); render(); toast('Masa güncellendi');
+  await verileriGetir(); kapatModal(); render(); toast('Grup güncellendi');
 }
 async function grupSil(id){
   const n=DB.celseler.filter(c=>c.grupId===id).length;
-  if(!confirm(`Masa ve İÇİNDEKİ HER ŞEY silinsin mi?${n?` ${n} maç, sicil, iddia defteri — hepsi gider.`:''}`)) return;
+  if(!confirm(`Grup ve İÇİNDEKİ HER ŞEY silinsin mi?${n?` ${n} maç, sicil, iddia defteri — hepsi gider.`:''}`)) return;
   if(!confirm('Bu geri alınamaz. Emin misin?')) return;
   const {error}=await sb.from('masalar').delete().eq('id',id);
   if(error) return toast(hataMetni(error),true);
   if(DB.aktifGrup===id){ DB.aktifGrup=null; localStorage.removeItem('kkd_aktif_masa'); }
   await verileriGetir();
   DURUM=DB.gruplar.length?'hazir':'masayok';
-  kanalKur(); kapatModal(); render(); toast('Masa silindi');
+  kanalKur(); kapatModal(); render(); toast('Grup silindi');
 }
 async function masadanCik(){
-  if(!confirm('Bu masadan ayrılırsan sicilini göremezsin. Devam?')) return;
+  if(!confirm('Bu gruptan ayrılırsan sicilini göremezsin. Devam?')) return;
   const {error}=await sb.from('masa_uyeleri').delete()
     .eq('masa_id',DB.aktifGrup).eq('profil_id',OTURUM.id);
   if(error) return toast(hataMetni(error),true);
   DB.aktifGrup=null; localStorage.removeItem('kkd_aktif_masa');
   await verileriGetir();
   DURUM=DB.gruplar.length?'hazir':'masayok';
-  kanalKur(); kapatModal(); render(); toast('Masadan ayrıldın');
+  kanalKur(); kapatModal(); render(); toast('Gruptan ayrıldın');
 }
 function grupSecici(){
-  acModal(`<h2 class="serif" style="margin:0 0 12px">Masa Değiştir</h2>
+  acModal(`<h2 class="serif" style="margin:0 0 12px">Grup Değiştir</h2>
     <div class="stack">
       ${DB.gruplar.map(g=>`<div class="chip ${DB.aktifGrup===g.id?'on':''}" style="width:100%;justify-content:flex-start"
         onclick="grupGec('${g.id}')"><span style="font-size:18px">${g.emoji}</span> ${esc(g.ad)}
         <span class="xs dim">· ${g.uyeler.length} oyuncu${g.rol==='kurucu'?' · kurucu':''}</span></div>`).join('')}
     </div>
     <div class="sep"></div>
-    <div class="field"><label class="fl">Kodla başka masaya katıl</label>
+    <div class="field"><label class="fl">Kodla başka gruba katıl</label>
       <div class="row"><input id="kKod2" placeholder="ABC123" maxlength="6"
         style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"
         oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
         <button class="btn-b" onclick="kodlaKatil()">Katıl</button></div></div>
-    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="kapatModal();grupAc(null)">+ Yeni Masa Kur</button>`);
+    <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="kapatModal();grupAc(null)">+ Yeni Grup Kur</button>`);
 }
 async function grupGec(id){
   if(id===DB.aktifGrup) return kapatModal();
@@ -2236,7 +2356,7 @@ function yedekAl(){
    Oyuncular ADA göre eşlenir; masada olmayan ad yeni oyuncu olarak açılır. */
 function yedekYukle(inp){
   const f=inp.files[0]; if(!f) return;
-  if(!kurucuMu()){ inp.value=''; return toast('İçe aktarmayı yalnız masayı kuran yapabilir',true); }
+  if(!kurucuMu()){ inp.value=''; return toast('İçe aktarmayı yalnız grubu kuran yapabilir',true); }
   const r=new FileReader();
   r.onload=async()=>{
     let d;
@@ -2295,10 +2415,10 @@ async function uyeKarar(profilId,durum){
     .eq('masa_id',DB.aktifGrup).eq('profil_id',profilId);
   if(error) return toast(hataMetni(error),true);
   await yenile(true);
-  toast(durum==='onayli'?'Masaya alındı. Şimdi hangi oyuncu olduğunu seçecek.':'Reddedildi');
+  toast(durum==='onayli'?'Gruba alındı. Şimdi hangi oyuncu olduğunu seçecek.':'Reddedildi');
 }
 async function uyeCikar(profilId){
-  if(!confirm('Bu kişi masadan çıkarılsın mı? Oyuncu kaydı ve sicili kalır.')) return;
+  if(!confirm('Bu kişi gruptan çıkarılsın mı? Oyuncu kaydı ve sicili kalır.')) return;
   const {error}=await sb.from('masa_uyeleri').delete()
     .eq('masa_id',DB.aktifGrup).eq('profil_id',profilId);
   if(error) return toast(hataMetni(error),true);
@@ -2316,27 +2436,35 @@ async function hesabaBagla(oyuncuId,profilId){
 let GIRIS_MOD='giris';
 function girisEkrani(){
   const k=GIRIS_MOD==='kayit';
+  const d=DAVET;                       // kişiye özel davetle mi gelindi?
   return `<div class="orta"><div style="max-width:400px;margin:0 auto;width:100%">
     <div class="center" style="margin-bottom:20px">
       <div class="serif" style="font-size:22px">Kara Kaplı Defter</div>
       <div class="xs dim" style="margin-top:4px">Batak &amp; 101 masa sicili</div>
     </div>
+    ${d&&d.ad?`<div class="uyari" style="margin-bottom:12px">
+      Hoş geldin <b>${esc(d.ad)}</b>. Bu davet senin adına.
+      Tek yapman gereken bir şifre belirlemek — kod girmene, onay beklemene gerek yok.</div>`:''}
     <div class="card">
-      <div class="seg" style="margin-bottom:14px">
+      ${d&&d.ad?'':`<div class="seg" style="margin-bottom:14px">
         <button class="${k?'':'on'}" onclick="GIRIS_MOD='giris';render()">Giriş</button>
         <button class="${k?'on':''}" onclick="GIRIS_MOD='kayit';render()">Kayıt Ol</button>
-      </div>
+      </div>`}
       ${k?`<div class="field"><label class="fl">Adın</label>
-        <input id="gAdi" placeholder="Mustafa" maxlength="24" autocomplete="name"></div>`:''}
+        <input id="gAdi" placeholder="Mustafa" maxlength="24" autocomplete="name"
+               value="${esc(d?.ad||'')}"></div>`:''}
       <div class="field"><label class="fl">Kullanıcı adı</label>
         <input id="gKad" placeholder="mustafa" autocapitalize="none" autocomplete="username"
+               value="${esc(d?.kad||'')}"
                oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')">
         ${k?'<div class="xs dim" style="margin-top:5px">Küçük harf, rakam, alt çizgi. Bu sadece senin girişin.</div>':''}</div>
       <div class="field"><label class="fl">Şifre</label>
         <input id="gSifre" type="password" placeholder="••••••" autocomplete="${k?'new-password':'current-password'}"
                onkeydown="if(event.key==='Enter')girisYap()">
-        ${k?'<div class="xs dim" style="margin-top:5px">En az 6 karakter.</div>':''}</div>
+        ${k?'<div class="xs dim" style="margin-top:5px">En az 6 karakter. Kendin belirle, kimse görmez.</div>':''}</div>
       <button class="btn-p btn-full" id="gBtn" style="margin-top:14px" onclick="girisYap()">${k?'Hesabı Aç':'Gir'}</button>
+      ${d&&d.ad&&k?`<button class="btn-gh btn-full btn-sm" style="margin-top:8px"
+        onclick="GIRIS_MOD='giris';render()">Hesabım zaten var, girmek istiyorum</button>`:''}
     </div>
     <div class="xs dim center">Şifreyi biz saklamıyoruz; Supabase'in kimlik sistemi tutuyor.</div>
   </div></div>`;
@@ -2365,10 +2493,12 @@ async function girisYap(){
       await sb.from('profiller').update({ad:adi,renk:RENKLER[Math.floor(Math.random()*RENKLER.length)]}).eq('id',OTURUM.id);
       PROFIL.ad=adi;
     }
+    const davetVarMi=!!DAVET;
+    if(DAVET) await davetiIsle();      // davet linkiyle geldiyse gruba doğrudan gir
     kanalKur();
     DURUM=DB.gruplar.length?'hazir':'masayok';
     render();
-    toast(kayit?`Hoş geldin ${adi}.`:`Tekrar hoş geldin ${PROFIL?.ad||''}.`);
+    if(!davetVarMi) toast(kayit?`Hoş geldin ${adi}.`:`Tekrar hoş geldin ${PROFIL?.ad||''}.`);
   }catch(e){
     toast(hataMetni(e),true);
     btn.disabled=false; btn.textContent=kayit?'Hesabı Aç':'Gir';
@@ -2379,7 +2509,8 @@ async function cikisYap(){
   if(KANAL){ sb.removeChannel(KANAL); KANAL=null; }
   await sb.auth.signOut();
   OTURUM=null; PROFIL=null; UYELIKLER=[];
-  DB.gruplar=[]; DB.oyuncular=[]; DB.celseler=[]; DB.iddialar=[]; DB.aktif=null; DB.ben=null;
+  DB.gruplar=[]; DB.oyuncular=[]; DB.celseler=[]; DB.iddialar=[]; DB.akis=[];
+  DB.acik=[]; DB.aktif=null; DB.ben=null; SECILI_MAC=null; DAVET=null;
   localStorage.removeItem('kkd_aktif_masa');
   DURUM='giris'; kapatModal(); render();
 }
@@ -2396,14 +2527,14 @@ function masaYokEkrani(){
     <button class="btn-xs btn-gh" onclick="cikisYap()">Çıkış</button>
   </div>
   ${bekleyen.length?`<div class="uyari" style="margin-bottom:12px">
-    <b>${esc(bekleyen.map(b=>b.masalar.ad).join(', '))}</b> masasına katılma isteğin gönderildi.
-    Masayı kuran onaylayınca içeri girersin.
+    <b>${esc(bekleyen.map(b=>b.masalar.ad).join(', '))}</b> grubuna katılma isteğin gönderildi.
+    Grubu kuran onaylayınca içeri girersin.
     <button class="btn-xs btn-gh" style="margin-top:9px" onclick="yenile()">Kontrol et</button></div>`:''}
   ${red.length?`<div class="card tight"><div class="sm dim">${esc(red.map(b=>b.masalar.ad).join(', '))} isteğin kabul edilmedi.</div></div>`:''}
   <div class="card"><div class="empty">
     <div class="big">🍀</div>
-    <div class="serif" style="font-size:17px;color:var(--ink)">Henüz bir masan yok</div>
-    <div class="sm" style="margin-top:6px">Ya kendi masanı kur, ya arkadaşının verdiği kodla katıl.</div></div></div>
+    <div class="serif" style="font-size:17px;color:var(--ink)">Henüz bir grubun yok</div>
+    <div class="sm" style="margin-top:6px">Ya kendi grubunu kur, ya arkadaşının verdiği davet linkine bas.</div></div></div>
   <div class="card">
     <h3>Kodla Katıl</h3>
     <div class="row">
@@ -2411,21 +2542,21 @@ function masaYokEkrani(){
              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
              onkeydown="if(event.key==='Enter')kodlaKatil()">
       <button class="btn-b" onclick="kodlaKatil()">Katıl</button></div>
-    <div class="xs dim" style="margin-top:7px">Kodu masayı kuran verir. İstek ona düşer, o onaylar.</div>
+    <div class="xs dim" style="margin-top:7px">Kodu grubu kuran verir. İstek ona düşer, o onaylar. Kişiye özel davet linkiyle gelen beklemez.</div>
   </div>
   <div class="card">
-    <h3>Masa Kur</h3>
-    <div class="field"><label class="fl">Masa adı</label>
+    <h3>Grup Kur</h3>
+    <div class="field"><label class="fl">Grup adı</label>
       <input id="yMAd" placeholder="Parkverde" maxlength="40"></div>
     <div class="field"><label class="fl">Simge</label>
       <div class="row wrap" id="yMEmoji">${GRUP_EMOJI.map((e,i)=>
         `<div class="chip ${i===0?'on':''}" data-e="${e}" style="font-size:19px;padding:7px 11px" onclick="tekSec(this)">${e}</div>`).join('')}</div></div>
-    <button class="btn-p btn-full" style="margin-top:14px" onclick="masaKur()">Masayı Kur</button>
+    <button class="btn-p btn-full" style="margin-top:14px" onclick="masaKur()">Grubu Kur</button>
   </div>`;
 }
 async function masaKur(){
   const adi=$('#yMAd').value.trim();
-  if(!adi) return toast('Masa adı gerekli',true);
+  if(!adi) return toast('Grup adı gerekli',true);
   const emoji=document.querySelector('#yMEmoji .chip.on')?.dataset.e||GRUP_EMOJI[0];
   try{
     /* Masa kurma sunucudaki masa_kur() ile yapılır: masa ve kurucu üyeliği
@@ -2434,7 +2565,7 @@ async function masaKur(){
     const {data,error}=await sb.rpc('masa_kur',{p_ad:adi,p_emoji:emoji});
     if(error) throw error;
     const yeni=Array.isArray(data)?data[0]:data;
-    if(!yeni) throw new Error('Masa kurulamadı');
+    if(!yeni) throw new Error('Grup kurulamadı');
     localStorage.setItem('kkd_aktif_masa',yeni.id);
     DB.aktifGrup=yeni.id;
     await verileriGetir();
@@ -2455,17 +2586,17 @@ async function kodlaKatil(){
     await verileriGetir();
     DURUM=DB.gruplar.length?'hazir':'masayok';
     kapatModal(); render();
-    if(r?.durum==='onayli') toast(`${r.masa_ad} masasındasın.`);
+    if(r?.durum==='onayli') toast(`${r.masa_ad} grubundasın.`);
     else toast(`${r?.masa_ad||'Masa'} için istek gönderildi. Kurucu onaylayacak.`,true);
   }catch(e){ toast(hataMetni(e),true); }
 }
 function kodPaylas(m){
   if(!m) return;
-  const metin=`${m.emoji} ${m.ad} masasına katıl.\nKod: ${m.kod}\n${location.origin+location.pathname}`;
+  const metin=`${m.emoji} ${m.ad} grubuna katıl.\nKod: ${m.kod}\n${location.origin+location.pathname}`;
   acModal(`<div class="center">
     <div style="font-size:34px">${m.emoji}</div>
     <div class="serif" style="font-size:20px;margin-top:6px">${esc(m.ad)}</div>
-    <div class="sm dim" style="margin-top:8px">Arkadaşların bu kodla katılacak. İstek sana düşecek, sen onaylayacaksın.</div>
+    <div class="sm dim" style="margin-top:8px">Bu kod açık davettir: girenin isteği sana düşer, sen onaylarsın. Kişiye özel link istiyorsan Ayarlar → Davet Linkleri.</div>
     <div style="margin:16px 0;padding:16px;background:var(--panel2);border:1px solid var(--line);border-radius:12px">
       <div class="kod">${esc(m.kod)}</div></div>
     <button class="btn-g btn-full" onclick='kopyala(${JSON.stringify(metin)})'>📋 Daveti Kopyala</button>
@@ -2476,7 +2607,7 @@ function kodPaylas(m){
 /* --------- hesabım (oyuncu değil, giriş hesabı) --------- */
 function hesapAc(){
   acModal(`<h2 class="serif" style="margin:0 0 4px">Hesabım</h2>
-    <div class="xs dim" style="margin-bottom:14px">Bu senin giriş hesabın. Masadaki adın ve fotoğrafın her masada ayrı tutulur.</div>
+    <div class="xs dim" style="margin-bottom:14px">Bu senin giriş hesabın. Oyuncu adın ve fotoğrafın her grupta ayrı tutulur.</div>
     <div class="field"><label class="fl">Görünen ad</label>
       <input id="hAd" value="${esc(PROFIL?.ad||'')}" maxlength="24"></div>
     <div class="field"><label class="fl">Kullanıcı adı</label>
@@ -2492,16 +2623,339 @@ async function hesapKaydet(){
   PROFIL.ad=adi; kapatModal(); render(); toast('Kaydedildi');
 }
 
+/* =========================================================
+   AKIŞ — konuşmalar, yorumlar, tepkiler
+   Zabıtlar buraya kendiliğinden düşer; altına laf atılır.
+   ========================================================= */
+const TEPKILER=['😂','🔥','👏','💀','🤝','🎯'];
+let _taslak='', _yorumAcik={}, _yorumTaslak={};
+
+function akisKisi(profilId){
+  const o=DB.oyuncular.find(x=>x.masaId===DB.aktifGrup&&x.profilId===profilId);
+  if(o) return {ad:o.ad,foto:o.foto,renk:o.renk};
+  const u=MASA_UYELERI.find(x=>x.profil_id===profilId);
+  return {ad:u?.profiller?.ad||'birisi',foto:u?.profiller?.foto_url||null,renk:u?.profiller?.renk||'#5a524c'};
+}
+function avatarKisi(k,b){
+  b=b||30;
+  if(k.foto) return `<div class="avatar" style="width:${b}px;height:${b}px;background-image:url('${esc(k.foto)}')"></div>`;
+  return `<div class="avatar" style="background:${esc(k.renk)};width:${b}px;height:${b}px;font-size:${Math.round(b*.43)}px">${esc(bas(k.ad))}</div>`;
+}
+function ne_zaman(iso){
+  const t=new Date(iso), fark=(Date.now()-t.getTime())/1000;
+  if(fark<60) return 'az önce';
+  if(fark<3600) return Math.floor(fark/60)+' dk';
+  if(fark<86400) return Math.floor(fark/3600)+' sa';
+  if(fark<172800) return 'dün';
+  const g=String(t.getDate()).padStart(2,'0'), a=String(t.getMonth()+1).padStart(2,'0');
+  return `${g}.${a}`;
+}
+
+function viewAkis(){
+  const hepsi=DB.akis.filter(a=>a.grupId===DB.aktifGrup);
+  const ust=hepsi.filter(a=>!a.yanitId);
+  const yorumlar=id=>hepsi.filter(a=>a.yanitId===id)
+    .sort((a,b)=>a.olusturma.localeCompare(b.olusturma));
+
+  const yazma=`
+  <div class="card">
+    <div class="row" style="align-items:flex-start;gap:9px">
+      ${DB.ben?avatar(DB.ben,34):avatarKisi(akisKisi(OTURUM.id),34)}
+      <div class="grow">
+        <textarea id="akMetin" rows="2" placeholder="Masaya bir şey söyle..."
+          oninput="_taslak=this.value" style="resize:none">${esc(_taslak)}</textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn-sm btn-gh" onclick="cagriYap()" title="Bu akşam oynayan var mı?">📣 Çağrı</button>
+          <div class="grow"></div>
+          <button class="btn-p btn-sm" id="akBtn" onclick="akisYaz()">Gönder</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  if(!ust.length) return yazma+`<div class="card"><div class="empty">
+    <div class="big">💬</div>Akış boş.
+    <div class="sm" style="margin-top:6px">İlk lafı sen et. Kapanan her zabıt da buraya düşecek.</div></div></div>`;
+
+  return yazma+ust.map(a=>akisKart(a,yorumlar(a.id))).join('');
+}
+
+function akisKart(a,yrm){
+  const k=akisKisi(a.yazanId);
+  const benimki=a.yazanId===OTURUM.id;
+  const grup2={};
+  (a.tepkiler||[]).forEach(t=>{ (grup2[t.emoji]=grup2[t.emoji]||[]).push(t.profilId); });
+  const acik=!!_yorumAcik[a.id];
+
+  const govde = a.tip==='zabit'
+    ? `<div class="row wrap" style="gap:6px;margin:2px 0 8px">
+         <span class="pill ${a.veri?.oyun==='batak'?'red':'blue'}">${a.veri?.oyun==='batak'?'BATAK':'101'}</span>
+         ${a.veri?.masaAd?`<span class="pill">${esc(a.veri.masaAd)}</span>`:''}
+         ${a.veri?.kazanan?`<span class="pill gold">🏆 ${esc(a.veri.kazanan)}</span>`:''}
+       </div>
+       <details><summary>Zabtı oku</summary>
+         <div class="zabit" style="margin-top:8px" id="zb_${a.id}">${esc(a.metin||'')}</div>
+         <button class="btn-sm btn-gh" style="margin-top:8px;width:100%"
+           onclick="kopyala(document.getElementById('zb_${a.id}').textContent)">📋 Kopyala</button>
+       </details>`
+    : a.tip==='unvan'
+    ? `<div class="rozet" style="margin:2px 0"><div class="k">${esc(a.veri?.k||'🏅')}</div>
+         <div><div style="font-weight:700;font-size:13.5px">${esc(a.veri?.unvan||'')} — <span style="color:var(--gold)">${esc(a.veri?.kim||'')}</span></div>
+         <div class="xs muted">${esc(a.metin||'')}</div></div></div>`
+    : a.tip==='cagri'
+    ? `<div class="uyari" style="margin:2px 0">📣 ${esc(a.metin||'')}</div>`
+    : `<div style="font-size:14.5px;line-height:1.55;white-space:pre-wrap;margin:2px 0">${esc(a.metin||'')}</div>`;
+
+  return `<div class="card">
+    <div class="row" style="gap:9px">
+      ${avatarKisi(k,32)}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:700;font-size:13.5px" class="ell">${esc(k.ad)}
+          ${a.tip==='zabit'?'<span class="xs dim" style="font-weight:500">zabıt kaydetti</span>':''}
+          ${a.tip==='unvan'?'<span class="xs dim" style="font-weight:500">unvan değişti</span>':''}</div>
+        <div class="xs dim">${ne_zaman(a.olusturma)}</div>
+      </div>
+      ${benimki||kurucuMu()?`<button class="btn-xs btn-gh" onclick="akisSil('${a.id}')">Sil</button>`:''}
+    </div>
+    <div style="margin-top:8px">${govde}</div>
+
+    <div class="row wrap" style="gap:5px;margin-top:9px">
+      ${Object.keys(grup2).map(e=>{
+        const benVarMi=grup2[e].includes(OTURUM.id);
+        return `<button class="btn-xs" style="${benVarMi?'border-color:var(--gold);color:var(--gold)':''}"
+          onclick="tepkiVer('${a.id}','${e}')">${e} ${grup2[e].length}</button>`;}).join('')}
+      <button class="btn-xs btn-gh" onclick="tepkiSec('${a.id}')">＋</button>
+      <div class="grow"></div>
+      <button class="btn-xs btn-gh" onclick="yorumAcKapa('${a.id}')">
+        💬 ${yrm.length?yrm.length+' yorum':'yorum yaz'}</button>
+    </div>
+
+    ${(acik||yrm.length)?`<div style="margin-top:10px;border-left:2px solid var(--line);padding-left:10px">
+      ${yrm.map(y=>{const yk=akisKisi(y.yazanId);
+        return `<div class="row" style="gap:8px;align-items:flex-start;padding:5px 0">
+          ${avatarKisi(yk,24)}
+          <div class="grow" style="min-width:0">
+            <div class="xs"><b>${esc(yk.ad)}</b> <span class="dim">${ne_zaman(y.olusturma)}</span></div>
+            <div class="sm" style="white-space:pre-wrap">${esc(y.metin||'')}</div></div>
+          ${y.yazanId===OTURUM.id||kurucuMu()?`<button class="btn-xs btn-gh" onclick="akisSil('${y.id}')">×</button>`:''}
+        </div>`;}).join('')}
+      ${acik?`<div class="row" style="margin-top:7px;gap:6px">
+        <input id="yr_${a.id}" placeholder="Yorum yaz..." value="${esc(_yorumTaslak[a.id]||'')}"
+          oninput="_yorumTaslak['${a.id}']=this.value"
+          onkeydown="if(event.key==='Enter')yorumYaz('${a.id}')">
+        <button class="btn-sm btn-p" onclick="yorumYaz('${a.id}')">Yaz</button></div>`:''}
+    </div>`:''}
+  </div>`;
+}
+
+/* --------- yazma --------- */
+async function akisEkle(tip,metin,veri,yanitId){
+  const {data,error}=await sb.from('akis').insert({
+    masa_id:DB.aktifGrup, tip, yazan_id:OTURUM.id,
+    metin:metin||null, veri:veri||{}, yanit_id:yanitId||null
+  }).select('id,tip,yazan_id,metin,veri,olusturma,yanit_id').single();
+  if(error){ toast(hataMetni(error),true); return null; }
+  DB.akis.unshift({id:data.id,grupId:DB.aktifGrup,tip:data.tip,yazanId:data.yazan_id,
+    metin:data.metin,veri:data.veri||{},olusturma:data.olusturma,yanitId:data.yanit_id,tepkiler:[]});
+  return data.id;
+}
+async function akisYaz(){
+  const m=($('#akMetin')?.value||'').trim();
+  if(!m) return toast('Önce bir şey yaz',true);
+  const b=$('#akBtn'); b.disabled=true; b.innerHTML='<span class="yukleniyor"></span>';
+  const id=await akisEkle('mesaj',m,{});
+  if(id){ _taslak=''; render(); } else { b.disabled=false; b.textContent='Gönder'; }
+}
+async function yorumYaz(ustId){
+  const m=(_yorumTaslak[ustId]||'').trim();
+  if(!m) return;
+  const id=await akisEkle('mesaj',m,{},ustId);
+  if(id){ _yorumTaslak[ustId]=''; _yorumAcik[ustId]=true; render(); }
+}
+function yorumAcKapa(id){ _yorumAcik[id]=!_yorumAcik[id]; render();
+  setTimeout(()=>$('#yr_'+id)?.focus(),50); }
+async function cagriYap(){
+  const id=await akisEkle('cagri','Bu akşam oynayan var mı? 👍 basan gelir.',{});
+  if(id){ await tepkiVer(id,'👍',true); render(); toast('Çağrı yapıldı.'); }
+}
+async function akisSil(id){
+  if(!confirm('Silinsin mi?')) return;
+  const {error}=await sb.from('akis').delete().eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  DB.akis=DB.akis.filter(a=>a.id!==id&&a.yanitId!==id);
+  render();
+}
+
+/* --------- tepkiler --------- */
+async function tepkiVer(akisId,emoji,sessiz){
+  const a=DB.akis.find(x=>x.id===akisId); if(!a) return;
+  a.tepkiler=a.tepkiler||[];
+  const varMi=a.tepkiler.find(t=>t.profilId===OTURUM.id&&t.emoji===emoji);
+  if(varMi){
+    a.tepkiler=a.tepkiler.filter(t=>!(t.profilId===OTURUM.id&&t.emoji===emoji));
+    if(!sessiz) render();
+    const {error}=await sb.from('akis_tepkileri').delete()
+      .eq('akis_id',akisId).eq('profil_id',OTURUM.id).eq('emoji',emoji);
+    if(error) toast(hataMetni(error),true);
+  }else{
+    a.tepkiler.push({profilId:OTURUM.id,emoji});
+    if(!sessiz) render();
+    const {error}=await sb.from('akis_tepkileri')
+      .insert({akis_id:akisId,profil_id:OTURUM.id,emoji});
+    if(error) toast(hataMetni(error),true);
+  }
+}
+function tepkiSec(id){
+  acModal(`<h2 class="serif" style="margin:0 0 12px">Tepki</h2>
+    <div class="row wrap">${TEPKILER.map(e=>
+      `<button style="font-size:26px;padding:12px 16px" onclick="kapatModal();tepkiVer('${id}','${e}')">${e}</button>`).join('')}</div>`);
+}
+
+/* =========================================================
+   KADRO KURULUMU — oyuncular + fotoğrafları tek dokunuşla
+   Kaynak: kurulum/kadro.json (uygulamayla birlikte yayınlanır)
+   ========================================================= */
+async function kadroSor(){
+  let k;
+  try{ k=await fetch('kurulum/kadro.json',{cache:'no-store'}).then(r=>r.json()); }
+  catch(e){ return toast('Kadro dosyası okunamadı',true); }
+  const varOlan=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup)
+    .map(o=>o.ad.toLocaleLowerCase('tr-TR'));
+  const yeni=k.oyuncular.filter(o=>!varOlan.includes(o.ad.toLocaleLowerCase('tr-TR')));
+  if(!yeni.length) return toast('Kadro zaten kurulu');
+  acModal(`<h2 class="serif" style="margin:0 0 4px">${esc(k.grup)} Kadrosu</h2>
+    <div class="xs dim" style="margin-bottom:12px">Şu oyuncular gruba eklenecek. Hesap gerekmiyor —
+      sicilleri bu kayıtlara işlenir. Sonradan herkes kendi hesabını bağlayabilir.</div>
+    <div class="row wrap" style="gap:7px">${yeni.map(o=>
+      `<span class="chip" style="cursor:default">${o.foto?'🖼':'👤'} ${esc(o.ad)}</span>`).join('')}</div>
+    <div class="xs dim" style="margin-top:10px">🖼 işaretli olanların fotoğrafı da yüklenecek.</div>
+    <button class="btn-p btn-full" id="kdBtn" style="margin-top:16px" onclick="kadroKur()">
+      ${yeni.length} oyuncuyu ekle</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+
+async function kadroKur(){
+  const btn=$('#kdBtn'); if(btn){btn.disabled=true;}
+  let eklenen=0, hata=0;
+  try{
+    const k=await fetch('kurulum/kadro.json',{cache:'no-store'}).then(r=>r.json());
+    const varOlan=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup)
+      .map(o=>o.ad.toLocaleLowerCase('tr-TR'));
+    const bendeOyuncuVar=!!DB.ben;
+    const yeni=k.oyuncular.filter(o=>!varOlan.includes(o.ad.toLocaleLowerCase('tr-TR')));
+
+    for(let i=0;i<yeni.length;i++){
+      const o=yeni[i];
+      if(btn) btn.innerHTML=`<span class="yukleniyor"></span> ${i+1}/${yeni.length} · ${esc(o.ad)}`;
+      try{
+        let foto_url=null;
+        if(o.foto){
+          const blob=await fetch('kurulum/'+o.foto,{cache:'no-store'}).then(r=>r.blob());
+          const yol=`masa/${DB.aktifGrup}/${o.kad||yid()}_${Date.now()}.jpg`;
+          const {error:ye}=await sb.storage.from('avatarlar')
+            .upload(yol,blob,{contentType:'image/jpeg',upsert:true});
+          if(ye) throw ye;
+          foto_url=sb.storage.from('avatarlar').getPublicUrl(yol).data.publicUrl;
+        }
+        /* "ben" işaretli oyuncu bu hesaba bağlanır — ama zaten bağlıysam dokunma */
+        await oyuncuEkle(o.ad,foto_url,o.dogum||null,!!o.ben&&!bendeOyuncuVar);
+        eklenen++;
+      }catch(e){ hata++; console.warn(o.ad,e); }
+    }
+  }catch(e){ toast(hataMetni(e),true); }
+  await verileriGetir(); kapatModal(); render();
+  toast(hata?`${eklenen} oyuncu eklendi, ${hata} tanesi olmadı.`:`${eklenen} oyuncu eklendi.`,!!hata);
+}
+
+/* =========================================================
+   DAVET — kişiye özel link, onay beklemeden içeri
+   ========================================================= */
+let DAVET=null;
+
+function davetOku(){
+  const q=new URLSearchParams(location.search);
+  const kod=q.get('kod');
+  if(!kod) return;
+  DAVET={kod:kod.toUpperCase(),oyuncu:q.get('oyuncu')||null,
+         ad:q.get('ad')||'',kad:q.get('kad')||''};
+  if(DAVET.ad||DAVET.kad) GIRIS_MOD='kayit';
+  /* adres çubuğunu temizle: link paylaşılınca kimlik bilgisi taşınmasın */
+  try{ history.replaceState(null,'',location.pathname); }catch(e){}
+}
+
+async function davetiIsle(){
+  if(!DAVET||!OTURUM) return;
+  const d=DAVET; DAVET=null;
+  try{
+    if(d.oyuncu){
+      const {data,error}=await sb.rpc('davetle_katil',{p_kod:d.kod,p_oyuncu:d.oyuncu});
+      if(error) throw error;
+      const r=Array.isArray(data)?data[0]:data;
+      DB.aktifGrup=r.masa_id;
+      localStorage.setItem('kkd_aktif_masa',r.masa_id);
+      await verileriGetir(); kanalKur();
+      toast(`Hoş geldin ${r.oyuncu_ad}. ${r.masa_ad} grubundasın.`);
+    }else{
+      const {data,error}=await sb.rpc('masaya_katil',{p_kod:d.kod});
+      if(error) throw error;
+      const r=Array.isArray(data)?data[0]:data;
+      await verileriGetir(); kanalKur();
+      toast(r?.durum==='onayli'?`${r.masa_ad} grubundasın.`
+        :`${r?.masa_ad||'Grup'} için istek gönderildi, kurucu onaylayacak.`, r?.durum!=='onayli');
+    }
+  }catch(e){ toast(hataMetni(e),true); }
+}
+
+const davetKad=ad2=>String(ad2||'').toLocaleLowerCase('tr-TR')
+  .replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ş/g,'s').replace(/ı/g,'i')
+  .replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]/g,'');
+
+function davetLinki(oyuncuId){
+  const g=aktifGrup(), o=oy(oyuncuId);
+  const q=new URLSearchParams({kod:g.kod,oyuncu:oyuncuId,ad:o.ad,kad:davetKad(o.ad)});
+  return location.origin+location.pathname+'?'+q.toString();
+}
+function davetPaylas(oyuncuId){
+  const g=aktifGrup(), o=oy(oyuncuId);
+  const link=davetLinki(oyuncuId);
+  const metin=`${g.emoji} ${o.ad}, ${g.ad} deftere geçti.\n`+
+    `Batak ve 101 skorları buraya yazılıyor — kim kaç ihale batırdı, kim hesabı ödedi, hepsi kayıtta.\n\n`+
+    `${link}\n\n`+
+    `Link senin adına; aç, bir şifre belirle, içeridesin. Sonra "Ana Ekrana Ekle" de, uygulama gibi durur.`;
+  acModal(`<h2 class="serif" style="margin:0 0 4px">${esc(o.ad)} için davet</h2>
+    <div class="xs dim" style="margin-bottom:12px">Bu link <b>yalnız ${esc(o.ad)}</b> içindir ve <b>tek kullanımlıktır</b>.
+      Açan kişi sadece kendi şifresini belirler; onay beklemez, doğrudan ${esc(o.ad)} olarak girer.
+      Kullanıldıktan sonra link kimseyi içeri almaz.</div>
+    <div class="zabit" style="font-size:12.5px;line-height:1.5" id="dvMetin">${esc(metin)}</div>
+    <button class="btn-g btn-full" style="margin-top:12px"
+      onclick="kopyala(document.getElementById('dvMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+function davetHepsi(){
+  const bos=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup&&o.aktif&&!o.profilId);
+  if(!bos.length) return toast('Herkesin hesabı bağlı');
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Davet Linkleri</h2>
+    <div class="xs dim" style="margin-bottom:12px">Her satır o kişiye özel, tek kullanımlık.
+      Kime göndereceksen onun linkini kopyala.</div>
+    <div class="stack">${bos.map(o=>`
+      <div class="row" style="gap:9px">${avatar(o.id,30)}
+        <div class="grow" style="font-weight:600;font-size:13.5px">${esc(o.ad)}</div>
+        <button class="btn-sm btn-b" onclick="kapatModal();davetPaylas('${o.id}')">Davet</button>
+      </div>`).join('')}</div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:14px" onclick="kapatModal()">Kapat</button>`);
+}
+
 /* Tabelacı ben değilim: yazamam, canlı izlerim. */
 function canliIzle(){
   const c=DB.aktif, m=macDurum(c);
-  const kim = DB.oyuncular.find(o=>o.profilId===c._hesap&&o.masaId===c.grupId)
-           || MASA_UYELERI.find(u=>u.profil_id===c._hesap)?.profiller;
+  const kim=DB.oyuncular.find(o=>o.profilId===c._hesap&&o.masaId===c.grupId);
   const bas2=`<div class="card">
     <div class="row" style="justify-content:space-between">
-      <div><div class="serif" style="font-size:17px"><span class="canli"></span>${c.oyun==='batak'?'Batak':'101'} · canlı</div>
-        <div class="xs dim">${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''} · ✍️ ${esc(kim?.ad||'tabelacı')}</div></div>
-      <button class="btn-xs btn-gh" onclick="yenile()">Yenile</button>
+      <div><div class="serif" style="font-size:17px"><span class="canli"></span>${esc(c.masaAd||'Masa')} · canlı</div>
+        <div class="xs dim">${c.oyun==='batak'?'Batak':'101'} · ${trh(c.tarih)}${c.yer?' · '+esc(c.yer):''} · ✍️ ${esc(kim?.ad||'tabelacı')}</div></div>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <button class="btn-xs btn-gh" onclick="macBirak()">← Masalar</button>
+        <button class="btn-xs btn-gh" onclick="yenile()">Yenile</button></div>
     </div><div class="sep"></div>`;
 
   if(c.oyun==='batak'){
