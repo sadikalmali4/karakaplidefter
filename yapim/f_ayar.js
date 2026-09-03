@@ -18,6 +18,9 @@ function viewAyar(){
       <button class="btn-b btn-sm" onclick="davetHepsi()">✉️ Davet Linkleri</button>
       <button class="btn-sm btn-gh" onclick="kodPaylas(grup('${DB.aktifGrup}'))">📋 Grup Kodu</button>
     </div>
+    <button class="btn-g btn-full btn-sm" style="margin-top:8px" onclick="raporAc()">📄 Genel Sicil Kararı (PDF)</button>
+    <div class="xs dim" style="margin-top:6px">Kadro, sicil, ünvanlar, borç ve efsaneleri mahkeme kararı
+      biçiminde tek belgeye döker; "Yazdır → PDF olarak kaydet" ile alırsın.</div>
     <div class="xs dim" style="margin-top:8px">
       <b>Davet linki</b> kişiye özel ve tek kullanımlık: açan kişi sadece şifresini belirler,
       onay beklemeden kendi oyuncu kaydına bağlanır.<br>
@@ -180,5 +183,5 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.0 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.1 · bulut</div>`;
 }
