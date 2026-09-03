@@ -119,6 +119,7 @@ function batakTabela(){
       </div>`:''}
   </div>
 
+  ${sureKarti(c)}
   ${gecmisPartiler(c)}
 
   ${!MISAFIR&&!bitti&&satir.length?`<div class="card tight center">
@@ -234,6 +235,7 @@ function yzTabela(){
       </div>`:''}
   </div>
 
+  ${sureKarti(c)}
   ${gecmisPartiler(c)}
 
   ${!MISAFIR&&!doldu&&satir.length?`<div class="card tight center">

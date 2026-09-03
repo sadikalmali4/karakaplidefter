@@ -6,7 +6,9 @@ sirasi kur.py icinde yama_101'den SONRA olmak zorunda.
 """
 
 _ESKI = "  const rk=aramizdaNotu(c);"
-_YENI = ("  const tl=talikZabitNotu(c);" + chr(10) +
+_YENI = ("  const sr=sureZabitNotu(c);" + chr(10) +
+         "  if(sr){ L.push(''); L.push(sr); }" + chr(10) +
+         "  const tl=talikZabitNotu(c);" + chr(10) +
          "  if(tl){ L.push(''); L.push(`TALIK: ${tl}`); }" + chr(10) +
          "  const rk=aramizdaNotu(c);")
 

@@ -1407,6 +1407,7 @@ function gecmisPartiler(c){
 function partiKapat(bitir){
   const c=DB.aktif,m=macDurum(c),parti=m.aktif;
   parti.kazanan = c.oyun==='batak'?batakPartiKazanan(parti):yzPartiKazanan(parti,c);
+  if(typeof sureKapat==='function') sureKapat(parti);
   if(bitir){kaydet();celseKapat();return;}
   c.partiler.push({eller:[],kazanan:null}); kaydet(); render(); window.scrollTo(0,0);
   toast(`${partiAd(c,c.partiler.length-1)} başladı. Taraflar yerlerini almıştır.`,true);

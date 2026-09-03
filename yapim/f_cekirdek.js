@@ -268,6 +268,8 @@ function kaydet(){
   if(!tabelaciMiyim()) return;          // yazma hakkı yoksa buluta gitmeye çalışma
   /* Talik edilmiş masaya sayı yazılıyorsa ara fiilen bitmiştir */
   if(DB.aktif.talik) talikKendiCozuldu(DB.aktif);
+  /* Parti süresi damgaları (istatistik) */
+  if(typeof sureDamgala==='function') sureDamgala(DB.aktif);
   /* Yerel ayna + bıkmayan yeniden deneme f_dayanikli.js'te.
      Buradaki gövde onun için duruyor; celseKaydet varsa o kullanılıyor. */
   if(MISAFIR) return misafirKaydet();

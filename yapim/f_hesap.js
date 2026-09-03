@@ -88,7 +88,7 @@ function borcHesabi(){
     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
       ${r.taraf.map(id=>`<button class="btn-xs btn-gh" onclick="ekstreAc('${id}')">${
         r.taraf.length>1?esc(ad(id)):'Ekstre'}</button>`).join('')}
-      ${r.v<0?`<button class="btn-xs btn-g"
+      ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-g"
         onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 

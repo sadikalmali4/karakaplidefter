@@ -117,14 +117,22 @@ function borcTablosu(){
     ekle(k.alacaklilar,k.ne,n);
   });
   /* akıştaki ödemeler borcu kapatır. Eski kayıtlar tek kişi (o.kim) tutuyordu;
-     yenilerde taraf (o.taraf) var. İkisi de okunuyor. */
+     yenilerde taraf (o.taraf) var. İkisi de okunuyor.
+
+     ÖNEMLİ: ödeme İKİ tarafı da kapatır — borçlunun borcu azalır,
+     ALACAKLININ alacağı da azalır. Eskiden yalnız borçlu tarafı
+     düşüyordu, alacaklı ödendiği hâlde alacaklı görünüyordu.
+     o.alacakli yoksa (eski kayıt) eski davranış korunuyor. */
   (DB.akis||[]).forEach(a=>{
     const o=a.veri&&a.veri.odeme;
     if(!o||!o.ne) return;
+    const n=Number(o.adet)||0;
     const k0=o.taraf ? tarafKey(o.taraf) : tarafKey([o.kim]);
-    if(!k0) return;
-    const k=`${k0}|${o.ne}`;
-    t[k]=(t[k]||0)+(Number(o.adet)||0);      // ödeyince borcu (eksi) azalır
+    if(k0) t[`${k0}|${o.ne}`]=(t[`${k0}|${o.ne}`]||0)+n;   // borçlu: eksi azalır
+    if(Array.isArray(o.alacakli)&&o.alacakli.length){
+      const k1=tarafKey(o.alacakli);
+      if(k1) t[`${k1}|${o.ne}`]=(t[`${k1}|${o.ne}`]||0)-n; // alacaklı: artı azalır
+    }
   });
   return t;
 }
@@ -146,7 +154,7 @@ function borcKart(){
       <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}${r.taraf.length>1?' · ortak':''}</div></div>
     <div class="serif" style="font-size:18px">
       <span class="${r.v<0?'neg':'pos'}">${r.v<0?Math.abs(r.v):'+'+r.v}</span></div>
-    ${r.v<0?`<button class="btn-xs btn-gh"
+    ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-gh"
       onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
   </div>`;
 
@@ -158,12 +166,26 @@ function borcKart(){
     ${alacakli.length?`<div class="sep"></div>
       <div class="xs" style="color:#8CC79B;font-weight:700;margin:4px 0">ALACAKLI</div>
       ${alacakli.map(satir).join('')}`:''}
-    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.</div>
+    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.
+      <br><b>Ödemeyi yalnız ${esc((oy(kurucuOyuncu())||{}).ad||'masayı kuran')} işaretler</b> — borçlu kendi ödemesini kayda geçiremez.</div>
   </div>`;
 }
 
+/* O bahis kaleminde alacaklı taraflar — ödemenin kime yapıldığını
+   sormak için. Bakiyesi artı olan her taraf bir seçenek. */
+function alacakliTaraflar(ne){
+  return Object.entries(borcTablosu())
+    .filter(([k,v])=>v>0&&k.slice(k.indexOf('|')+1)===ne)
+    .map(([k,v])=>({ids:tarafKisiler(k.slice(0,k.indexOf('|'))),v}))
+    .sort((a,b)=>b.v-a.v);
+}
+
 function borcOdeAc(taraf,ne,enfazla){
+  /* Yetki: ödemeyi yalnız masayı kuran işler. Asıl kilit veritabanında
+     (yama 11): veri.odeme taşıyan akış satırını yalnız kurucu yazabilir. */
+  if(!kurucuMu()) return toast('Ödemeyi yalnız masayı kuran işaretleyebilir',true);
   const ortak=taraf.length>1;
+  const alk=alacakliTaraflar(ne);
   acModal(`<h2 class="serif" style="margin:0 0 4px">Borç Ödemesi</h2>
     <div class="xs dim" style="margin-bottom:14px">Kayıt akışa işlenir; masa görür, tabeladan düşer.
       ${ortak?'Borç ortak olduğu için ödeme de tarafın tamamına yazılır.':''}</div>
@@ -171,20 +193,41 @@ function borcOdeAc(taraf,ne,enfazla){
       ${taraf.map(id=>avatar(id,36)).join('')}
       <div><div style="font-weight:700">${esc(taraf.map(ad).join(' & '))}</div>
         <div class="xs dim">${bahisIkon(ne)} ${esc(ne)} · ${enfazla} borç${ortak?' (ortak)':''}</div></div></div>
+
+    ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
+      <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
+        ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
+          data-ids='${JSON.stringify(x.ids)}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
+          <span class="xs dim">${x.v}</span></span>`).join('')}
+      </div>
+      <div class="xs dim" style="margin-top:6px">Seçilen tarafın alacağı da bu miktarda düşer.
+        Boş bırakırsan yalnız borçlunun borcu kapanır.</div></div>`:''}
+
     <div class="field"><label class="fl">Kaç tanesini ödedi?</label>
       <input type="number" id="boAdet" value="${enfazla}" min="1" max="${enfazla}"></div>
     <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
       onclick='borcOdeKaydet(${JSON.stringify(taraf)},${JSON.stringify(ne)},${enfazla})'>Ödendi Olarak İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }
+
+/* Tek seçimli çip (aynı kaptaki ötekiler kapanır) */
+function chipTek(el){
+  const secili=el.classList.contains('on');
+  el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  if(!secili) el.classList.add('on');
+}
 async function borcOdeKaydet(taraf,ne,enfazla){
   const adet=Math.max(1,Math.min(enfazla,parseInt($('#boAdet').value,10)||1));
+  const secili=document.querySelector('#boAlacakli .chip.on');
+  let alacakli=null;
+  try{ alacakli=secili?JSON.parse(secili.dataset.ids):null; }catch(e){ alacakli=null; }
   const btn=$('#boBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
   const kim=liste(taraf.map(ad));
+  const kime=alacakli&&alacakli.length?` ${liste(alacakli.map(ad))} lehine olan`:'';
   const metin=taraf.length>1
-    ? `${kim}, ${adet} ${ne} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
-    : `${kim}, ${adet} ${ne} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
-  const ok=await akisEkle('mesaj',metin,{odeme:{taraf,kim:taraf[0],ne,adet}});
+    ? `${kim}, ${adet} ${ne}${kime} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
+    : `${kim}, ${adet} ${ne}${kime} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
+  const ok=await akisEkle('mesaj',metin,{odeme:{taraf,kim:taraf[0],ne,adet,alacakli}});
   if(!ok){ btn.disabled=false; btn.textContent='Ödendi Olarak İşle'; return; }
   kapatModal(); render(); toast(metin,true);
 }
@@ -207,4 +250,13 @@ function bahisNotu(c){
   const sr=yzMac(c).sira;
   if(!sr.length) return '';
   return `BAHİS: ${dokum}. ${ad(sr[sr.length-1].id)} borçlanmış, ${ad(sr[0].id)} alacaklı hâle gelmiştir.${coklu}`;
+}
+
+
+//== kurucuOyuncu
+/* Masayı kuranın oyuncu kaydı — "ödemeyi yalnız X işaretler" yazısı için. */
+function kurucuOyuncu(){
+  const g=aktifGrup(); if(!g) return null;
+  const o=DB.oyuncular.find(x=>x.masaId===g.id&&x.profilId===g.kuran);
+  return o?o.id:null;
 }

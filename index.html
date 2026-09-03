@@ -487,6 +487,8 @@ function kaydet(){
   if(!tabelaciMiyim()) return;          // yazma hakkı yoksa buluta gitmeye çalışma
   /* Talik edilmiş masaya sayı yazılıyorsa ara fiilen bitmiştir */
   if(DB.aktif.talik) talikKendiCozuldu(DB.aktif);
+  /* Parti süresi damgaları (istatistik) */
+  if(typeof sureDamgala==='function') sureDamgala(DB.aktif);
   /* Yerel ayna + bıkmayan yeniden deneme f_dayanikli.js'te.
      Buradaki gövde onun için duruyor; celseKaydet varsa o kullanılıyor. */
   if(MISAFIR) return misafirKaydet();
@@ -1148,6 +1150,8 @@ function zabitUret(c){
     acikIdd.slice(0,4).forEach(i=>L.push(`  • ${ad(i.kim)}${i.kime?` ↔ ${ad(i.kime)}`:''}: “${i.metin}”${i.bahis?` — ${i.bahis}`:''}${i.vade?` (vade ${trh(i.vade)})`:''}`));
   }
 
+  const sr=sureZabitNotu(c);
+  if(sr){ L.push(''); L.push(sr); }
   const tl=talikZabitNotu(c);
   if(tl){ L.push(''); L.push(`TALIK: ${tl}`); }
   const bh=bahisNotu(c);
@@ -1216,6 +1220,8 @@ function render(){
   $('#hdrRight').innerHTML = `<div class="grupBar" onclick="grupSecici()">
       <span class="ell">${esc(g?g.emoji+' '+g.ad:'Masa')}</span><span class="dim">▾</span></div>`;
   if(TAB==='celse') v.innerHTML=viewCelse();
+  /* Yurdyen partinin sayaci saniyede bir tazelensin (tam cizim yok) */
+  setTimeout(()=>{ if(document.querySelector('.sureSayac')) sureTikBasla(); },0);
   if(TAB==='akis')  v.innerHTML=viewAkis();
   if(TAB==='sicil') v.innerHTML=viewSicil();
   if(TAB==='iddia') v.innerHTML=viewIddia();
@@ -2006,6 +2012,7 @@ function gecmisPartiler(c){
 function partiKapat(bitir){
   const c=DB.aktif,m=macDurum(c),parti=m.aktif;
   parti.kazanan = c.oyun==='batak'?batakPartiKazanan(parti):yzPartiKazanan(parti,c);
+  if(typeof sureKapat==='function') sureKapat(parti);
   if(bitir){kaydet();celseKapat();return;}
   c.partiler.push({eller:[],kazanan:null}); kaydet(); render(); window.scrollTo(0,0);
   toast(`${partiAd(c,c.partiler.length-1)} başladı. Taraflar yerlerini almıştır.`,true);
@@ -2028,6 +2035,8 @@ async function celseKesinlestir(){
   const c=DB.aktif; if(!c) return;
   clearTimeout(_yazZaman);          // bekleyen gecikmeli yazma kapanışın üstüne binmesin
   const oncekiRozet=rozetSahipleri(c.oyun);
+  /* Maç kapanıyor: yürüyen partinin süresi de mühürlensin */
+  if(typeof sureKapat==='function') sureKapat(c.partiler[c.partiler.length-1]);
   c.not=$('#zNot').value.trim();
   if(c.giris==='detay'){
     const son=c.partiler[c.partiler.length-1];
@@ -2551,7 +2560,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4323,6 +4332,7 @@ function batakTabela(){
       </div>`:''}
   </div>
 
+  ${sureKarti(c)}
   ${gecmisPartiler(c)}
 
   ${!MISAFIR&&!bitti&&satir.length?`<div class="card tight center">
@@ -4438,6 +4448,7 @@ function yzTabela(){
       </div>`:''}
   </div>
 
+  ${sureKarti(c)}
   ${gecmisPartiler(c)}
 
   ${!MISAFIR&&!doldu&&satir.length?`<div class="card tight center">
@@ -4623,6 +4634,134 @@ async function devret(){
     toast(hataMetni(e),true);
     if(btn){ btn.disabled=false; btn.textContent='Devret'; }
   }
+}
+
+//== sure
+/* =========================================================
+   OYUN SÜRESİ — parti parti sayaç
+
+   İstek (kullanıcı, 03.09.2026): "Canlı izlerken oyuna süre de koyar
+   mısın, sayaç olsun; ilk parti şu kadar, ikinci parti şu kadar,
+   toplam süre gibi. Sadece istatistik bilgi açısından."
+
+   VERİ — şema değişmedi, damgalar celse içinde:
+     parti.basla  → o partinin İLK eli yazıldığı an
+     parti.son    → o partiye en son yazma anı
+     parti.bitis  → parti kapatıldığı an
+   Damgayı kaydet() atıyor (tek yazma yolu), parti kapanışını
+   partiKapat/celseKapat atıyor.
+
+   ESKİ KAYITLAR: damgası yok. Uydurmuyoruz — "—" gösteriyoruz.
+   Süre bir istatistik; puanı, sırayı, borcu etkilemiyor.
+   ========================================================= */
+
+const SURE_BICIM = ms => {
+  if (!(ms > 0)) return '—';
+  const dk = Math.round(ms / 60000);
+  if (dk < 1) return 'yeni başladı';
+  if (dk < 60) return dk + ' dk';
+  const sa = Math.floor(dk / 60), kalan = dk % 60;
+  return kalan ? `${sa} sa ${kalan} dk` : `${sa} sa`;
+};
+const _an = t => { const d = new Date(t || 0); return isNaN(d) ? 0 : d.getTime(); };
+
+/* Bir partinin süresi. Açık partide "şu ana kadar". */
+function partiSuresi(p) {
+  const b = _an(p?.basla);
+  if (!b) return { ms: 0, suruyor: false };
+  const s = _an(p?.bitis) || _an(p?.son);
+  const kapali = !!p?.bitis;
+  return { ms: Math.max(0, (kapali ? s : Date.now()) - b), suruyor: !kapali };
+}
+/* Maçın toplam süresi = PARTİ SÜRELERİNİN TOPLAMI.
+   İlk baştan sona duvar saati DEĞİL: celse talik edilip gece
+   beklerse "toplam 24 sa" gibi anlamsız bir sayı çıkıyordu.
+   Aradaki molalar sayılmıyor, masada oynanan süre sayılıyor.
+   kapaliMs: bitmiş partilerin toplamı (sayaç bunun üstüne ekliyor). */
+function macSuresi(c) {
+  let kapaliMs = 0, acikBas = 0;
+  (c?.partiler || []).forEach(p => {
+    if (!_an(p.basla)) return;
+    if (p.bitis) kapaliMs += Math.max(0, _an(p.bitis) - _an(p.basla));
+    else acikBas = _an(p.basla);
+  });
+  if (!kapaliMs && !acikBas) return { ms: 0, suruyor: false, kapaliMs: 0, acikBas: 0 };
+  const ms = kapaliMs + (acikBas ? Math.max(0, Date.now() - acikBas) : 0);
+  return { ms, suruyor: !!acikBas, kapaliMs, acikBas };
+}
+
+/* --------------------------------------------------------------
+   Süre kartı — canlı izlemede ve tabelacının ekranında
+   -------------------------------------------------------------- */
+function sureKarti(c, baslikGoster) {
+  const ps = c?.partiler || [];
+  if (!ps.some(p => p.basla)) return '';          // eski kayıt: damga yok
+  const t = macSuresi(c);
+  return `<div class="card tight">
+    ${baslikGoster === false ? '' : '<div class="xs dim" style="margin-bottom:7px">⏱️ SÜRE</div>'}
+    ${ps.map((p, i) => {
+      const s = partiSuresi(p);
+      if (!s.ms && !s.suruyor) return '';
+      return `<div class="row" style="justify-content:space-between;padding:3px 0">
+        <span class="sm ${s.suruyor ? '' : 'dim'}">${partiAd(c, i)}${s.suruyor ? ' <span class="canli"></span>' : ''}</span>
+        <span class="sm" style="font-weight:600">${
+          s.suruyor ? `<span class="sureSayac" data-bas="${esc(p.basla)}">${SURE_BICIM(s.ms)}</span>` : SURE_BICIM(s.ms)}</span>
+      </div>`;
+    }).join('')}
+    ${ps.filter(p => p.basla).length > 1 ? `<div class="row" style="justify-content:space-between;
+        padding:6px 0 0;margin-top:4px;border-top:1px solid var(--line)">
+      <span class="sm" style="font-weight:700">Toplam</span>
+      <span class="sm" style="font-weight:700;color:var(--gold)">${
+        t.suruyor ? `<span class="sureSayac" data-taban="${t.kapaliMs}" data-bas="${new Date(t.acikBas).toISOString()}">${
+          SURE_BICIM(t.ms)}</span>` : SURE_BICIM(t.ms)}</span>
+    </div>` : ''}
+    <div class="xs dim" style="margin-top:7px">Her partide ilk sayının yazıldığı andan itibaren. Partiler arası molalar sayılmaz.</div>
+  </div>`;
+}
+
+/* Saniyede bir yalnız sayaç metnini tazeler — tam çizim yapmaz,
+   yoksa yazarken odak kaçar. */
+let _sureTik = null;
+function sureTikBasla() {
+  clearInterval(_sureTik);
+  _sureTik = setInterval(() => {
+    const n = document.querySelectorAll('.sureSayac');
+    if (!n.length) { clearInterval(_sureTik); _sureTik = null; return; }
+    n.forEach(x => {
+      const taban = Number(x.dataset.taban) || 0;
+      x.textContent = SURE_BICIM(taban + (Date.now() - _an(x.dataset.bas)));
+    });
+  }, 1000);
+}
+
+/* --------------------------------------------------------------
+   Damgalama — kaydet() ve parti kapanışından çağrılıyor
+   -------------------------------------------------------------- */
+function sureDamgala(c) {
+  if (!c) return;
+  const p = (c.partiler || [])[(c.partiler || []).length - 1];
+  if (!p || !(p.eller || []).length) return;
+  const simdi = new Date().toISOString();
+  if (!p.basla) p.basla = simdi;
+  p.son = simdi;
+}
+function sureKapat(p) {
+  if (!p) return;
+  if (p.basla && !p.bitis) p.bitis = new Date().toISOString();
+}
+
+/* Zabıta düşen satır */
+function sureZabitNotu(c) {
+  const ps = (c?.partiler || []).filter(p => p.basla);
+  if (!ps.length) return '';
+  const t = macSuresi(c);
+  if (ps.length === 1) return `SÜRE: Celse ${SURE_BICIM(t.ms)} sürmüştür.`;
+  /* Toplam = parti sürelerinin toplamı; aradaki molalar sayılmaz. */
+  const dokum = (c.partiler || []).map((p, i) => {
+    const s = partiSuresi(p);
+    return s.ms ? `${partiAd(c, i)} ${SURE_BICIM(s.ms)}` : null;
+  }).filter(Boolean).join(', ');
+  return `SÜRE: Celse toplam ${SURE_BICIM(t.ms)} sürmüştür (${dokum}).`;
 }
 
 /* =========================================================
@@ -6206,14 +6345,22 @@ function borcTablosu(){
     ekle(k.alacaklilar,k.ne,n);
   });
   /* akıştaki ödemeler borcu kapatır. Eski kayıtlar tek kişi (o.kim) tutuyordu;
-     yenilerde taraf (o.taraf) var. İkisi de okunuyor. */
+     yenilerde taraf (o.taraf) var. İkisi de okunuyor.
+
+     ÖNEMLİ: ödeme İKİ tarafı da kapatır — borçlunun borcu azalır,
+     ALACAKLININ alacağı da azalır. Eskiden yalnız borçlu tarafı
+     düşüyordu, alacaklı ödendiği hâlde alacaklı görünüyordu.
+     o.alacakli yoksa (eski kayıt) eski davranış korunuyor. */
   (DB.akis||[]).forEach(a=>{
     const o=a.veri&&a.veri.odeme;
     if(!o||!o.ne) return;
+    const n=Number(o.adet)||0;
     const k0=o.taraf ? tarafKey(o.taraf) : tarafKey([o.kim]);
-    if(!k0) return;
-    const k=`${k0}|${o.ne}`;
-    t[k]=(t[k]||0)+(Number(o.adet)||0);      // ödeyince borcu (eksi) azalır
+    if(k0) t[`${k0}|${o.ne}`]=(t[`${k0}|${o.ne}`]||0)+n;   // borçlu: eksi azalır
+    if(Array.isArray(o.alacakli)&&o.alacakli.length){
+      const k1=tarafKey(o.alacakli);
+      if(k1) t[`${k1}|${o.ne}`]=(t[`${k1}|${o.ne}`]||0)-n; // alacaklı: artı azalır
+    }
   });
   return t;
 }
@@ -6235,7 +6382,7 @@ function borcKart(){
       <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}${r.taraf.length>1?' · ortak':''}</div></div>
     <div class="serif" style="font-size:18px">
       <span class="${r.v<0?'neg':'pos'}">${r.v<0?Math.abs(r.v):'+'+r.v}</span></div>
-    ${r.v<0?`<button class="btn-xs btn-gh"
+    ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-gh"
       onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
   </div>`;
 
@@ -6247,12 +6394,26 @@ function borcKart(){
     ${alacakli.length?`<div class="sep"></div>
       <div class="xs" style="color:#8CC79B;font-weight:700;margin:4px 0">ALACAKLI</div>
       ${alacakli.map(satir).join('')}`:''}
-    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.</div>
+    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.
+      <br><b>Ödemeyi yalnız ${esc((oy(kurucuOyuncu())||{}).ad||'masayı kuran')} işaretler</b> — borçlu kendi ödemesini kayda geçiremez.</div>
   </div>`;
 }
 
+/* O bahis kaleminde alacaklı taraflar — ödemenin kime yapıldığını
+   sormak için. Bakiyesi artı olan her taraf bir seçenek. */
+function alacakliTaraflar(ne){
+  return Object.entries(borcTablosu())
+    .filter(([k,v])=>v>0&&k.slice(k.indexOf('|')+1)===ne)
+    .map(([k,v])=>({ids:tarafKisiler(k.slice(0,k.indexOf('|'))),v}))
+    .sort((a,b)=>b.v-a.v);
+}
+
 function borcOdeAc(taraf,ne,enfazla){
+  /* Yetki: ödemeyi yalnız masayı kuran işler. Asıl kilit veritabanında
+     (yama 11): veri.odeme taşıyan akış satırını yalnız kurucu yazabilir. */
+  if(!kurucuMu()) return toast('Ödemeyi yalnız masayı kuran işaretleyebilir',true);
   const ortak=taraf.length>1;
+  const alk=alacakliTaraflar(ne);
   acModal(`<h2 class="serif" style="margin:0 0 4px">Borç Ödemesi</h2>
     <div class="xs dim" style="margin-bottom:14px">Kayıt akışa işlenir; masa görür, tabeladan düşer.
       ${ortak?'Borç ortak olduğu için ödeme de tarafın tamamına yazılır.':''}</div>
@@ -6260,20 +6421,41 @@ function borcOdeAc(taraf,ne,enfazla){
       ${taraf.map(id=>avatar(id,36)).join('')}
       <div><div style="font-weight:700">${esc(taraf.map(ad).join(' & '))}</div>
         <div class="xs dim">${bahisIkon(ne)} ${esc(ne)} · ${enfazla} borç${ortak?' (ortak)':''}</div></div></div>
+
+    ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
+      <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
+        ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
+          data-ids='${JSON.stringify(x.ids)}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
+          <span class="xs dim">${x.v}</span></span>`).join('')}
+      </div>
+      <div class="xs dim" style="margin-top:6px">Seçilen tarafın alacağı da bu miktarda düşer.
+        Boş bırakırsan yalnız borçlunun borcu kapanır.</div></div>`:''}
+
     <div class="field"><label class="fl">Kaç tanesini ödedi?</label>
       <input type="number" id="boAdet" value="${enfazla}" min="1" max="${enfazla}"></div>
     <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
       onclick='borcOdeKaydet(${JSON.stringify(taraf)},${JSON.stringify(ne)},${enfazla})'>Ödendi Olarak İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }
+
+/* Tek seçimli çip (aynı kaptaki ötekiler kapanır) */
+function chipTek(el){
+  const secili=el.classList.contains('on');
+  el.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));
+  if(!secili) el.classList.add('on');
+}
 async function borcOdeKaydet(taraf,ne,enfazla){
   const adet=Math.max(1,Math.min(enfazla,parseInt($('#boAdet').value,10)||1));
+  const secili=document.querySelector('#boAlacakli .chip.on');
+  let alacakli=null;
+  try{ alacakli=secili?JSON.parse(secili.dataset.ids):null; }catch(e){ alacakli=null; }
   const btn=$('#boBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
   const kim=liste(taraf.map(ad));
+  const kime=alacakli&&alacakli.length?` ${liste(alacakli.map(ad))} lehine olan`:'';
   const metin=taraf.length>1
-    ? `${kim}, ${adet} ${ne} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
-    : `${kim}, ${adet} ${ne} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
-  const ok=await akisEkle('mesaj',metin,{odeme:{taraf,kim:taraf[0],ne,adet}});
+    ? `${kim}, ${adet} ${ne}${kime} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
+    : `${kim}, ${adet} ${ne}${kime} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
+  const ok=await akisEkle('mesaj',metin,{odeme:{taraf,kim:taraf[0],ne,adet,alacakli}});
   if(!ok){ btn.disabled=false; btn.textContent='Ödendi Olarak İşle'; return; }
   kapatModal(); render(); toast(metin,true);
 }
@@ -6296,6 +6478,15 @@ function bahisNotu(c){
   const sr=yzMac(c).sira;
   if(!sr.length) return '';
   return `BAHİS: ${dokum}. ${ad(sr[sr.length-1].id)} borçlanmış, ${ad(sr[0].id)} alacaklı hâle gelmiştir.${coklu}`;
+}
+
+
+//== kurucuOyuncu
+/* Masayı kuranın oyuncu kaydı — "ödemeyi yalnız X işaretler" yazısı için. */
+function kurucuOyuncu(){
+  const g=aktifGrup(); if(!g) return null;
+  const o=DB.oyuncular.find(x=>x.masaId===g.id&&x.profilId===g.kuran);
+  return o?o.id:null;
 }
 
 /* =========================================================
@@ -6391,7 +6582,7 @@ function borcHesabi(){
     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
       ${r.taraf.map(id=>`<button class="btn-xs btn-gh" onclick="ekstreAc('${id}')">${
         r.taraf.length>1?esc(ad(id)):'Ekstre'}</button>`).join('')}
-      ${r.v<0?`<button class="btn-xs btn-g"
+      ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-g"
         onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 
@@ -7835,29 +8026,53 @@ function canliIzle(){
         <button class="btn-xs btn-gh" onclick="yenile()">Yenile</button></div>
     </div><div class="sep"></div>`;
 
+  /* YÜRÜYEN PARTİ ayrı gösterilir. Eskiden maçın TOPLAMI (gTop / top)
+     yazılıyordu; 1. parti bitince 2. partinin sayıları onun üstüne
+     biniyor gibi görünüyordu — tabelacının ekranıyla tutmuyordu. */
+  const parti=m.aktif, pIdx=m.aktifIdx;
+  const pAd=partiAd(c,pIdx), cikis=pAd==='Çıkıştırma';
+  const alt=`</div>
+    ${sureKarti(c)}
+    ${gecmisPartiler(c)}
+    <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor.
+      Ekran kendiliğinden güncellenir. Yukarıdaki sayılar <b>${esc(pAd)}</b> içindir;
+      önceki partiler ayrı durur.</div>`;
+
   if(c.oyun==='batak'){
     const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+    const {top}=batakPartiToplam(parti);
+    const pKz=batakPartiKazanan(parti);
     return bas2+`
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div class="serif" style="font-size:15px">${cikis?'🔥 ':''}${esc(pAd)}</div>
+        <div class="xs dim">${parti.eller.length} el · hedef ${DB.ayar.batak.hedef}</div>
+      </div>
       ${[0,1].map(i=>`<div class="row" style="padding:7px 0">
         <span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span>
         <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
-        <div class="serif" style="font-size:22px;${m.macKazanan===i?'color:var(--gold)':''}">${m.gTop[i]}</div>
+        <div class="serif" style="font-size:22px;${pKz===i?'color:var(--gold)':''}">${top[i]}</div>
       </div>`).join('')}
-      <div class="xs dim center" style="margin-top:6px">Parti ${m.partiSkor[0]}–${m.partiSkor[1]} · ${c.partiHedef} parti üzerinden</div>
-      </div>
-      ${gecmisPartiler(c)}
-      <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+      <div class="xs dim center" style="margin-top:6px">Parti skoru ${m.partiSkor[0]}–${m.partiSkor[1]}
+        · ${c.partiHedef} parti üzerinden${c.partiler.length>1?` · maç toplamı ${m.gTop[0]}–${m.gTop[1]}`:''}</div>
+      ${alt}`;
   }
-  const sr=m.sira;
+
+  /* 101: yürüyen partinin puanları. Sıralama da o partiye göre. */
+  const pt=yzPartiToplam(parti,c);
+  const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]||ad(x).localeCompare(ad(y),'tr'));
   return bas2+`
-    ${sr.map((r,i)=>`<div class="row" style="padding:6px 0;gap:9px">
-      <div class="rank ${i===0?'r1':(i===sr.length-1?'rs':'')}">${i+1}</div>
-      ${avatar(r.id,30)}
-      <div class="grow" style="margin-left:4px;font-weight:600;font-size:14px">${esc(ad(r.id))}</div>
-      <div class="serif" style="font-size:19px">${r.puan}</div></div>`).join('')}
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div class="serif" style="font-size:15px">${esc(pAd)}</div>
+      <div class="xs dim">${parti.eller.length} / ${DB.ayar.yz.elSayisi} el</div>
     </div>
-    ${gecmisPartiler(c)}
-    <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+    ${sr.map((id,i)=>`<div class="row" style="padding:6px 0;gap:9px">
+      <div class="rank ${i===0?'r1':(i===sr.length-1?'rs':'')}">${i+1}</div>
+      ${avatar(id,30)}
+      <div class="grow" style="margin-left:4px;font-weight:600;font-size:14px">${esc(ad(id))}</div>
+      <div class="serif" style="font-size:19px">${pt[id]}</div></div>`).join('')}
+    ${c.partiler.length>1?`<div class="xs dim center" style="margin-top:6px">Parti sayısı ${
+      c.oyuncular.map(id=>`${ad(id)} ${m.partiKaz[id]||0}`).join(' · ')}</div>`:''}
+    ${alt}`;
 }
 
 /* ---------- modal ---------- */

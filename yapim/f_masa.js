@@ -154,6 +154,8 @@ async function celseKesinlestir(){
   const c=DB.aktif; if(!c) return;
   clearTimeout(_yazZaman);          // bekleyen gecikmeli yazma kapanışın üstüne binmesin
   const oncekiRozet=rozetSahipleri(c.oyun);
+  /* Maç kapanıyor: yürüyen partinin süresi de mühürlensin */
+  if(typeof sureKapat==='function') sureKapat(c.partiler[c.partiler.length-1]);
   c.not=$('#zNot').value.trim();
   if(c.giris==='detay'){
     const son=c.partiler[c.partiler.length-1];
@@ -227,27 +229,51 @@ function canliIzle(){
         <button class="btn-xs btn-gh" onclick="yenile()">Yenile</button></div>
     </div><div class="sep"></div>`;
 
+  /* YÜRÜYEN PARTİ ayrı gösterilir. Eskiden maçın TOPLAMI (gTop / top)
+     yazılıyordu; 1. parti bitince 2. partinin sayıları onun üstüne
+     biniyor gibi görünüyordu — tabelacının ekranıyla tutmuyordu. */
+  const parti=m.aktif, pIdx=m.aktifIdx;
+  const pAd=partiAd(c,pIdx), cikis=pAd==='Çıkıştırma';
+  const alt=`</div>
+    ${sureKarti(c)}
+    ${gecmisPartiler(c)}
+    <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor.
+      Ekran kendiliğinden güncellenir. Yukarıdaki sayılar <b>${esc(pAd)}</b> içindir;
+      önceki partiler ayrı durur.</div>`;
+
   if(c.oyun==='batak'){
     const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
+    const {top}=batakPartiToplam(parti);
+    const pKz=batakPartiKazanan(parti);
     return bas2+`
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div class="serif" style="font-size:15px">${cikis?'🔥 ':''}${esc(pAd)}</div>
+        <div class="xs dim">${parti.eller.length} el · hedef ${DB.ayar.batak.hedef}</div>
+      </div>
       ${[0,1].map(i=>`<div class="row" style="padding:7px 0">
         <span class="pill ${i?'blue':'red'}">${c.takimlar[i].ad}</span>
         <div class="grow" style="font-weight:600;font-size:14px">${esc(T(i))}</div>
-        <div class="serif" style="font-size:22px;${m.macKazanan===i?'color:var(--gold)':''}">${m.gTop[i]}</div>
+        <div class="serif" style="font-size:22px;${pKz===i?'color:var(--gold)':''}">${top[i]}</div>
       </div>`).join('')}
-      <div class="xs dim center" style="margin-top:6px">Parti ${m.partiSkor[0]}–${m.partiSkor[1]} · ${c.partiHedef} parti üzerinden</div>
-      </div>
-      ${gecmisPartiler(c)}
-      <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+      <div class="xs dim center" style="margin-top:6px">Parti skoru ${m.partiSkor[0]}–${m.partiSkor[1]}
+        · ${c.partiHedef} parti üzerinden${c.partiler.length>1?` · maç toplamı ${m.gTop[0]}–${m.gTop[1]}`:''}</div>
+      ${alt}`;
   }
-  const sr=m.sira;
+
+  /* 101: yürüyen partinin puanları. Sıralama da o partiye göre. */
+  const pt=yzPartiToplam(parti,c);
+  const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]||ad(x).localeCompare(ad(y),'tr'));
   return bas2+`
-    ${sr.map((r,i)=>`<div class="row" style="padding:6px 0;gap:9px">
-      <div class="rank ${i===0?'r1':(i===sr.length-1?'rs':'')}">${i+1}</div>
-      ${avatar(r.id,30)}
-      <div class="grow" style="margin-left:4px;font-weight:600;font-size:14px">${esc(ad(r.id))}</div>
-      <div class="serif" style="font-size:19px">${r.puan}</div></div>`).join('')}
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div class="serif" style="font-size:15px">${esc(pAd)}</div>
+      <div class="xs dim">${parti.eller.length} / ${DB.ayar.yz.elSayisi} el</div>
     </div>
-    ${gecmisPartiler(c)}
-    <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor. Ekran kendiliğinden güncellenir.</div>`;
+    ${sr.map((id,i)=>`<div class="row" style="padding:6px 0;gap:9px">
+      <div class="rank ${i===0?'r1':(i===sr.length-1?'rs':'')}">${i+1}</div>
+      ${avatar(id,30)}
+      <div class="grow" style="margin-left:4px;font-weight:600;font-size:14px">${esc(ad(id))}</div>
+      <div class="serif" style="font-size:19px">${pt[id]}</div></div>`).join('')}
+    ${c.partiler.length>1?`<div class="xs dim center" style="margin-top:6px">Parti sayısı ${
+      c.oyuncular.map(id=>`${ad(id)} ${m.partiKaz[id]||0}`).join(' · ')}</div>`:''}
+    ${alt}`;
 }
