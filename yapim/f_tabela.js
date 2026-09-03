@@ -70,6 +70,7 @@ function batakTabela(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
@@ -183,6 +184,7 @@ function yzTabela(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>

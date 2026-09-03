@@ -1215,6 +1215,8 @@ function zabitUret(c){
     acikIdd.slice(0,4).forEach(i=>L.push(`  • ${ad(i.kim)}${i.kime?` ↔ ${ad(i.kime)}`:''}: “${i.metin}”${i.bahis?` — ${i.bahis}`:''}${i.vade?` (vade ${trh(i.vade)})`:''}`));
   }
 
+  const kf=(typeof macKafeZabit==='function')?macKafeZabit(c):'';
+  if(kf){ L.push(''); L.push(kf); }
   const sr=sureZabitNotu(c);
   if(sr){ L.push(''); L.push(sr); }
   const tl=talikZabitNotu(c);
@@ -1503,7 +1505,7 @@ function viewCelse(){
           <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">parti ${DB.ayar.yz.elSayisi} el<br>çok puanlı kaybeder</span></button>
       </div>
       <button class="btn-g btn-full btn-sm" style="margin-top:10px" onclick="kuraCek()">🎲 Eş Kurası Çek</button>
-      <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="mocksAc()">☕ The Mocks · Masa Hesabı</button>
+      <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="mocksGenelAc()">☕ The Mocks · Masa Hesabı</button>
       <div class="xs dim" style="margin-top:8px">${yuruyen.length
         ?'İki masa aynı anda yürüyebilir; her masanın tabelasını ayrı kişi yazar. '
         :''}Kurayı defter çeker, itiraz kabul edilmez.</div>
@@ -1834,6 +1836,7 @@ function aktifBatak(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
@@ -1922,6 +1925,7 @@ function aktifYz(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
@@ -2632,7 +2636,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.3 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.4 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4411,6 +4415,7 @@ function batakTabela(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
@@ -4524,6 +4529,7 @@ function yzTabela(){
   ${MISAFIR?'':kurtarmaKontrol(c)}
   ${MISAFIR?'':misafirCagriKart(c)}
   ${talikBanner(c)}
+  ${MISAFIR?'':macKafeKart(c)}
   <div class="card ${cikis?'cikis':''}">
     <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
       <div style="flex:1 1 150px;min-width:0"><div class="serif" style="font-size:17px">${cikis?'🔥 ':''}${pAd}</div>
@@ -7103,6 +7109,23 @@ const MOCKS_HESAP_ON = 'kkd_mocks_hesap';
 let MOCKS = null;            // {para, kdv, gruplar:[{ad, urunler:[{id,ad,fiyat,foto}]}]}
 let MOCKS_GRUP = 0;         // seçili kategori
 let MOCKS_HESAP = mocksHesapOku();
+/* MOCKS_MAC true iken kafe hesabı AÇIK MAÇA (celse.kafe) yazılır:
+   tabelacı ekler, bulut'a gider, herkes görür, zabıta işler.
+   false iken cihazdaki genel liste (MOCKS_HESAP). */
+let MOCKS_MAC = false;
+function mocksMacAktif(){ return MOCKS_MAC && DB.aktif && !DB.aktif.bitti; }
+function mocksHesapRef(){
+  if(mocksMacAktif()){ if(!Array.isArray(DB.aktif.kafe)) DB.aktif.kafe=[]; return DB.aktif.kafe; }
+  return MOCKS_HESAP;
+}
+function mocksHesapKaydet(){
+  if(mocksMacAktif()){ if(typeof kaydet==='function') kaydet(); }
+  else mocksHesapYaz();
+}
+/* Açıcılar: maç modu (açık masaya yaz) ya da genel (cihaz). İç 'Tazele'
+   mocksAc()'i çağırınca bayrak korunur. */
+function mocksMacAc(){ MOCKS_MAC=true; mocksAc(); }
+function mocksGenelAc(){ MOCKS_MAC=false; mocksAc(); }
 
 /* Sık verilenler: kullanıcı listesi + otomatik öğrenilen sayaç.
    İkisi birleşip en üstte "Sık Sipariş" bölümü oluyor. */
@@ -7160,27 +7183,31 @@ async function mocksMenuGetir(zorla) {
 
 /* ---------------- hesap ---------------- */
 const mocksTL = n => (Math.round(n) === n ? n : n.toFixed(2)) + ' ₺';
-const mocksToplam = () => MOCKS_HESAP.reduce((t, x) => t + x.fiyat * x.adet, 0);
-const mocksAdet = () => MOCKS_HESAP.reduce((t, x) => t + x.adet, 0);
+const mocksToplam = () => mocksHesapRef().reduce((t, x) => t + x.fiyat * x.adet, 0);
+const mocksAdet = () => mocksHesapRef().reduce((t, x) => t + x.adet, 0);
 
 function mocksEkle(id, ad, fiyat) {
-  const v = MOCKS_HESAP.find(x => x.id === id);
+  const h = mocksHesapRef();
+  const v = h.find(x => x.id === id);
   if (v) v.adet++;
-  else MOCKS_HESAP.push({ id, ad, fiyat, adet: 1 });
+  else h.push({ id, ad, fiyat, adet: 1 });
   MOCKS_SAYAC[id]=(MOCKS_SAYAC[id]||0)+1; mocksSayacYaz();
-  mocksHesapYaz(); mocksCiz();
+  mocksHesapKaydet(); mocksCiz();
   toast(`${ad} eklendi`);
 }
 function mocksArtir(id, d) {
-  const v = MOCKS_HESAP.find(x => x.id === id); if (!v) return;
+  const h = mocksHesapRef();
+  const v = h.find(x => x.id === id); if (!v) return;
   v.adet += d;
-  if (v.adet <= 0) MOCKS_HESAP = MOCKS_HESAP.filter(x => x.id !== id);
-  mocksHesapYaz(); mocksCiz();
+  if (v.adet <= 0) { const i=h.indexOf(v); if(i>=0) h.splice(i,1); }
+  mocksHesapKaydet(); mocksCiz();
 }
 function mocksTemizle() {
-  if (!MOCKS_HESAP.length) return;
-  if (!confirm('Masa hesabı sıfırlansın mı? (Yalnız bu cihazdaki liste)')) return;
-  MOCKS_HESAP = []; mocksHesapYaz(); mocksCiz();
+  const h = mocksHesapRef();
+  if (!h.length) return;
+  if (!confirm(mocksMacAktif()?'Bu masanın kafe hesabı sıfırlansın mı?':'Masa hesabı sıfırlansın mı? (Bu cihazdaki liste)')) return;
+  h.length = 0;
+  mocksHesapKaydet(); mocksCiz();
 }
 
 /* Sık sipariş: adı MOCKS_SIK'te geçenler + en çok eklenenler.
@@ -7220,7 +7247,9 @@ function mocksHata() {
 function mocksCiz() {
   const g = $('#mkGovde'); if (!g || !MOCKS) return;
   const grup = MOCKS.gruplar[MOCKS_GRUP] || MOCKS.gruplar[0];
+  const hesap = mocksHesapRef();
   const top = mocksToplam();
+  const macModu = mocksMacAktif();
 
   g.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-start">
@@ -7237,11 +7266,13 @@ function mocksCiz() {
       </div>
     </div>
 
-    ${MOCKS_HESAP.length ? `<div class="card tight" style="margin:12px 0;border-color:var(--gold)">
+    ${macModu?`<div class="uyari" style="margin:0 0 10px">Bu hesap <b>açık masaya</b> yazılıyor:
+      herkes görür, zabıta işler. Yalnız tabelayı tutan ekleyebilir.</div>`:''}
+    ${hesap.length ? `<div class="card tight" style="margin:12px 0;border-color:var(--gold)">
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
-        <span class="sm" style="font-weight:700">🧾 Masa Hesabı</span>
+        <span class="sm" style="font-weight:700">🧾 ${macModu?'Bu Masanın Hesabı':'Masa Hesabı'}</span>
         <span class="serif" style="font-size:20px;color:var(--gold)">${mocksTL(top)}</span></div>
-      ${MOCKS_HESAP.map(x => `<div class="row" style="justify-content:space-between;padding:4px 0;gap:8px">
+      ${hesap.map(x => `<div class="row" style="justify-content:space-between;padding:4px 0;gap:8px">
         <div class="grow sm ell">${esc(x.ad)} <span class="xs dim">${x.fiyat ? mocksTL(x.fiyat) : ''}</span></div>
         <div class="row" style="gap:6px;flex-shrink:0;align-items:center">
           <button class="btn-xs btn-gh" onclick="mocksArtir(${x.id},-1)">−</button>
@@ -7289,9 +7320,10 @@ function mocksCiz() {
 }
 
 function mocksHesapPaylas() {
-  if (!MOCKS_HESAP.length) return;
+  const h = mocksHesapRef();
+  if (!h.length) return;
   const L = ['🧾 THE MOCKS — Masa Hesabı', ''];
-  MOCKS_HESAP.forEach(x => L.push(`${x.adet}× ${x.ad}  ${mocksTL(x.fiyat * x.adet)}`));
+  h.forEach(x => L.push(`${x.adet}× ${x.ad}  ${mocksTL(x.fiyat * x.adet)}`));
   L.push('');
   L.push(`TOPLAM: ${mocksTL(mocksToplam())} (KDV dahil)`);
   kopyala(L.join('\n'));
@@ -7358,6 +7390,31 @@ async function mocksMasaDogrula(){
     if(btn){ btn.disabled=false; btn.textContent='Dogrula ve Kaydet'; }
   }
 }
+
+//== macKafe
+/* Açık/biten maça bağlı kafe hesabı toplamı ve özeti (zabıt + PDF için) */
+function macKafeToplam(c){ return (c&&Array.isArray(c.kafe)?c.kafe:[]).reduce((t,x)=>t+(Number(x.fiyat)||0)*(Number(x.adet)||0),0); }
+function macKafeZabit(c){
+  const k=c&&Array.isArray(c.kafe)?c.kafe:[]; if(!k.length) return '';
+  const dokum=k.map(x=>`${x.adet} ${x.ad}`).join(', ');
+  return `MASA HESABI: ${dokum}. Toplam ${macKafeToplam(c)} ₺ (The Mocks). Ödeme, defterin sahibi huzurunda yapılır.`;
+}
+/* Tabela ekranında gösterilen kısa kart */
+function macKafeKart(c){
+  if(!c) return '';
+  const k=Array.isArray(c.kafe)?c.kafe:[];
+  const yaz = c._hesap===OTURUM?.id && !c.bitti;   // yalnız tabelacı ekler
+  if(!k.length && !yaz) return '';
+  return `<div class="card tight">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><div class="xs dim">☕ Masa Hesabı · The Mocks</div>
+        <div class="serif" style="font-size:19px;color:var(--gold)">${k.length?macKafeToplam(c)+' ₺':'—'}</div></div>
+      ${yaz?`<button class="btn-sm btn-b" onclick="mocksMacAc()">+ Çay / Kahve / Ekle</button>`:''}
+    </div>
+    ${k.length?`<div class="xs dim" style="margin-top:6px">${k.map(x=>`${x.adet}× ${esc(x.ad)}`).join(' · ')}</div>`:''}
+  </div>`;
+}
+
 //== rapor
 /* =========================================================
    GENEL SİCİL KARARI — yazdırılabilir PDF rapor
@@ -8913,7 +8970,9 @@ function canliIzle(){
      biniyor gibi görünüyordu — tabelacının ekranıyla tutmuyordu. */
   const parti=m.aktif, pIdx=m.aktifIdx;
   const pAd=partiAd(c,pIdx), cikis=pAd==='Çıkıştırma';
+  const kafeKart=typeof macKafeKart==='function'?macKafeKart(c):'';
   const alt=`</div>
+    ${kafeKart}
     ${sureKarti(c)}
     ${gecmisPartiler(c)}
     <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor.

@@ -35,7 +35,7 @@ function viewCelse(){
           <span class="xs" style="opacity:.78;font-weight:500;line-height:1.35">parti ${DB.ayar.yz.elSayisi} el<br>çok puanlı kaybeder</span></button>
       </div>
       <button class="btn-g btn-full btn-sm" style="margin-top:10px" onclick="kuraCek()">🎲 Eş Kurası Çek</button>
-      <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="mocksAc()">☕ The Mocks · Masa Hesabı</button>
+      <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="mocksGenelAc()">☕ The Mocks · Masa Hesabı</button>
       <div class="xs dim" style="margin-top:8px">${yuruyen.length
         ?'İki masa aynı anda yürüyebilir; her masanın tabelasını ayrı kişi yazar. '
         :''}Kurayı defter çeker, itiraz kabul edilmez.</div>
@@ -235,7 +235,9 @@ function canliIzle(){
      biniyor gibi görünüyordu — tabelacının ekranıyla tutmuyordu. */
   const parti=m.aktif, pIdx=m.aktifIdx;
   const pAd=partiAd(c,pIdx), cikis=pAd==='Çıkıştırma';
+  const kafeKart=typeof macKafeKart==='function'?macKafeKart(c):'';
   const alt=`</div>
+    ${kafeKart}
     ${sureKarti(c)}
     ${gecmisPartiler(c)}
     <div class="card tight center xs dim">Tabelayı ${esc(kim?.ad||'tabelacı')} tutuyor.
