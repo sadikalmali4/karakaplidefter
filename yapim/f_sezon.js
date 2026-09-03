@@ -81,8 +81,8 @@ function sezonPanosu(){
       <div class="xs dim">Sezon kapandı; unvanlar kalıcıdır.</div>`
      :`<div class="sm dim">Sezon açık. ${gecmis?'Bu yıl geçti ama kapatılmadı.':'Yıl sonunda kapatılınca şampiyonluk unvanı kalıcı olarak yazılır.'}</div>`}
     ${k&&!kapali&&sezonCelseleri().length
-      ?`<button class="btn-g btn-full btn-sm" style="margin-top:11px" onclick="sezonKapatAc('${yil}')">
-          🏆 ${esc(yil)} Sezonunu Kapat</button>`:''}
+      ?`<button class="btn-g btn-full btn-sm" style="margin-top:11px" onclick="sezonTorenAc('${yil}')">
+          🎉 ${esc(yil)} Kapanış Töreni</button>`:''}
     ${k&&kapali?`<button class="btn-gh btn-full btn-sm" style="margin-top:9px" onclick="sezonAc('${yil}')">
       Sezonu yeniden aç</button>`:''}
   </div>`;

@@ -39,12 +39,19 @@ function viewAkis(){
       <div class="grow">
         <textarea id="akMetin" rows="2" placeholder="Masaya bir şey söyle..."
           oninput="_taslak=this.value" style="resize:none">${esc(_taslak)}</textarea>
+        <div id="akFotoOnizle" style="margin-top:8px">${_akFotoData?`
+          <div style="position:relative;display:inline-block">
+            <img src="${_akFotoData}" style="max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--line)">
+            <button class="btn-xs btn-dn" style="position:absolute;top:6px;right:6px" onclick="akFotoSil()">✕</button>
+          </div>`:''}</div>
         <div class="row wrap" style="margin-top:8px;gap:7px">
+          <button class="btn-sm btn-gh" onclick="document.getElementById('akFotoInp').click()">📷 Fotoğraf</button>
           <button class="btn-sm btn-gh" onclick="cagriYap()" title="Bu akşam oynayan var mı?">📣 Çağrı</button>
           <button class="btn-sm btn-gh" onclick="haftaOzetiAc(7)">🗓️ Hafta Özeti</button>
           <div class="grow"></div>
           <button class="btn-p btn-sm" id="akBtn" onclick="akisYaz()">Gönder</button>
         </div>
+        <input type="file" id="akFotoInp" accept="image/*" style="display:none" onchange="akFotoSec(this)">
       </div>
     </div>
   </div>`;
@@ -80,7 +87,10 @@ function akisKart(a,yrm){
          <div class="xs muted">${esc(a.metin||'')}</div></div></div>`
     : a.tip==='cagri'
     ? `<div class="uyari" style="margin:2px 0">📣 ${esc(a.metin||'')}</div>`
-    : `<div style="font-size:14.5px;line-height:1.55;white-space:pre-wrap;margin:2px 0">${esc(a.metin||'')}</div>`;
+    : `${a.metin?`<div style="font-size:14.5px;line-height:1.55;white-space:pre-wrap;margin:2px 0">${esc(a.metin)}</div>`:''}
+       ${a.veri&&a.veri.foto?`<img src="${esc(a.veri.foto)}" loading="lazy"
+         style="max-width:100%;border-radius:12px;margin-top:6px;cursor:pointer"
+         onclick="fotoBuyut('${esc(a.veri.foto)}')">`:''}`;
 
   return `<div class="card">
     <div class="row" style="gap:9px">
@@ -135,12 +145,43 @@ async function akisEkle(tip,metin,veri,yanitId){
     metin:data.metin,veri:data.veri||{},olusturma:data.olusturma,yanitId:data.yanit_id,tepkiler:[]});
   return data.id;
 }
+let _akFotoData=null, _akFotoBlob=null;
+function akFotoSec(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ const im=new Image();
+    im.onload=()=>{
+      /* En uzun kenar 1200 px; oran korunur (kare kırpma yok — foto). */
+      const enb=1200, o=Math.min(1,enb/Math.max(im.width,im.height));
+      const w=Math.round(im.width*o), h=Math.round(im.height*o);
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(im,0,0,w,h);
+      _akFotoData=cv.toDataURL('image/jpeg',.82);
+      cv.toBlob(b=>{_akFotoBlob=b;},'image/jpeg',.82);
+      const el=$('#akFotoOnizle'); if(el) el.innerHTML=`<div style="position:relative;display:inline-block">
+        <img src="${_akFotoData}" style="max-width:100%;max-height:200px;border-radius:10px;border:1px solid var(--line)">
+        <button class="btn-xs btn-dn" style="position:absolute;top:6px;right:6px" onclick="akFotoSil()">✕</button></div>`;
+    }; im.src=r.result; };
+  r.readAsDataURL(f); inp.value='';
+}
+function akFotoSil(){ _akFotoData=null; _akFotoBlob=null; const el=$('#akFotoOnizle'); if(el) el.innerHTML=''; }
+
 async function akisYaz(){
   const m=($('#akMetin')?.value||'').trim();
-  if(!m) return toast('Önce bir şey yaz',true);
+  if(!m && !_akFotoBlob) return toast('Önce bir şey yaz ya da fotoğraf seç',true);
   const b=$('#akBtn'); b.disabled=true; b.innerHTML='<span class="yukleniyor"></span>';
-  const id=await akisEkle('mesaj',m,{});
-  if(id){ _taslak=''; render(); } else { b.disabled=false; b.textContent='Gönder'; }
+  let veri={};
+  if(_akFotoBlob){
+    try{
+      const yol=`masa/${DB.aktifGrup}/akis/${OTURUM.id}_${Date.now()}.jpg`;
+      const {error}=await sb.storage.from('avatarlar')
+        .upload(yol,_akFotoBlob,{contentType:'image/jpeg',upsert:true});
+      if(error) throw error;
+      veri.foto=sb.storage.from('avatarlar').getPublicUrl(yol).data.publicUrl;
+    }catch(e){ b.disabled=false; b.textContent='Gönder'; return toast('Fotoğraf yüklenemedi: '+hataMetni(e),true); }
+  }
+  const id=await akisEkle('mesaj',m||'',veri);
+  if(id){ _taslak=''; akFotoSil(); render(); } else { b.disabled=false; b.textContent='Gönder'; }
 }
 async function yorumYaz(ustId){
   const m=(_yorumTaslak[ustId]||'').trim();
@@ -185,4 +226,17 @@ function tepkiSec(id){
   acModal(`<h2 class="serif" style="margin:0 0 12px">Tepki</h2>
     <div class="row wrap">${TEPKILER.map(e=>
       `<button style="font-size:26px;padding:12px 16px" onclick="kapatModal();tepkiVer('${id}','${e}')">${e}</button>`).join('')}</div>`);
+}
+
+
+//== fotoBuyut
+/* Akıştaki fotoğrafa dokununca tam ekran gösterir. */
+function fotoBuyut(url){
+  const eski=document.getElementById('fotoTam'); if(eski) eski.remove();
+  const d=document.createElement('div'); d.id='fotoTam';
+  d.style.cssText='position:fixed;inset:0;z-index:210;background:rgba(0,0,0,.92);'
+    +'display:flex;align-items:center;justify-content:center;padding:16px';
+  d.onclick=()=>d.remove();
+  d.innerHTML=`<img src="${esc(url)}" style="max-width:100%;max-height:100%;border-radius:8px">`;
+  document.body.appendChild(d);
 }

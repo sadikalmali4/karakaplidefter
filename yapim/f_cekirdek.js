@@ -137,6 +137,8 @@ async function baslat(){
     }
     if(_cagri&&OTURUM){ TAB='celse'; SABIKA_ID=null; }
     DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
+    /* Geçen ayın özeti yazılmadıysa yaz (yalnız kurucu, ayda bir) */
+    if(DURUM==='hazir' && typeof ayOzetiKontrol==='function') ayOzetiKontrol();
   }catch(e){ DURUM='hata'; HATA=hataMetni(e); }
   render();
 }
