@@ -50,10 +50,11 @@ function render(){
     + ` <span id="yazDurum" class="yaziyor"></span>`;
   $('#hdrRight').innerHTML = `<div class="grupBar" onclick="grupSecici()">
       <span class="ell">${esc(g?g.emoji+' '+g.ad:'Masa')}</span><span class="dim">▾</span></div>`;
-  if(TAB==='celse') v.innerHTML=viewCelse();
+  const serit = (typeof pushSerit==='function' && (TAB==='celse'||TAB==='akis')) ? pushSerit() : '';
+  if(TAB==='celse') v.innerHTML=serit+viewCelse();
   /* Yurdyen partinin sayaci saniyede bir tazelensin (tam cizim yok) */
   setTimeout(()=>{ if(document.querySelector('.sureSayac')) sureTikBasla(); },0);
-  if(TAB==='akis')  v.innerHTML=viewAkis();
+  if(TAB==='akis')  v.innerHTML=serit+viewAkis();
   if(TAB==='sicil') v.innerHTML=viewSicil();
   if(TAB==='iddia') v.innerHTML=viewIddia();
   if(TAB==='arsiv') v.innerHTML=viewArsiv();

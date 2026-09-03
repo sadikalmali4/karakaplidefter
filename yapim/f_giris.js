@@ -66,6 +66,7 @@ async function girisYap(){
     kanalKur();
     DURUM=DB.gruplar.length?'hazir':'masayok';
     render();
+    if(typeof pushHazirla==='function') pushHazirla().then(()=>render()).catch(()=>{});
     if(!davetVarMi) toast(kayit?`Hoş geldin ${adi}.`:`Tekrar hoş geldin ${PROFIL?.ad||''}.`);
   }catch(e){
     toast(hataMetni(e),true);

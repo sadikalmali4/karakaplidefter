@@ -137,6 +137,9 @@ async function baslat(){
     }
     if(_cagri&&OTURUM){ TAB='celse'; SABIKA_ID=null; }
     DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
+    /* Bildirim: izin zaten varsa sormadan abone ol, yoksa şerit çıksın */
+    if(OTURUM && DB.gruplar.length && typeof pushHazirla==='function')
+      pushHazirla().then(()=>render()).catch(()=>{});
     /* Geçen ayın özeti yazılmadıysa yaz (yalnız kurucu, ayda bir) */
     if(DURUM==='hazir' && typeof ayOzetiKontrol==='function') ayOzetiKontrol();
   }catch(e){ DURUM='hata'; HATA=hataMetni(e); }

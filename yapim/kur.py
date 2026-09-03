@@ -244,7 +244,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_tabela.js') + '\n' + F('f_devret.js') + '\n'
               + F('f_sure.js') + '\n'
               + F('f_sezon.js') + '\n' + F('f_cagri.js') + '\n'
-              + F('f_push.js') + '\n'
+              + F('f_push.js') + '\n' + F('f_push2.js') + '\n'
               + F('f_ozet.js') + '\n'
               + F('f_tahmin.js') + '\n' + F('f_tahmin2.js') + '\n'
               + F('f_tmisafir.js') + '\n'
