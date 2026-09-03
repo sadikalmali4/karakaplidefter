@@ -2561,7 +2561,7 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.7 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 7.8 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -6705,7 +6705,11 @@ async function borcOzetiAkisa(){
 
 const MOCKS_URL = 'https://menuluxmenuapi.azurewebsites.net/api/MobileAPI/GetMenu'
   + '?weburl=themocks.qr.menulux.com&language=TR';
-const MOCKS_MENU_URL = 'https://themocks.qr.menulux.com/?tableno=241#!/';
+const MOCKS_MUSTERI = 17139;
+const MOCKS_MASA_ON = 'kkd_mocks_masa';
+function mocksMasaNo(){ try{ return localStorage.getItem(MOCKS_MASA_ON)||'241'; }catch(e){ return '241'; } }
+function mocksMasaAdiOku(){ try{ return localStorage.getItem(MOCKS_MASA_ON+'_ad')||''; }catch(e){ return ''; } }
+const mocksMenuUrl = ()=>'https://themocks.qr.menulux.com/?tableno='+encodeURIComponent(mocksMasaNo())+'#!/';
 const MOCKS_ONBELLEK = 'kkd_mocks_menu';
 const MOCKS_HESAP_ON = 'kkd_mocks_hesap';
 
@@ -6837,6 +6841,14 @@ function mocksCiz() {
         <div class="xs dim">Kitchen &amp; Mocktail Bar · canlı menü · KDV dahil</div></div>
       <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="mocksAc()">↻ Tazele</button>
     </div>
+    <div class="card tight" style="margin:10px 0;background:var(--panel2)">
+      <div class="row" style="justify-content:space-between;gap:8px">
+        <div class="grow" style="min-width:0">
+          <div class="xs dim">Sipariş adresi</div>
+          <div class="sm ell" style="font-weight:700">${esc(mocksMasaAdiOku()||('Masa/Daire '+mocksMasaNo()))}</div></div>
+        <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="mocksMasaAc()">Değiştir</button>
+      </div>
+    </div>
 
     ${MOCKS_HESAP.length ? `<div class="card tight" style="margin:12px 0;border-color:var(--gold)">
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
@@ -6883,7 +6895,7 @@ function mocksCiz() {
     </div>
 
     <a class="btn-gh btn-full btn-sm" style="margin-top:12px;display:block;text-align:center;text-decoration:none"
-      href="${MOCKS_MENU_URL}" target="_blank" rel="noopener">🔗 Kafenin QR Menüsünü Aç (masa 241)</a>
+      href="${mocksMenuUrl()}" target="_blank" rel="noopener">🔗 Kafenin QR Menüsünü Aç (${esc(mocksMasaAdiOku()||('no '+mocksMasaNo()))})</a>
     <div class="xs dim center" style="margin-top:7px">Menü The Mocks'tan canlı çekilir; fiyatlar oradan gelir.
       Sipariş vermek için yukarıdaki bağlantı.</div>
     <button class="btn-gh btn-full btn-sm" style="margin-top:10px" onclick="kapatModal()">Kapat</button>`;
@@ -6898,6 +6910,46 @@ function mocksHesapPaylas() {
   kopyala(L.join('\n'));
 }
 
+
+//== mocksMasa
+/* Siparis adresi (daire/masa no) ayari. Numara KULLANICIDAN gelir;
+   kafenin kendi dogrulama ucuyla teyit edip adini gosteriyoruz. Yeni
+   kayit ACMIYORUZ; yalniz var olani seciyoruz. Siparis gonderilmez. */
+function mocksMasaAc(){
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Siparis Adresi</h2>
+    <div class="xs dim" style="margin-bottom:12px">The Mocks sisteminde <b>daire numarani</b> yaz.
+      Numara masadaki QR'da yazili ya da The Mocks'a sorarsin. Yeni kayit acilmaz;
+      yalniz var olan bir numara hedef secilir.</div>
+    <div class="field"><label class="fl">Daire / masa no</label>
+      <input id="mkNo" inputmode="numeric" value="${esc(mocksMasaNo())}"
+        onkeydown="if(event.key==='Enter')mocksMasaDogrula()"></div>
+    <div id="mkNoSonuc" class="xs" style="margin-top:8px"></div>
+    <button class="btn-p btn-full" id="mkNoBtn" style="margin-top:12px" onclick="mocksMasaDogrula()">Dogrula ve Kaydet</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="mocksAc()">Vazgec</button>`);
+}
+async function mocksMasaDogrula(){
+  const no=($('#mkNo')?.value||'').trim();
+  const sonuc=$('#mkNoSonuc'), btn=$('#mkNoBtn');
+  if(!/^[0-9]+$/.test(no)){ if(sonuc){sonuc.textContent='Sadece rakam yaz';sonuc.style.color='#DD8A8A';} return; }
+  if(btn){ btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>'; }
+  try{
+    const r=await fetch('https://menuluxmenuapi.azurewebsites.net/api/OnlineOrderAPI/GetTableByTableNo?customerID='+MOCKS_MUSTERI+'&tableNo='+encodeURIComponent(no));
+    let j=null; try{ j=await r.json(); }catch(e){}
+    if(!j||!j.TableID){
+      if(sonuc){ sonuc.innerHTML='Bu numara The Mocks sisteminde <b>bulunamadi</b>. Dogru numarayi The Mocks\'a sor.'; sonuc.style.color='#DD8A8A'; }
+      if(btn){ btn.disabled=false; btn.textContent='Dogrula ve Kaydet'; }
+      return;
+    }
+    const ad=j.Name||j.TableName||('Daire '+no);
+    try{ localStorage.setItem(MOCKS_MASA_ON,no); localStorage.setItem(MOCKS_MASA_ON+'_ad',ad); }catch(e){}
+    if(sonuc){ sonuc.innerHTML='✓ <b>'+esc(ad)+'</b> secildi'; sonuc.style.color='var(--green)'; }
+    toast(ad+' secildi',true);
+    setTimeout(mocksAc,700);
+  }catch(e){
+    if(sonuc){ sonuc.textContent='Dogrulanamadi — internet gidip gelmis olabilir'; sonuc.style.color='#DD8A8A'; }
+    if(btn){ btn.disabled=false; btn.textContent='Dogrula ve Kaydet'; }
+  }
+}
 //== talik
 /* =========================================================
    CELSENİN TALİKİ — oyun bitmeden ara vermek
