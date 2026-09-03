@@ -125,6 +125,69 @@ function genelMuayyideler(){
   const dgler=DB.oyuncular.filter(o=>o.dogum&&dgKalan(o.dogum)===0);
   dgler.forEach(o=>out.push({k:'🎂',ad:'Doğum Günü Çocuğu',kim:[o.id],
     aciklama:`Bugün ${yas(o.dogum)??'?'} yaşına bastı. Masa, kaybetse dahi üzülmemesini kararlaştırmıştır.`}));
+
+  /* Borç / ısmarlama temelli ünvanlar — grup geneli (batak+101 ortak).
+     borcTablosu() güncel bakiyeyi verir: eksi borç, artı alacak. */
+  borcUnvanlari().forEach(x=>out.push(x));
+  return out;
+}
+
+/* Kişi başına güncel borç/alacak dökümü — ortak taraflarda her üyeye
+   aynı miktar yazılır (batak eş mantığının aynısı). */
+function borcUnvanVeri(){
+  const per={};
+  const al=id=>per[id]=per[id]||{id,borc:0,alacak:0,kalem:{},odeme:0};
+  const t=(typeof borcTablosu==='function')?borcTablosu():{};
+  Object.entries(t).forEach(([k,v])=>{
+    if(!v) return;
+    const i=k.indexOf('|'), ne=k.slice(i+1);
+    tarafKisiler(k.slice(0,i)).forEach(id=>{
+      const p=al(id);
+      if(v<0){ p.borc+=-v; p.kalem[ne]=(p.kalem[ne]||0)+(-v); }
+      else   { p.alacak+=v; }
+    });
+  });
+  (DB.akis||[]).forEach(a=>{ const o=a.veri&&a.veri.odeme; if(!o) return;
+    const tf=(o.taraf&&o.taraf.length)?o.taraf:[o.kim];
+    tf.forEach(id=>{ if(id) al(id).odeme+=(Number(o.adet)||0); });
+  });
+  return per;
+}
+
+function borcUnvanlari(){
+  const out=[], per=borcUnvanVeri();
+  const v=Object.values(per);
+  if(!v.length) return out;
+  /* başa baş olanların HEPSİ (eşit borç → ortak ünvan) */
+  const enb=(f,esik)=>{ const m=Math.max(...v.map(f));
+    return m>=(esik||1) ? v.filter(p=>f(p)===m) : null; };
+  const kim=l=>l.map(p=>p.id);
+  const b=l=>l[0];
+
+  const kahve=enb(p=>p.kalem['Kahve']||0);
+  if(kahve) out.push({k:'☕',ad:'Kahve Rejonu',kim:kim(kahve),tip:'kotu',
+    aciklama:`${b(kahve).kalem['Kahve']} kahve borçlu. Ocak kendisine emanettir.`});
+
+  const cay=enb(p=>p.kalem['Çay']||0);
+  if(cay) out.push({k:'🫖',ad:'Çay Ocağı',kim:kim(cay),tip:'kotu',
+    aciklama:`${b(cay).kalem['Çay']} çay borçlu. Demlik hiç boş kalmaz.`});
+
+  const acik=enb(p=>p.borc,2);
+  if(acik) out.push({k:'🧾',ad:'Açık Hesap',kim:kim(acik),tip:'kotu',
+    aciklama:`Toplam ${b(acik).borc} kalem borç. Defter kabarıktır, ödeme günü meçhuldür.`});
+
+  const banka=enb(p=>p.alacak,2);
+  if(banka) out.push({k:'🏦',ad:'Masanın Bankası',kim:kim(banka),
+    aciklama:`Toplam ${b(banka).alacak} kalem alacak. Faizsiz, ama unutmaz.`});
+
+  const comert=enb(p=>p.odeme,2);
+  if(comert) out.push({k:'🤝',ad:'Cömert Baba',kim:kim(comert),
+    aciklama:`${b(comert).odeme} kalem borcunu ifa etti. Sözünde durmak nadir bir hasletdir.`});
+
+  const temiz=v.filter(p=>p.borc===0&&(p.alacak>0||p.odeme>0));
+  if(temiz.length && !acik) out.push({k:'✨',ad:'Sabıkasız',kim:kim(temiz),
+    aciklama:`Üstünde tek kalem borç yok. Sicili tertemizdir.`});
+
   return out;
 }
 
