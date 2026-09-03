@@ -15,7 +15,7 @@ function viewRozet(){
   if(DIVAN==='borc')     return nav+borcHesabi();
   if(DIVAN==='tahmin')   return nav+tahminKart();
   /* Efsane bölümü masanın hafızası; lakaplar da oraya ait — ayrı sekme açmaya değmez */
-  if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'');
+  if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'')+(typeof anilarKart==='function'?anilarKart():'');
   if(DIVAN==='rekor')    return nav+oyunSec+rekorKart(ROZET_OYUN);
   if(DIVAN==='aramizda') return nav+oyunSec+(aramizdaKart(ROZET_OYUN)
     ||'<div class="card"><div class="empty"><div class="big">⚔️</div>Henüz karşılaşma yok.</div></div>');

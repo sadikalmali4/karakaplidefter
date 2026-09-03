@@ -1394,7 +1394,8 @@ function viewIddia(){
     <div class="xs dim" style="margin-top:8px">Bakiyesi eksi olanın masada söz hakkı tartışmalıdır.</div></div>`:''}
 
   ${kapali.length?`<div class="card"><details><summary>Karara bağlanmış iddialar (${kapali.length})</summary>
-    <div class="stack">${kapali.map(kart).join('')}</div></details></div>`:''}`;
+    <div class="stack">${kapali.map(kart).join('')}</div></details></div>`:''}
+  ${typeof cezaKart==='function'?cezaKart():''}`;
 }
 function iddiaFormu(){
   const oyn=grupOyunculari();
@@ -2358,7 +2359,7 @@ function viewRozet(){
   if(DIVAN==='borc')     return nav+borcHesabi();
   if(DIVAN==='tahmin')   return nav+tahminKart();
   /* Efsane bölümü masanın hafızası; lakaplar da oraya ait — ayrı sekme açmaya değmez */
-  if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'');
+  if(DIVAN==='efsane')   return nav+lakapKart()+(efsaneKart()||'')+(typeof anilarKart==='function'?anilarKart():'');
   if(DIVAN==='rekor')    return nav+oyunSec+rekorKart(ROZET_OYUN);
   if(DIVAN==='aramizda') return nav+oyunSec+(aramizdaKart(ROZET_OYUN)
     ||'<div class="card"><div class="empty"><div class="big">⚔️</div>Henüz karşılaşma yok.</div></div>');
@@ -2640,7 +2641,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4346,6 +4347,212 @@ function yerYaziliyor(){
 function yerOku(){
   const s=($('#mYer')?.value||'').trim();
   return s || document.querySelector('#mYerSec .chip.on')?.dataset.y || '';
+}
+
+//== anilar
+/* =========================================================
+   ANILAR ALBÜMÜ — grubun fotoğraf hafızası
+
+   İstek (kullanıcı, 03.09.2026): arkadaş grubu için anılar albümü.
+
+   Akışta paylaşılan bütün fotoğraflar (veri.foto) tek bir ızgarada
+   toplanır: pankart, doğum günü, masa. Ayrı depo yok — akış zaten
+   kaynak; burada yalnız fotoğraflıları süzüp galeriye diziyoruz.
+   Doğrudan albüme fotoğraf da eklenir (akışa foto'lu mesaj olarak
+   düşer, herkes görür).
+   ========================================================= */
+
+function anilarFotolari(){
+  return (DB.akis||[])
+    .filter(a=>a.grupId===DB.aktifGrup && a.veri && a.veri.foto)
+    .sort((a,b)=>String(b.olusturma).localeCompare(String(a.olusturma)));
+}
+
+function anilarKart(){
+  const f=anilarFotolari();
+  const ekle=`<div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><h3 style="margin:0">📸 Anılar</h3>
+        <div class="xs dim">Masanın hafızası. Paylaşılan her fotoğraf burada toplanır.</div></div>
+      <button class="btn-b btn-sm" style="flex-shrink:0" onclick="anilarEkle()">+ Fotoğraf</button>
+    </div>
+    <input type="file" id="anFotoInp" accept="image/*" style="display:none" onchange="anilarFotoSec(this)">
+    <div id="anOnizle"></div>
+  </div>`;
+
+  if(!f.length) return ekle+`<div class="card"><div class="empty">
+    <div class="big">🖼️</div>Henüz anı yok.
+    <div class="sm" style="margin-top:6px">İlk fotoğrafı ekle; masanın albümü buradan başlasın.</div></div></div>`;
+
+  return ekle+`<div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px">
+      ${f.map(a=>`<div style="position:relative;aspect-ratio:1;cursor:pointer"
+        onclick="fotoBuyut('${esc(a.veri.foto)}')">
+        <img src="${esc(a.veri.foto)}" loading="lazy"
+          style="width:100%;height:100%;object-fit:cover;border-radius:8px">
+        ${a.metin?`<div style="position:absolute;left:0;right:0;bottom:0;padding:4px 6px;
+          background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;font-size:10px;
+          border-radius:0 0 8px 8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(a.metin)}</div>`:''}
+      </div>`).join('')}
+    </div>
+    <div class="xs dim center" style="margin-top:9px">${f.length} anı · fotoğrafa dokun, büyüsün</div>
+  </div>`;
+}
+
+/* Albüme doğrudan foto ekleme — akışa foto'lu mesaj olarak yazar */
+let _anFotoData=null, _anFotoBlob=null;
+function anilarEkle(){ document.getElementById('anFotoInp')?.click(); }
+function anilarFotoSec(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ const im=new Image();
+    im.onload=()=>{
+      const enb=1200, o=Math.min(1,enb/Math.max(im.width,im.height));
+      const w=Math.round(im.width*o), h=Math.round(im.height*o);
+      const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      cv.getContext('2d').drawImage(im,0,0,w,h);
+      _anFotoData=cv.toDataURL('image/jpeg',.82);
+      cv.toBlob(b=>{_anFotoBlob=b;},'image/jpeg',.82);
+      const el=$('#anOnizle'); if(el) el.innerHTML=`
+        <div style="margin-top:10px"><img src="${_anFotoData}"
+          style="max-width:100%;max-height:220px;border-radius:10px;border:1px solid var(--line)"></div>
+        <input id="anNot" maxlength="80" placeholder="Bir not… (isteğe bağlı)" style="margin-top:8px">
+        <div class="two" style="margin-top:8px">
+          <button class="btn-p btn-sm" id="anBtn" onclick="anilarKaydet()">Albüme Ekle</button>
+          <button class="btn-gh btn-sm" onclick="anilarVaz()">Vazgeç</button>
+        </div>`;
+    }; im.src=r.result; };
+  r.readAsDataURL(f); inp.value='';
+}
+function anilarVaz(){ _anFotoData=null; _anFotoBlob=null; const el=$('#anOnizle'); if(el) el.innerHTML=''; }
+async function anilarKaydet(){
+  if(!_anFotoBlob) return;
+  const not=($('#anNot')?.value||'').trim();
+  const btn=$('#anBtn'); if(btn){ btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>'; }
+  try{
+    const yol=`masa/${DB.aktifGrup}/anilar/${OTURUM.id}_${Date.now()}.jpg`;
+    const {error}=await sb.storage.from('avatarlar')
+      .upload(yol,_anFotoBlob,{contentType:'image/jpeg',upsert:true});
+    if(error) throw error;
+    const url=sb.storage.from('avatarlar').getPublicUrl(yol).data.publicUrl;
+    const id=await akisEkle('mesaj',not,{foto:url,anilar:true});
+    if(!id) throw new Error('kaydedilemedi');
+    anilarVaz(); render(); toast('Anı albüme eklendi',true);
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='Albüme Ekle'; }
+    toast('Eklenemedi: '+hataMetni(e),true);
+  }
+}
+
+//== ceza
+/* =========================================================
+   CEZA DEFTERİ — masanın mizahi müeyyideleri
+
+   İstek (kullanıcı, 03.09.2026): arkadaş grubu için ceza defteri.
+   "Kim ne yaptı, cezası ne." Uygulamanın hukuk-mizah diline birebir
+   oturuyor.
+
+   VERİ — şema değişmedi: akış 'mesaj' + veri.ceza = {kim, sebep, ceza,
+   infaz}. Ödeme/borç gibi kısıtlı DEĞİL; masanın her üyesi ceza
+   yazabilir (yama 11 yalnız veri.odeme/borcKaydi'yi kurucuya kısıyor).
+   İnfaz işaretini yazan kişi kaldırır (akış düzeltme kuralı: kendi
+   satırın).
+   ========================================================= */
+
+const CEZA_ORNEK = [
+  'Bir tur çay ısmarlar',
+  'Kaçmakan hesabı öder',
+  'Sonraki maçta eş seçemez',
+  'Bir el herkese kağıt dağıtır',
+  'Telefonu masaya koyar; kaldırırsa ceza katlanır',
+  'Bir hafta "Dayı" der',
+  'Nargileyi o söyler'
+];
+
+function cezalar(){
+  return (DB.akis||[])
+    .filter(a=>a.grupId===DB.aktifGrup && a.veri && a.veri.ceza)
+    .sort((a,b)=>String(b.olusturma).localeCompare(String(a.olusturma)));
+}
+
+function cezaKart(){
+  const list=cezalar();
+  const bekleyen=list.filter(a=>!a.veri.ceza.infaz);
+  const bitmis=list.filter(a=>a.veri.ceza.infaz);
+
+  const sat=a=>{
+    const c=a.veri.ceza, benimki=a.yazanId===OTURUM.id||kurucuMu();
+    const kesen=akisKisi(a.yazanId);
+    return `<div class="rozet" style="margin:2px 0;align-items:flex-start">
+      ${c.kim?avatar(c.kim,30):'<div class="k">⚖️</div>'}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:700;font-size:13.5px">${c.kim?esc(ad(c.kim)):'Masa'}
+          ${c.infaz?'<span class="pill green" style="margin-left:4px">infaz edildi</span>':'<span class="pill" style="margin-left:4px">bekliyor</span>'}</div>
+        <div class="sm" style="margin-top:2px">${esc(c.sebep||'')}</div>
+        <div class="xs" style="color:var(--gold);margin-top:2px">⚖️ ${esc(c.ceza||'')}</div>
+        <div class="xs dim" style="margin-top:2px">${esc(kesen.ad)} kaydetti · ${ne_zaman(a.olusturma)}</div>
+      </div>
+      ${benimki?`<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+        <button class="btn-xs ${c.infaz?'btn-gh':'btn-g'}" onclick="cezaInfaz('${a.id}',${c.infaz?'false':'true'})">${c.infaz?'Geri al':'İnfaz et'}</button>
+        <button class="btn-xs btn-dn" onclick="akisSil('${a.id}')">Sil</button></div>`:''}
+    </div>`;
+  };
+
+  return `<div class="card">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div><h3 style="margin:0">⚖️ Ceza Defteri</h3>
+        <div class="xs dim">Masanın müeyyideleri. İtiraz, çay demlenmiş iken yapılır.</div></div>
+      <button class="btn-b btn-sm" style="flex-shrink:0" onclick="cezaEkleAc()">+ Ceza Kes</button>
+    </div>
+    ${!list.length?`<div class="sep"></div><div class="sm dim">Henüz kimse ceza yemedi.
+      İlk müeyyideyi kesmek sana düşer.</div>`:''}
+    ${bekleyen.length?`<div class="sep"></div>
+      <div class="xs" style="color:#DD8A8A;font-weight:700;margin:4px 0">İNFAZ BEKLEYEN (${bekleyen.length})</div>
+      <div class="stack">${bekleyen.map(sat).join('')}</div>`:''}
+    ${bitmis.length?`<details style="margin-top:10px"><summary>İnfaz edilenler (${bitmis.length})</summary>
+      <div class="stack" style="margin-top:8px">${bitmis.map(sat).join('')}</div></details>`:''}
+  </div>`;
+}
+
+function cezaEkleAc(){
+  const oyn=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup&&o.aktif);
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Ceza Kes</h2>
+    <div class="xs dim" style="margin-bottom:12px">Kim, ne yaptı, cezası ne? Masa görür, defterе geçer.</div>
+    <div class="field"><label class="fl">Kime</label>
+      <div class="row wrap" id="czKim" style="gap:6px">
+        ${oyn.map(o=>`<span class="chip" data-id="${o.id}" onclick="chipTek(this)">${esc(o.ad)}</span>`).join('')}
+      </div></div>
+    <div class="field"><label class="fl">Ne yaptı? (gerekçe)</label>
+      <input id="czSebep" maxlength="80" placeholder="Örn. masaya geç geldi"></div>
+    <div class="field"><label class="fl">Ceza</label>
+      <input id="czCeza" maxlength="80" placeholder="Örn. bir tur çay ısmarlar">
+      <div class="row wrap" style="gap:5px;margin-top:7px">
+        ${CEZA_ORNEK.map(c=>`<span class="chip" onclick="document.getElementById('czCeza').value=${JSON.stringify(c)}">${esc(c)}</span>`).join('')}
+      </div></div>
+    <button class="btn-p btn-full" id="czBtn" style="margin-top:14px" onclick="cezaKaydet()">Deftere Geçir</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+
+async function cezaKaydet(){
+  const kim=document.querySelector('#czKim .chip.on')?.dataset.id||null;
+  const sebep=($('#czSebep')?.value||'').trim();
+  const ceza=($('#czCeza')?.value||'').trim();
+  if(!sebep) return toast('Gerekçe yaz',true);
+  if(!ceza) return toast('Ceza yaz',true);
+  const btn=$('#czBtn'); if(btn){ btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>'; }
+  const metin=`${kim?ad(kim):'Masa'} — ${sebep}. Müeyyide: ${ceza}.`;
+  const id=await akisEkle('mesaj',metin,{ceza:{kim,sebep,ceza,infaz:false}});
+  if(!id){ if(btn){ btn.disabled=false; btn.textContent='Deftere Geçir'; } return; }
+  kapatModal(); render(); toast('Ceza deftere geçti',true);
+}
+
+async function cezaInfaz(id,durum){
+  const a=(DB.akis||[]).find(x=>x.id===id); if(!a||!a.veri.ceza) return;
+  const yeni=Object.assign({},a.veri,{ceza:Object.assign({},a.veri.ceza,{infaz:durum})});
+  const {error}=await sb.from('akis').update({veri:yeni}).eq('id',id);
+  if(error) return toast(hataMetni(error),true);
+  a.veri=yeni; render();
+  toast(durum?'İnfaz edildi':'İnfaz geri alındı');
 }
 
 /* =========================================================

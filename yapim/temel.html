@@ -816,7 +816,8 @@ function viewIddia(){
     <div class="xs dim" style="margin-top:8px">Bakiyesi eksi olanın masada söz hakkı tartışmalıdır.</div></div>`:''}
 
   ${kapali.length?`<div class="card"><details><summary>Karara bağlanmış iddialar (${kapali.length})</summary>
-    <div class="stack">${kapali.map(kart).join('')}</div></details></div>`:''}`;
+    <div class="stack">${kapali.map(kart).join('')}</div></details></div>`:''}
+  ${typeof cezaKart==='function'?cezaKart():''}`;
 }
 function iddiaFormu(){
   const oyn=grupOyunculari();
