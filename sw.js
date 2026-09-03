@@ -7,7 +7,7 @@
  *
  * Uygulamayı güncelledikten sonra SURUM'u bir artır; eski önbellek silinir.
  */
-const SURUM = 'kkd-v8-2';
+const SURUM = 'kkd-v8-3';
 const KABUK = [
   './',
   './index.html',
@@ -85,5 +85,37 @@ self.addEventListener('fetch', e => {
       caches.open(SURUM).then(c => c.put(istek, kopya)).catch(() => {});
       return a;
     }))
+  );
+});
+
+
+/* ---------------------------------------------------------------------
+ * PUSH BİLDİRİMİ — masa çağrısı telefonlara düşsün
+ * Sunucu (Supabase Edge Function) şifreli bir push gönderir; burada
+ * gösteriyoruz. Sunucu yoksa bu kod hiç tetiklenmez, zararsız durur.
+ * ------------------------------------------------------------------- */
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { govde: e.data && e.data.text() }; }
+  const baslik = d.baslik || "Kara Kaplı Defter";
+  const secenek = {
+    body: d.govde || "Masaya çağrı var.",
+    icon: "./ikon-192.png",
+    badge: "./ikon-192.png",
+    tag: d.tag || "kkd-cagri",
+    data: { url: d.url || "./" },
+    vibrate: [80, 40, 80]
+  };
+  e.waitUntil(self.registration.showNotification(baslik, secenek));
+});
+
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const hedef = (e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow(hedef);
+    })
   );
 });

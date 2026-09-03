@@ -192,8 +192,10 @@ async function yorumYaz(ustId){
 function yorumAcKapa(id){ _yorumAcik[id]=!_yorumAcik[id]; render();
   setTimeout(()=>$('#yr_'+id)?.focus(),50); }
 async function cagriYap(){
-  const id=await akisEkle('cagri','Bu akşam oynayan var mı? 👍 basan gelir.',{});
-  if(id){ await tepkiVer(id,'👍',true); render(); toast('Çağrı yapıldı.'); }
+  const metin='Bu akşam oynayan var mı? 👍 basan gelir.';
+  const id=await akisEkle('cagri',metin,{});
+  if(id){ if(typeof pushCagriGonder==='function') pushCagriGonder(metin,id);
+    await tepkiVer(id,'👍',true); render(); toast('Çağrı yapıldı.'); }
 }
 async function akisSil(id){
   if(!confirm('Silinsin mi?')) return;

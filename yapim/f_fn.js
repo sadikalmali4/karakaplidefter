@@ -59,6 +59,8 @@ function render(){
   if(TAB==='arsiv') v.innerHTML=viewArsiv();
   if(TAB==='rozet') v.innerHTML=viewRozet();
   if(TAB==='ayar')  v.innerHTML=viewAyar();
+  if(TAB==='ayar' && typeof pushDurum==='function')
+    pushDurum().then(d=>{ const h=document.getElementById('pushKartHost'); if(h) h.innerHTML=pushKart(d); });
   yazIsigi();
 }
 

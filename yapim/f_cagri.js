@@ -100,6 +100,7 @@ async function cagriKaydet(){
   const metin=`${saatMetni(zaman.toISOString())} · ${yer} — masa kuruluyor.`+esLaf+(not?` ${not}`:'');
   const id=await akisEkle('cagri',metin,{cagri:{zaman:zaman.toISOString(),yer,es,not}});
   if(!id){ btn.disabled=false; btn.textContent='Çağrıyı Yay'; return; }
+  if(typeof pushCagriGonder==='function') pushCagriGonder(metin,id);
   /* çağıran zaten geliyor sayılır */
   await cagriCevapla(id,CAGRI_VAR,true);
   kapatModal(); await yenile(true);

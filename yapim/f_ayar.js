@@ -183,5 +183,6 @@ function viewAyar(){
       <button class="btn-xs btn-dn" onclick="cikisYap()">Çıkış</button>
     </div>
   </div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.2 · bulut</div>`;
+  <div id="pushKartHost"></div>
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.3 · bulut</div>`;
 }
