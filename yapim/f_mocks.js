@@ -29,8 +29,12 @@ const MOCKS_URL = 'https://menuluxmenuapi.azurewebsites.net/api/MobileAPI/GetMen
   + '?weburl=themocks.qr.menulux.com&language=TR';
 const MOCKS_MUSTERI = 17139;
 const MOCKS_MASA_ON = 'kkd_mocks_masa';
+const MOCKS_ADRES_ON = 'kkd_mocks_adresler';
+function mocksAdresler(){ try{ return JSON.parse(localStorage.getItem(MOCKS_ADRES_ON)||'[]'); }catch(e){ return []; } }
+function mocksAdresYaz(l){ try{ localStorage.setItem(MOCKS_ADRES_ON,JSON.stringify(l)); }catch(e){} }
 function mocksMasaNo(){ try{ return localStorage.getItem(MOCKS_MASA_ON)||'241'; }catch(e){ return '241'; } }
 function mocksMasaAdiOku(){ try{ return localStorage.getItem(MOCKS_MASA_ON+'_ad')||''; }catch(e){ return ''; } }
+function mocksAdresSec(no,ad){ try{ localStorage.setItem(MOCKS_MASA_ON,String(no)); localStorage.setItem(MOCKS_MASA_ON+'_ad',ad||''); }catch(e){} }
 const mocksMenuUrl = ()=>'https://themocks.qr.menulux.com/?tableno='+encodeURIComponent(mocksMasaNo())+'#!/';
 const MOCKS_ONBELLEK = 'kkd_mocks_menu';
 const MOCKS_HESAP_ON = 'kkd_mocks_hesap';
@@ -238,16 +242,35 @@ function mocksHesapPaylas() {
    kafenin kendi dogrulama ucuyla teyit edip adini gosteriyoruz. Yeni
    kayit ACMIYORUZ; yalniz var olani seciyoruz. Siparis gonderilmez. */
 function mocksMasaAc(){
+  const liste=mocksAdresler(), aktif=mocksMasaNo();
   acModal(`<h2 class="serif" style="margin:0 0 4px">Siparis Adresi</h2>
-    <div class="xs dim" style="margin-bottom:12px">The Mocks sisteminde <b>daire numarani</b> yaz.
-      Numara masadaki QR'da yazili ya da The Mocks'a sorarsin. Yeni kayit acilmaz;
-      yalniz var olan bir numara hedef secilir.</div>
-    <div class="field"><label class="fl">Daire / masa no</label>
-      <input id="mkNo" inputmode="numeric" value="${esc(mocksMasaNo())}"
+    <div class="xs dim" style="margin-bottom:12px">Daire ya da salon farketmez — kullandigin yerleri
+      buraya kaydet, tek dokunusla sec. Numara masadaki/salondaki QR'da yazili ya da The Mocks'a sorarsin.
+      Yeni kayit acilmaz; var olan numara hedef secilir.</div>
+
+    ${liste.length?`<div class="xs dim" style="font-weight:700;margin-bottom:6px">KAYITLI ADRESLER</div>
+      <div class="stack" style="margin-bottom:12px">${liste.map(a=>`
+        <div class="row" style="gap:8px;padding:5px 0;align-items:center">
+          <button class="btn-sm ${String(a.no)===String(aktif)?'btn-g':'btn-gh'}" style="flex:1;text-align:left;justify-content:flex-start"
+            onclick="mocksAdresKullan('${esc(String(a.no))}',${JSON.stringify(a.ad)})">
+            ${String(a.no)===String(aktif)?'✓ ':''}${esc(a.ad)} <span class="xs dim">no ${esc(String(a.no))}</span></button>
+          <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="mocksAdresSil('${esc(String(a.no))}')">✕</button>
+        </div>`).join('')}</div>`:''}
+
+    <div class="xs dim" style="font-weight:700;margin-bottom:6px">YENİ ADRES EKLE</div>
+    <div class="field"><label class="fl">Daire / salon no</label>
+      <input id="mkNo" inputmode="numeric" placeholder="örn. 241 ya da salon no"
         onkeydown="if(event.key==='Enter')mocksMasaDogrula()"></div>
     <div id="mkNoSonuc" class="xs" style="margin-top:8px"></div>
-    <button class="btn-p btn-full" id="mkNoBtn" style="margin-top:12px" onclick="mocksMasaDogrula()">Dogrula ve Kaydet</button>
-    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="mocksAc()">Vazgec</button>`);
+    <button class="btn-p btn-full" id="mkNoBtn" style="margin-top:12px" onclick="mocksMasaDogrula()">Dogrula ve Ekle</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="mocksAc()">Kapat</button>`);
+}
+function mocksAdresKullan(no,ad){ mocksAdresSec(no,ad); toast(ad+' seçildi'); mocksAc(); }
+function mocksAdresSil(no){
+  const l=mocksAdresler().filter(a=>String(a.no)!==String(no));
+  mocksAdresYaz(l);
+  if(String(mocksMasaNo())===String(no)){ const y=l[0]; mocksAdresSec(y?y.no:'241', y?y.ad:''); }
+  mocksMasaAc();
 }
 async function mocksMasaDogrula(){
   const no=($('#mkNo')?.value||'').trim();
@@ -263,10 +286,12 @@ async function mocksMasaDogrula(){
       return;
     }
     const ad=j.Name||j.TableName||('Daire '+no);
-    try{ localStorage.setItem(MOCKS_MASA_ON,no); localStorage.setItem(MOCKS_MASA_ON+'_ad',ad); }catch(e){}
-    if(sonuc){ sonuc.innerHTML='✓ <b>'+esc(ad)+'</b> secildi'; sonuc.style.color='var(--green)'; }
-    toast(ad+' secildi',true);
-    setTimeout(mocksAc,700);
+    const l=mocksAdresler().filter(a=>String(a.no)!==String(no));
+    l.push({no,ad}); mocksAdresYaz(l);
+    mocksAdresSec(no,ad);
+    if(sonuc){ sonuc.innerHTML='✓ <b>'+esc(ad)+'</b> eklendi ve seçildi'; sonuc.style.color='var(--green)'; }
+    toast(ad+' eklendi',true);
+    setTimeout(mocksMasaAc,800);
   }catch(e){
     if(sonuc){ sonuc.textContent='Dogrulanamadi — internet gidip gelmis olabilir'; sonuc.style.color='#DD8A8A'; }
     if(btn){ btn.disabled=false; btn.textContent='Dogrula ve Kaydet'; }
