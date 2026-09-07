@@ -2670,7 +2670,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.7 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.8 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4672,9 +4672,9 @@ const tbEtiketK=t=>(TB_ETIKET.find(x=>x.t===t)||{}).k||'';
 function tbSatirHtml(r,cift,kilit){
   const el=(tbAktifParti().eller||[])[r];
   const em=el&&el.etiket?tbEtiketK(el.etiket.t):'';
-  const noHtml=(cift&&!kilit)
+  const noHtml=(!kilit)
     ? `<button type="button" onclick="tbEtiketAc(${r})" title="bu ele mizahi not ekle"
-        style="background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 0;
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 0;
           cursor:pointer;color:var(--ink2);font-size:11px;line-height:1.15;text-align:center;width:100%">${r+1}<br>${em||'🎭'}</button>`
     : `<div class="xs dim center">${r+1}${em?`<br>${em}`:''}</div>`;
   return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
@@ -4684,16 +4684,20 @@ function tbSatirHtml(r,cift,kilit){
 }
 let _tbEtiketSira=null;
 function tbEtiketAc(r){
-  const c=DB.aktif, parti=tbAktifParti(), el=(parti.eller||[])[r]; if(!el) return;
+  const c=DB.aktif; if(!c) return;
+  const parti=tbAktifParti();
+  while(parti.eller.length<=r) parti.eller.push({ham:[0,0]});   // el yoksa oluştur
+  const el=parti.eller[r];
   _tbEtiketSira=el.etiket?el.etiket.i:null;
   const mev=el.etiket?el.etiket.t:null;
+  const tk=Array.isArray(c.takimlar)?c.takimlar:[];
   acModal(`<h2 class="serif" style="margin:0 0 4px">${r+1}. El — Not</h2>
     <div class="xs dim" style="margin-bottom:12px">Ele mizahi bir not iliştir; tabelada ve zabıtta görünür.</div>
-    <label class="fl">Kime? (isteğe bağlı)</label>
+    ${tk.length?`<label class="fl">Kime? (isteğe bağlı)</label>
     <div class="row wrap" id="tbEtKim" style="gap:6px;margin:6px 0 12px">
-      ${[0,1].map(i=>(c.takimlar[i].oyuncular||[]).map(oid=>`<span class="chip ${el.etiket&&el.etiket.oy===oid?'on':''}" data-oy="${oid}" data-i="${i}"
-        onclick="chipTek(this)"><span class="pill ${i?'blue':'green'}">${esc(c.takimlar[i].ad)}</span> ${esc(ad(oid))}</span>`).join('')).join('')}
-    </div>
+      ${tk.map((t,i)=>(t.oyuncular||[]).map(oid=>`<span class="chip ${el.etiket&&el.etiket.oy===oid?'on':''}" data-oy="${oid}" data-i="${i}"
+        onclick="chipTek(this)"><span class="pill ${i?'blue':'green'}">${esc(t.ad||('Taraf '+(i+1)))}</span> ${esc(ad(oid))}</span>`).join('')).join('')}
+    </div>`:'<div id="tbEtKim"></div>'}
     <label class="fl">Not</label>
     <div class="stack" style="margin-top:6px">
       ${TB_ETIKET.map(x=>`<button class="btn-full btn-sm ${mev===x.t?'btn-g':'btn-gh'}" style="text-align:left"
