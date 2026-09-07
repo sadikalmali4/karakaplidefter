@@ -2670,7 +2670,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -8030,35 +8030,24 @@ const MOCKS_HESAP_ON = 'kkd_mocks_hesap';
 
 let MOCKS = null;            // {para, kdv, gruplar:[{ad, urunler:[{id,ad,fiyat,foto}]}]}
 let MOCKS_GRUP = 0;         // seçili kategori
-let MOCKS_HESAP = mocksHesapOku();
-/* MOCKS_MAC true iken kafe hesabı AÇIK MAÇA (celse.kafe) yazılır:
-   tabelacı ekler, bulut'a gider, herkes görür, zabıta işler.
-   false iken cihazdaki genel liste (MOCKS_HESAP). */
-let MOCKS_MAC = false;
-function mocksMacAktif(){ return MOCKS_MAC && DB.aktif && !DB.aktif.bitti; }
+let MOCKS_HESAP = [];   // cihaz kovası KALDIRILDI (kullanıcı, 07.09.2026)
+/* Kafe hesabı YALNIZCA açık maça (celse.kafe) yazılır: tabelayı tutan
+   ekler, buluta gider, herkes görür, zabıta işler. Ayrı cihaz listesi yok;
+   açık maç yoksa yalnız menü gezilir, ekleme kapalıdır. */
+function mocksMacAktif(){ return !!(DB.aktif && !DB.aktif.bitti && DB.aktif._hesap===OTURUM?.id); }
 function mocksHesapRef(){
   if(mocksMacAktif()){ if(!Array.isArray(DB.aktif.kafe)) DB.aktif.kafe=[]; return DB.aktif.kafe; }
-  return MOCKS_HESAP;
+  return [];
 }
-function mocksHesapKaydet(){
-  if(mocksMacAktif()){ if(typeof kaydet==='function') kaydet(); }
-  else mocksHesapYaz();
-}
-/* Açıcılar: maç modu (açık masaya yaz) ya da genel (cihaz). İç 'Tazele'
-   mocksAc()'i çağırınca bayrak korunur. */
-function mocksMacAc(){ MOCKS_MAC=true; mocksAc(); }
-/* Genel giriş: AÇIK ve senin tuttuğun (tabelacı) bir maç varsa hesap ORAYA
-   yazılsın — herkes görsün, tabelada/zabıtta çıksın. Yoksa cihaz listesi.
-   Böylece "ekledim ama masa hesabında yok" karışıklığı olmaz. */
-function mocksGenelAc(){
-  MOCKS_MAC = !!(DB.aktif && !DB.aktif.bitti && DB.aktif._hesap===OTURUM?.id);
-  mocksAc();
-}
+function mocksHesapKaydet(){ if(mocksMacAktif() && typeof kaydet==='function') kaydet(); }
+/* İki açıcı da aynı: hesap açık maça yazılır. */
+function mocksMacAc(){ mocksAc(); }
+function mocksGenelAc(){ mocksAc(); }
 
 /* Sık verilenler: kullanıcı listesi + otomatik öğrenilen sayaç.
    İkisi birleşip en üstte "Sık Sipariş" bölümü oluyor. */
 const MOCKS_FAV_ON = 'kkd_mocks_fav';
-const MOCKS_SIK = ['çay','büyük çay','kahve','türk kahve','oralet','su','kuruyemiş','fıstık','soda','çerez'];
+const MOCKS_SIK = ['çay','büyük çay','fincan çay','fincan','kahve','türk kahve','oralet','su','kuruyemiş','fıstık','soda','çerez'];
 let MOCKS_SAYAC = (()=>{ try{ return JSON.parse(localStorage.getItem(MOCKS_FAV_ON)||'{}'); }catch(e){ return {}; } })();
 function mocksSayacYaz(){ try{ localStorage.setItem(MOCKS_FAV_ON,JSON.stringify(MOCKS_SAYAC)); }catch(e){} }
 
@@ -8115,6 +8104,7 @@ const mocksToplam = () => mocksHesapRef().reduce((t, x) => t + x.fiyat * x.adet,
 const mocksAdet = () => mocksHesapRef().reduce((t, x) => t + x.adet, 0);
 
 function mocksEkle(id, ad, fiyat) {
+  if(!mocksMacAktif()) return toast('Kafe hesabı açık maça yazılır — önce maçı aç (tabelayı sen tut)',true);
   const h = mocksHesapRef();
   const v = h.find(x => x.id === id);
   if (v) v.adet++;
@@ -8133,7 +8123,7 @@ function mocksArtir(id, d) {
 function mocksTemizle() {
   const h = mocksHesapRef();
   if (!h.length) return;
-  if (!confirm(mocksMacAktif()?'Bu masanın kafe hesabı sıfırlansın mı?':'Masa hesabı sıfırlansın mı? (Bu cihazdaki liste)')) return;
+  if (!confirm('Bu maçın kafe hesabı sıfırlansın mı?')) return;
   h.length = 0;
   mocksHesapKaydet(); mocksCiz();
 }
@@ -8194,8 +8184,10 @@ function mocksCiz() {
       </div>
     </div>
 
-    ${macModu?`<div class="uyari" style="margin:0 0 10px">Bu hesap <b>açık masaya</b> yazılıyor:
-      herkes görür, zabıta işler. Yalnız tabelayı tutan ekleyebilir.</div>`:''}
+    ${macModu?`<div class="uyari" style="margin:0 0 10px">Bu hesap <b>açık maça</b> yazılıyor:
+      herkes görür, zabıta işler.</div>`
+      :`<div class="uyari" style="margin:0 0 10px">Şu an <b>açık maç yok</b> (ya da tabelayı sen tutmuyorsun).
+      Menüyü gezebilir, fiyatlara bakabilirsin; hesap tutmak için maçı açık tut.</div>`}
     ${hesap.length ? `<div class="card tight" style="margin:12px 0;border-color:var(--gold)">
       <div class="row" style="justify-content:space-between;margin-bottom:6px">
         <span class="sm" style="font-weight:700">🧾 ${macModu?'Bu Masanın Hesabı':'Masa Hesabı'}</span>
