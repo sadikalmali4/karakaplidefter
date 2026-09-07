@@ -7,7 +7,7 @@
  *
  * Uygulamayı güncelledikten sonra SURUM'u bir artır; eski önbellek silinir.
  */
-const SURUM = 'kkd-v9-6';
+const SURUM = 'kkd-v9-7';
 const KABUK = [
   './',
   './index.html',

@@ -2670,7 +2670,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.7 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -8103,10 +8103,18 @@ const mocksTL = n => (Math.round(n) === n ? n : n.toFixed(2)) + ' ₺';
 const mocksToplam = () => mocksHesapRef().reduce((t, x) => t + x.fiyat * x.adet, 0);
 const mocksAdet = () => mocksHesapRef().reduce((t, x) => t + x.adet, 0);
 
-function mocksEkle(id, ad, fiyat) {
+/* Ürünü id ile menüden bul — adı/fiyatı onclick'e gömmeyiz (tırnak kırıyordu). */
+function mocksUrunBul(id){
+  if(!MOCKS) return null;
+  for(const g of MOCKS.gruplar){ const u=(g.urunler||[]).find(x=>String(x.id)===String(id)); if(u) return u; }
+  return null;
+}
+function mocksEkle(id) {
   if(!mocksMacAktif()) return toast('Kafe hesabı açık maça yazılır — önce maçı aç (tabelayı sen tut)',true);
+  const u = mocksUrunBul(id);
+  const ad = u ? u.ad : 'Ürün', fiyat = u ? Number(u.fiyat)||0 : 0;
   const h = mocksHesapRef();
-  const v = h.find(x => x.id === id);
+  const v = h.find(x => String(x.id) === String(id));
   if (v) v.adet++;
   else h.push({ id, ad, fiyat, adet: 1 });
   MOCKS_SAYAC[id]=(MOCKS_SAYAC[id]||0)+1; mocksSayacYaz();
@@ -8211,7 +8219,7 @@ function mocksCiz() {
       <div class="xs dim" style="margin-bottom:6px;font-weight:700">⭐ SIK SİPARİŞ</div>
       <div class="row wrap" style="gap:6px;margin-bottom:12px">
         ${sik.map(u=>`<button class="btn-sm btn-gh" style="padding:7px 11px"
-          onclick='mocksEkle(${u.id},${JSON.stringify(u.ad)},${u.fiyat})'>
+          onclick="mocksEkle(${u.id})">
           ${esc(u.ad)} ${u.fiyat?`<span class="xs dim">${mocksTL(u.fiyat)}</span>`:''}</button>`).join('')}
       </div>`:''; })()}
 
@@ -8228,7 +8236,7 @@ function mocksCiz() {
         <div class="sm" style="font-weight:700;flex-shrink:0;min-width:52px;text-align:right">
           ${u.fiyat ? mocksTL(u.fiyat) : '<span class="xs dim">—</span>'}</div>
         <button class="btn-xs btn-g" style="flex-shrink:0"
-          onclick="mocksEkle(${u.id},${JSON.stringify(u.ad)},${u.fiyat})">+ Ekle</button>
+          onclick="mocksEkle(${u.id})">+ Ekle</button>
       </div>`).join('<div style="height:1px;background:var(--line)"></div>')}
     </div>
 
