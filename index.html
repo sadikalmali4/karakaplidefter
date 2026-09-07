@@ -2670,7 +2670,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.1 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.2 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4680,14 +4680,13 @@ let _tbEtiketSira=null;
 function tbEtiketAc(r){
   const c=DB.aktif, parti=tbAktifParti(), el=(parti.eller||[])[r]; if(!el) return;
   _tbEtiketSira=el.etiket?el.etiket.i:null;
-  const T=i=>c.takimlar[i].oyuncular.map(ad).join(' & ');
   const mev=el.etiket?el.etiket.t:null;
   acModal(`<h2 class="serif" style="margin:0 0 4px">${r+1}. El — Not</h2>
     <div class="xs dim" style="margin-bottom:12px">Ele mizahi bir not iliştir; tabelada ve zabıtta görünür.</div>
     <label class="fl">Kime? (isteğe bağlı)</label>
     <div class="row wrap" id="tbEtKim" style="gap:6px;margin:6px 0 12px">
-      ${[0,1].map(i=>`<span class="chip ${el.etiket&&el.etiket.i===i?'on':''}" data-i="${i}"
-        onclick="chipTek(this)"><span class="pill ${i?'blue':'green'}">${c.takimlar[i].ad}</span> ${esc(T(i))}</span>`).join('')}
+      ${[0,1].map(i=>(c.takimlar[i].oyuncular||[]).map(oid=>`<span class="chip ${el.etiket&&el.etiket.oy===oid?'on':''}" data-oy="${oid}" data-i="${i}"
+        onclick="chipTek(this)"><span class="pill ${i?'blue':'green'}">${esc(c.takimlar[i].ad)}</span> ${esc(ad(oid))}</span>`).join('')).join('')}
     </div>
     <label class="fl">Not</label>
     <div class="stack" style="margin-top:6px">
@@ -4700,8 +4699,9 @@ function tbEtiketAc(r){
 function tbEtiketSec(r,t){
   const parti=tbAktifParti(), el=(parti.eller||[])[r]; if(!el) return;
   const secKim=document.querySelector('#tbEtKim .chip.on');
+  const oy=secKim?secKim.dataset.oy:null;
   const i=secKim?Number(secKim.dataset.i):null;
-  el.etiket={t, i};
+  el.etiket={t, oy:oy||null, i:(i!=null&&!isNaN(i))?i:null};
   kaydet(); kapatModal(); render();
   toast(`${tbEtiketK(t)} ${(TB_ETIKET.find(x=>x.t===t)||{}).ad} — ${r+1}. el`);
 }
@@ -4714,7 +4714,8 @@ function tbEtiketOzet(c,parti){
   const l=(parti.eller||[]).map((el,r)=>{
     if(!el.etiket) return null;
     const x=TB_ETIKET.find(y=>y.t===el.etiket.t); if(!x) return null;
-    const kim=(el.etiket.i!=null&&c.takimlar)?` (${c.takimlar[el.etiket.i].ad})`:'';
+    const kim=el.etiket.oy?` (${ad(el.etiket.oy)})`
+      :(el.etiket.i!=null&&c.takimlar)?` (${c.takimlar[el.etiket.i].ad})`:'';
     return `${r+1}. el ${x.k} ${x.ad}${kim}`;
   }).filter(Boolean);
   return l;
