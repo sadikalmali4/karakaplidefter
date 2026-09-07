@@ -88,7 +88,7 @@ async function baslat(){
   }
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   sb.auth.onAuthStateChange((olay)=>{
-    if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; DURUM='giris'; render(); }
+    if(olay==='SIGNED_OUT'){ OTURUM=null; PROFIL=null; SAHIP=false; DURUM='giris'; render(); }
   });
   /* ?tahmin=<kod>: tahmin haftasına misafir girişi (yama 10) */
   const _tahminKod=tmisafirKodu();
@@ -137,6 +137,10 @@ async function baslat(){
     }
     if(_cagri&&OTURUM){ TAB='celse'; SABIKA_ID=null; }
     DURUM = !OTURUM ? 'giris' : (DB.gruplar.length ? 'hazir' : 'masayok');
+    /* Sahip yetkisi: kararı SUNUCU veriyor (sahip_mi), istemci sadece soruyor.
+       Hata/eski şema durumunda SAHIP false kalır, hiçbir şey bozulmaz. */
+    if(OTURUM && typeof sahipKontrol==='function')
+      sahipKontrol().then(v=>{ if(v) render(); }).catch(()=>{});
     /* Bildirim: izin zaten varsa sormadan abone ol, yoksa şerit çıksın */
     if(OTURUM && DB.gruplar.length && typeof pushHazirla==='function')
       pushHazirla().then(()=>render()).catch(()=>{});
