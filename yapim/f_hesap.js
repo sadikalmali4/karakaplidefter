@@ -109,8 +109,11 @@ function oyunDokumu(){
         <div class="sm ell" style="font-weight:600">${esc(s.sonuc)}</div>
         <div class="xs ${s.sinif}" style="margin-top:1px">${esc(s.durum)}</div>
       </div>
-      ${s.sayildi?'<span class="pill green" style="flex-shrink:0;font-size:9px">borçta</span>'
-        :(c.bitti&&s.sinif==='neg'?'<span class="pill red" style="flex-shrink:0;font-size:9px">sayılmadı</span>':'')}
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        ${s.sayildi?'<span class="pill green" style="font-size:9px">borçta</span>'
+          :(c.bitti&&s.sinif==='neg'?'<span class="pill red" style="font-size:9px">sayılmadı</span>':'')}
+        ${kurucuMu()?`<button class="btn-xs btn-gh" onclick="macBahsiDuzeltAc('${c.id}')">✏️ bahis</button>`:''}
+      </div>
     </div>`;};
   return `<div class="card">
     <h3>📜 Oyun Dökümü</h3>

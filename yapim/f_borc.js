@@ -237,6 +237,40 @@ async function borcOdeKaydet(taraf,ne,enfazla){
   kapatModal(); render(); toast(metin,true);
 }
 
+/* --------- geçmiş bir oyunun BAHSİNİ düzelt ---------
+   İstek (kullanıcı, 07.09.2026): oyunlar/takımlar doğru ama Sadık+Volkan
+   cin borçlu görünüyordu — "cini mi işaretlemedik acaba". Bir oyunda bahis
+   yanlış/eksik girildiyse borç netleşmez. Maçı silip yeniden girmeye gerek
+   kalmadan bahsi düzeltmek için. Yalnız masayı kuran (kurucuMu) yapar;
+   sunucuda maclar.update zaten üyeye açık, bu ek client kilidi. */
+function macBul(id){ return (DB.celseler||[]).concat(DB.acik||[]).find(x=>x.id===id); }
+function macBahsiDuzeltAc(id){
+  if(!kurucuMu()) return toast('Bahsi yalnız masayı kuran düzeltebilir',true);
+  const c=macBul(id); if(!c) return toast('Oyun bulunamadı',true);
+  let kim='—';
+  if(c.oyun==='batak'){ const kz=c.kazanan??batakMac(c).macKazanan;
+    kim = kz!=null ? `${c.takimlar[kz].oyuncular.map(ad).join(' & ')} kazandı` : 'sonuçsuz kapandı'; }
+  else { const sr=yzMac(c).sira; kim = sr.length?`${ad(sr[0].id)} birinci · ${ad(sr[sr.length-1].id)} sonuncu`:'—'; }
+  const mev=bahisKalemleri(c.bahis).map(x=>x.ne);
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Bahsi Düzelt</h2>
+    <div class="xs dim" style="margin-bottom:4px">${trh(c.tarih)} · ${c.oyun==='batak'?'Batak':'101'} · ${esc(kim)}</div>
+    <div class="xs dim" style="margin-bottom:10px">Bu oyunda neye oynanmıştı? İşaretlenmemiş ya da yanlışsa şimdi düzelt;
+      borç hesabı kendiliğinden yenilenir. ${mev.length?'Şu an: <b>'+esc(mev.join(' + '))+'</b>':'Şu an bahis <b>yok</b>.'}</div>
+    ${bahisSecici(mev.length?mev:'Cin')}
+    <button class="btn-p btn-full" id="mbdBtn" style="margin-top:12px" onclick="macBahsiKaydet('${id}')">Kaydet</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+  setTimeout(()=>{ if(typeof bahisAdetCiz==='function') bahisAdetCiz(); },0);
+}
+async function macBahsiKaydet(id){
+  const c=macBul(id); if(!c) return;
+  const yeni=bahisOku();
+  const btn=$('#mbdBtn'); if(btn){ btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>'; }
+  const eski=c.bahis; c.bahis=yeni;
+  const {error}=await sb.from('maclar').update({celse:aktifBelge(c)}).eq('id',c.id);
+  if(error){ c.bahis=eski; if(btn){ btn.disabled=false; btn.textContent='Kaydet'; } return toast(hataMetni(error),true); }
+  kapatModal(); render(); toast('Bahis güncellendi · hesap yenilendi',true);
+}
+
 /* zabıta bahis satırı */
 function bahisNotu(c){
   const hepsi=bahisKalemleri(c.bahis);
