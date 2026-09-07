@@ -90,11 +90,16 @@ function bahisOku(){
 const tarafKey = ids => (ids||[]).filter(Boolean).slice().sort().join('+');
 const tarafKisiler = k => String(k||'').split('+').filter(Boolean);
 
-function borcTablosu(){
+function borcTablosu(brut){
   const t={};        // "tarafKey|bahis" → bakiye (+ alacaklı, − borçlu)
+  /* brut verilirse: kişi bazında GROSS (borç/alacak ayrı) — net ekstre için.
+     tarafKey netlemesinden ÖNCE, her kişiye ayrı yazılır. */
   const ekle=(ids,ne,n)=>{
     const k0=tarafKey(ids); if(!k0||BORCSUZ.includes(ne)) return;
     const k=`${k0}|${ne}`; t[k]=(t[k]||0)+n;
+    if(brut){ (ids||[]).filter(Boolean).forEach(id=>{
+      const m=(brut[id]=brut[id]||{}); const g=(m[ne]=m[ne]||{borc:0,alacak:0});
+      if(n<0) g.borc+=-n; else g.alacak+=n; }); }
   };
 
   for(const c of grupCelseleri()){

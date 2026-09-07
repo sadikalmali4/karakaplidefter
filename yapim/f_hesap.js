@@ -92,7 +92,34 @@ function borcHesabi(){
         onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 
+  /* KİŞİ BAZINDA NET: aynı kalemde hem borçlu hem alacaklı olan
+     (ör. Tuğrul 1 cin borç + 1 cin alacak) net rakamıyla görünür.
+     GROSS'u borcTablosu'ndan brut ile alıyoruz (netlemeden önce). */
+  const brut={}; borcTablosu(brut);
+  const netSatir=[];
+  Object.keys(brut).forEach(id=>{
+    Object.entries(brut[id]).forEach(([ne,e])=>{
+      if(e.borc>0 && e.alacak>0)   // iki yönlü — net asıl burada anlamlı
+        netSatir.push({id,ne,n:e.alacak-e.borc,borc:e.borc,alacak:e.alacak,cift:true});
+    });
+  });
+  netSatir.sort((a,b)=>Math.abs(b.n)-Math.abs(a.n));
+  const netKart = netSatir.length?`<div class="card">
+    <h3>⚖️ Net Hesap</h3>
+    <div class="xs dim" style="margin-bottom:8px">Hem borçlu hem alacaklı olanların sadeleşmiş hâli.
+      Birbirini götüren kalemler burada net görünür.</div>
+    ${netSatir.map(r=>`<div class="row" style="padding:7px 0;gap:9px">
+      ${avatar(r.id,30)}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:600;font-size:13.5px">${esc(ad(r.id))}</div>
+        <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)} · ${r.alacak} alacak, ${r.borc} borç</div></div>
+      <div class="serif ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="font-size:18px;min-width:44px;text-align:right">
+        ${r.n===0?'kapandı':(r.n<0?Math.abs(r.n)+' borç':'+'+r.n)}</div>
+    </div>`).join('')}
+  </div>`:'';
+
   return `
+  ${netKart}
   <div class="card">
     <h3>🥃 Borçlular Hesabı</h3>
     <div class="xs dim" style="margin-bottom:6px">Maçlardan doğan borçlar. Ödeme kaydedilince düşer ve akışa işlenir.</div>

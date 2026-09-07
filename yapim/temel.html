@@ -1394,9 +1394,11 @@ function gecmisPartiler(c){
     ${eski.map((p,i)=>{
       if(c.oyun==='batak'){
         const {top}=batakPartiToplam(p),k=(p.kazanan!=null)?p.kazanan:batakPartiKazanan(p);
-        return `<div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
+        const etk=(typeof tbEtiketOzet==='function')?tbEtiketOzet(c,p):[];
+        return `<div><div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
           <span class="sm"><b>${top[0]} – ${top[1]}</b> <span class="dim">· ${p.eller.length} el</span>
-          ${k!=null?`<span class="pill gold">${c.takimlar[k].ad} aldı</span>`:''}</span></div>`;
+          ${k!=null?`<span class="pill gold">${c.takimlar[k].ad} aldı</span>`:''}</span></div>
+          ${etk.length?`<div class="xs dim" style="margin-top:3px">${etk.map(esc).join(' · ')}</div>`:''}</div>`;
       }
       const pt=yzPartiToplam(p,c),k=p.kazanan||yzPartiKazanan(p,c);
       const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]);
