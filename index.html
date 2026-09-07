@@ -2658,7 +2658,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.7 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.8 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -3077,7 +3077,7 @@ function masaYokEkrani(){
     <div class="serif" style="font-size:17px;color:var(--ink)">Henüz bir grubun yok</div>
     <div class="sm" style="margin-top:6px">Ya kendi grubunu kur, ya arkadaşının verdiği davet linkine bas.</div></div></div>
   <div class="card">
-    <h3>Kodla Katıl</h3>
+    <h3>✅ Önce Bunu Dene: Kodla Katıl</h3>
     <div class="row">
       <input id="kKod" placeholder="ABC123" maxlength="6" style="text-transform:uppercase;letter-spacing:.2em;font-weight:700"
              oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
@@ -3087,6 +3087,12 @@ function masaYokEkrani(){
   </div>
   <div class="card">
     <h3>Grup Kur</h3>
+    <div class="uyari" style="margin-bottom:12px">
+      <b>Arkadaşların zaten bir grup kurduysa YENİ GRUP KURMA.</b>
+      Kod isteyip yukarıdan katıl. Yeni grup kurarsan kendi ayrı defterini açmış olursun:
+      onların maçları, borçları ve sicili sende görünmez, seninkiler de onlarda görünmez.
+      İki defter sonradan birleştirilemez.
+    </div>
     <div class="field"><label class="fl">Grup adı</label>
       <input id="yMAd" placeholder="Parkverde" maxlength="40"></div>
     <div class="field"><label class="fl">Simge</label>
@@ -3098,6 +3104,15 @@ function masaYokEkrani(){
 async function masaKur(){
   const adi=$('#yMAd').value.trim();
   if(!adi) return toast('Grup adı gerekli',true);
+  /* Yeni grup, AYRI bir defter demek. Arkadaş grubunda en sık yapılan hata
+     bu: kod beklemek yerine ikinci grup kurmak, sicil ikiye bölünüyor. */
+  const NL = String.fromCharCode(10);
+  if(!confirm(
+    'Yeni bir grup kuruyorsun — bu AYRI bir defter olur.' + NL + NL +
+    'Arkadaşların zaten bir grup kurduysa onların maçlarını, borçlarını ve sicilini ' +
+    'GÖREMEZSİN; seninkiler de onlarda görünmez. İki defter sonradan birleştirilemez.' + NL + NL +
+    'Grubu kuran sen değilsen: vazgeç, ondan davet linki ya da 6 haneli kod iste.' + NL + NL +
+    'Yine de yeni grup kurulsun mu?')) return;
   const emoji=document.querySelector('#yMEmoji .chip.on')?.dataset.e||GRUP_EMOJI[0];
   try{
     /* Masa kurma sunucudaki masa_kur() ile yapılır: masa ve kurucu üyeliği
