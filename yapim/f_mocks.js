@@ -58,7 +58,13 @@ function mocksHesapKaydet(){
 /* Açıcılar: maç modu (açık masaya yaz) ya da genel (cihaz). İç 'Tazele'
    mocksAc()'i çağırınca bayrak korunur. */
 function mocksMacAc(){ MOCKS_MAC=true; mocksAc(); }
-function mocksGenelAc(){ MOCKS_MAC=false; mocksAc(); }
+/* Genel giriş: AÇIK ve senin tuttuğun (tabelacı) bir maç varsa hesap ORAYA
+   yazılsın — herkes görsün, tabelada/zabıtta çıksın. Yoksa cihaz listesi.
+   Böylece "ekledim ama masa hesabında yok" karışıklığı olmaz. */
+function mocksGenelAc(){
+  MOCKS_MAC = !!(DB.aktif && !DB.aktif.bitti && DB.aktif._hesap===OTURUM?.id);
+  mocksAc();
+}
 
 /* Sık verilenler: kullanıcı listesi + otomatik öğrenilen sayaç.
    İkisi birleşip en üstte "Sık Sipariş" bölümü oluyor. */

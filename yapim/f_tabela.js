@@ -13,7 +13,7 @@
 
 /* Batak'ta ceza/ödül YOKTUR (ev kuralı, 02.09.2026): iki sütun, yazılan sayı,
    altta toplam. Ceza/ödül yalnız 101'de var. */
-const TB_IZGARA='display:grid;grid-template-columns:26px 1fr 1fr;gap:7px;align-items:center';
+const TB_IZGARA='display:grid;grid-template-columns:32px 1fr 1fr;gap:7px;align-items:center';
 
 function hamSatirlar(p){
   return (p.eller||[]).map(el=>{
@@ -27,29 +27,35 @@ function tbAktifParti(){ return batakMac(DB.aktif).aktif; }
 function tbHucre(r,i,deger,kilit){
   /* iOS sayı klavyesinde eksi yok; batakta batınca eksi gerekir.
      Hücrenin soluna ± düğmesi: değerin işaretini çevirir. */
+  /* type=text + inputmode=numeric: iOS'ta yine sayı tuş takımı gelir ama
+     değer "-7" gibi eksili durabilir (type=number kısmi "-"i silerdi).
+     − düğmesi boş hücrede bile başa eksi koyar; kişi sonra rakamı yazar. */
   return `<div style="position:relative">
-    <input type="number" inputmode="numeric" data-r="${r}" data-i="${i}"
+    <input type="text" inputmode="numeric" pattern="-?[0-9]*" data-r="${r}" data-i="${i}"
       value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="·"
       onchange="tbYaz(${r},${i},this.value)" onkeydown="tbTus(event,${r},${i})"
-      style="width:100%;text-align:center;font:600 17px/1 Georgia,serif;padding:9px 22px 9px 2px;
+      style="width:100%;text-align:center;font:600 17px/1 Georgia,serif;padding:9px 24px 9px 2px;
         background:${kilit?'transparent':'var(--panel2)'};
         border-color:${kilit?'transparent':'var(--line)'}">
-    ${kilit?'':`<button type="button" onclick="tbSign(${r},${i})" title="eksi / artı" aria-label="eksi artı"
-      style="position:absolute;right:3px;top:50%;transform:translateY(-50%);width:22px;height:24px;
-        border:1px solid var(--line);border-radius:6px;background:var(--panel3);color:var(--ink2);
-        font-size:14px;line-height:1;padding:0;cursor:pointer">±</button>`}
+    ${kilit?'':`<button type="button" onclick="tbSign(${r},${i})" title="eksi (batak) — bas, sonra sayıyı yaz" aria-label="eksi"
+      style="position:absolute;right:3px;top:50%;transform:translateY(-50%);width:24px;height:26px;
+        border:1px solid var(--line);border-radius:6px;background:var(--panel3);color:var(--red);
+        font-weight:700;font-size:16px;line-height:1;padding:0;cursor:pointer">−</button>`}
   </div>`;
 }
+/* − düğmesi: girişin başındaki eksiyi aç/kapat. Boş hücrede de çalışır:
+   önce "-" görünür, kişi rakamı yazınca "-7" olur. */
 function tbSign(r,i){
+  const inp=document.querySelector(`#tbGovde input[data-r="${r}"][data-i="${i}"]`);
+  let s=inp?String(inp.value).trim():'';
+  s = s.startsWith('-') ? s.slice(1) : ('-'+s);
+  if(inp){ inp.value=s; try{ inp.focus(); }catch(e){} }
   const parti=tbAktifParti();
   while(parti.eller.length<=r) parti.eller.push({ham:[0,0]});
   const el=parti.eller[r];
   if(!Array.isArray(el.ham)) el.ham=[0,0];
-  el.ham[i]=-(Number(el.ham[i])||0);
+  el.ham[i]=(s===''||s==='-')?0:(parseInt(s,10)||0);
   parti.kazanan=null; kaydet();
-  const inp=document.querySelector(`#tbGovde input[data-r="${r}"][data-i="${i}"]`);
-  if(inp) inp.value=el.ham[i]||el.ham[i]===0?String(el.ham[i]):'';
-  if(inp && !el.ham[i]) inp.value='';
   if(batakPartiKazanan(parti)!==null){ render(); return; }
   tbTazele();
 }
@@ -65,9 +71,9 @@ function tbSatirHtml(r,cift,kilit){
   const el=(tbAktifParti().eller||[])[r];
   const em=el&&el.etiket?tbEtiketK(el.etiket.t):'';
   const noHtml=(cift&&!kilit)
-    ? `<button type="button" onclick="tbEtiketAc(${r})" title="ele not"
-        style="background:none;border:none;padding:0;cursor:pointer;color:var(--dim);
-          font-size:11px;line-height:1.1;text-align:center;width:100%">${r+1}${em?`<br>${em}`:'<br>🎭'}</button>`
+    ? `<button type="button" onclick="tbEtiketAc(${r})" title="bu ele mizahi not ekle"
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:3px 0;
+          cursor:pointer;color:var(--ink2);font-size:11px;line-height:1.15;text-align:center;width:100%">${r+1}<br>${em||'🎭'}</button>`
     : `<div class="xs dim center">${r+1}${em?`<br>${em}`:''}</div>`;
   return `<div style="${TB_IZGARA};margin-bottom:5px" data-satir="${r}">
     ${noHtml}
@@ -205,8 +211,9 @@ function batakTabela(){
 
   ${!MISAFIR&&!bitti&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
-  <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; batakta eksi de yazılır (örn. −7).
-    İhale, koz ve şlem dökümü tutulacaksa masa <b>İhaleli</b> açılmalı.</div>`;
+  <div class="card tight center xs dim">Batınca eksi için hücredeki <b style="color:var(--red)">−</b> düğmesine bas (sonra sayıyı yaz), ya da başına − koyup yaz.
+    El numarasına (<b>🎭</b>) dokununca o ele mizahi not eklersin (🎯 iyi el açtı, 👏 iyi oynadı, 💥 kötü el açtı, 🖐️ çizdi, 🍑 çıplak).
+    İhale/koz/şlem dökümü tutulacaksa masa <b>İhaleli</b> açılmalı.</div>`;
 }
 
 /* =========================================================
