@@ -153,13 +153,30 @@ function viewAyar(){
 
   <div class="card">
     <h3>Gruplarım</h3>
-    ${DB.gruplar.map(x=>`<div class="row" style="padding:7px 0;gap:10px">
+    <div class="xs dim" style="margin-bottom:8px">Üyesi olduğun bütün gruplar. Maçı olmayan gruplar
+      <b>boş</b> diye işaretli — yanlışlıkla ikinci kez kurulmuşsa buradan silinir.</div>
+    ${DB.gruplar.map(x=>{
+      const macN=DB.celseler.filter(c=>c.grupId===x.id).length;
+      const acikN=DB.acik.filter(c=>c.grupId===x.id).length;
+      const bos=macN===0&&acikN===0;
+      const bendeKurucu=x.rol==='kurucu';
+      return `<div class="row" style="padding:8px 0;gap:10px;align-items:flex-start">
       <div style="font-size:20px;width:26px;text-align:center">${x.emoji}</div>
-      <div class="grow"><div style="font-weight:600">${esc(x.ad)}${x.id===DB.aktifGrup?' <span class="pill gold">aktif</span>':''}</div>
-        <div class="xs dim">${x.uyeler.length} oyuncu · ${DB.celseler.filter(c=>c.grupId===x.id).length} maç${x.rol==='kurucu'?' · kurucu':''}</div></div>
-      ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
-    </div>`).join('')}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:600">${esc(x.ad)}
+          ${x.id===DB.aktifGrup?'<span class="pill gold">aktif</span>':''}
+          ${bos?'<span class="pill red">boş</span>':''}</div>
+        <div class="xs dim">${x.uyeler.length} oyuncu · ${macN} maç${acikN?` · ${acikN} açık masa`:''}${bendeKurucu?' · kurucu':''}</div>
+        <div class="xs dim" style="opacity:.6;font-family:ui-monospace,monospace">${esc(String(x.kod||''))}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
+        ${bendeKurucu?`<button class="btn-xs btn-dn" onclick="grupSilListeden('${x.id}')">Sil</button>`:''}
+      </div>
+    </div>`;}).join('<div class="sep" style="margin:0 -14px"></div>')}
     <button class="btn-b btn-full" style="margin-top:12px" onclick="grupSecici()">Grup Değiştir / Katıl / Kur</button>
+    <div class="xs dim" style="margin-top:8px">Kendi kurmadığın bir grup listede görünse de silinemez —
+      yalnız kuran silebilir. Üyesi olmadığın grubu ise kimse göremez (güvenlik kuralı).</div>
   </div>
 
   <div class="card">
@@ -184,5 +201,5 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.7 · bulut</div>`;
 }

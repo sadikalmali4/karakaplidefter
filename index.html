@@ -2610,13 +2610,30 @@ function viewAyar(){
 
   <div class="card">
     <h3>Gruplarım</h3>
-    ${DB.gruplar.map(x=>`<div class="row" style="padding:7px 0;gap:10px">
+    <div class="xs dim" style="margin-bottom:8px">Üyesi olduğun bütün gruplar. Maçı olmayan gruplar
+      <b>boş</b> diye işaretli — yanlışlıkla ikinci kez kurulmuşsa buradan silinir.</div>
+    ${DB.gruplar.map(x=>{
+      const macN=DB.celseler.filter(c=>c.grupId===x.id).length;
+      const acikN=DB.acik.filter(c=>c.grupId===x.id).length;
+      const bos=macN===0&&acikN===0;
+      const bendeKurucu=x.rol==='kurucu';
+      return `<div class="row" style="padding:8px 0;gap:10px;align-items:flex-start">
       <div style="font-size:20px;width:26px;text-align:center">${x.emoji}</div>
-      <div class="grow"><div style="font-weight:600">${esc(x.ad)}${x.id===DB.aktifGrup?' <span class="pill gold">aktif</span>':''}</div>
-        <div class="xs dim">${x.uyeler.length} oyuncu · ${DB.celseler.filter(c=>c.grupId===x.id).length} maç${x.rol==='kurucu'?' · kurucu':''}</div></div>
-      ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
-    </div>`).join('')}
+      <div class="grow" style="min-width:0">
+        <div style="font-weight:600">${esc(x.ad)}
+          ${x.id===DB.aktifGrup?'<span class="pill gold">aktif</span>':''}
+          ${bos?'<span class="pill red">boş</span>':''}</div>
+        <div class="xs dim">${x.uyeler.length} oyuncu · ${macN} maç${acikN?` · ${acikN} açık masa`:''}${bendeKurucu?' · kurucu':''}</div>
+        <div class="xs dim" style="opacity:.6;font-family:ui-monospace,monospace">${esc(String(x.kod||''))}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+        ${x.id===DB.aktifGrup?'':`<button class="btn-xs btn-gh" onclick="grupGec('${x.id}')">Geç</button>`}
+        ${bendeKurucu?`<button class="btn-xs btn-dn" onclick="grupSilListeden('${x.id}')">Sil</button>`:''}
+      </div>
+    </div>`;}).join('<div class="sep" style="margin:0 -14px"></div>')}
     <button class="btn-b btn-full" style="margin-top:12px" onclick="grupSecici()">Grup Değiştir / Katıl / Kur</button>
+    <div class="xs dim" style="margin-top:8px">Kendi kurmadığın bir grup listede görünse de silinemez —
+      yalnız kuran silebilir. Üyesi olmadığın grubu ise kimse göremez (güvenlik kuralı).</div>
   </div>
 
   <div class="card">
@@ -2641,7 +2658,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 8.7 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -5749,6 +5766,84 @@ async function pushSeritAc(){
   await pushAc();
   PUSH_DURUM=await pushDurum().catch(()=>PUSH_DURUM);
   render();
+}
+
+/* =========================================================
+   GRUP YÖNETİMİ — listeden doğrudan silme
+
+   Önceden: silmek için o gruba GEÇMEK, sonra Düzenle → Grubu Sil
+   gerekiyordu. Yanlışlıkla ikinci kez kurulmuş boş bir grubu temizlemek
+   için aktif grubu değiştirmek zorunda kalmak saçmaydı.
+
+   Şimdi: Ayarlar → Gruplarım listesinde her satırda "Sil" var (yalnız
+   kurucu olduğun gruplarda). Aktif olmayan grup da silinebiliyor.
+
+   NE KADAR "ADMIN": Kurucu olduğu grupları görür ve siler. Üyesi
+   OLMADIĞI grupları göremez — bu bir eksiklik değil, RLS'in ta kendisi.
+   Kimse başkasının masasını göremesin diye böyle; kurucu da istisna
+   değil. Zaten uygulamada gruplar kodla kuruluyor, "başkasının grubu"
+   diye bir şey senin hesabına hiç görünmez.
+   ========================================================= */
+
+async function grupSilListeden(id){
+  const g=grup(id);
+  if(!g) return;
+  if(g.rol!=='kurucu') return toast('Yalnız grubu kuran silebilir',true);
+
+  const macN=DB.celseler.filter(c=>c.grupId===id).length;
+  const acikN=DB.acik.filter(c=>c.grupId===id).length;
+  const oyN=(g.uyeler||[]).length;
+  const bos=macN===0&&acikN===0;
+  const tek=DB.gruplar.length<=1;
+
+  /* Dolu grubu silmek gerçekten yıkıcı: iki aşamalı onay + ne gideceğinin dökümü */
+  acModal(`
+    <h2 class="serif" style="margin:0 0 4px">${g.emoji} ${esc(g.ad)} — Grubu Sil</h2>
+    <div class="xs dim" style="margin-bottom:12px">Bu işlemin geri dönüşü yoktur.</div>
+
+    <div class="card tight" style="margin:0 0 12px;background:var(--panel2)">
+      <div class="xs dim" style="margin-bottom:6px">SİLİNECEKLER</div>
+      <div class="sm">· ${oyN} oyuncu kaydı</div>
+      <div class="sm">· ${macN} kapanmış maç ve zabıtları</div>
+      ${acikN?`<div class="sm">· ${acikN} AÇIK masa (yarıda kalmış tabela)</div>`:''}
+      <div class="sm">· grubun akışı, iddia defteri, borç hesabı, efsaneleri, kuralları</div>
+    </div>
+
+    ${bos
+      ? `<div class="uyari" style="margin-bottom:12px">Bu grupta hiç maç yok — <b>boş</b> görünüyor.
+          Yanlışlıkla ikinci kez kurulmuş olması muhtemel.</div>`
+      : `<div class="card tight" style="margin:0 0 12px;border-color:var(--red)">
+          <div class="sm" style="color:#D2A08F"><b>Bu grup DOLU.</b> ${macN} maçlık sicil,
+          rekorlar ve borç kayıtları birlikte gidecek. Silmeden önce
+          <b>Ayarlar → Defter → Yedek Al</b> demen tavsiye edilir.</div></div>`}
+
+    ${tek?`<div class="xs dim" style="margin-bottom:12px">Bu tek grubun. Silersen uygulama
+      "grubun yok" ekranına döner; yeniden kurman gerekir.</div>`:''}
+
+    <div class="field"><label class="fl">Onay için grubun adını yaz</label>
+      <input id="gsOnay" placeholder="${esc(g.ad)}" autocapitalize="off"></div>
+
+    <button class="btn-dn btn-full" id="gsBtn" style="margin-top:14px"
+      onclick="grupSilOnayla('${id}')">Kalıcı Olarak Sil</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+
+async function grupSilOnayla(id){
+  const g=grup(id); if(!g) return;
+  const yazilan=($('#gsOnay')?.value||'').trim().toLocaleLowerCase('tr-TR');
+  if(yazilan!==String(g.ad).trim().toLocaleLowerCase('tr-TR'))
+    return toast('Grubun adını tam yazman gerekiyor',true);
+
+  const btn=$('#gsBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const {error}=await sb.from('masalar').delete().eq('id',id);
+  if(error){ btn.disabled=false; btn.textContent='Kalıcı Olarak Sil'; return toast(hataMetni(error),true); }
+
+  if(DB.aktifGrup===id){ DB.aktifGrup=null; localStorage.removeItem('kkd_aktif_masa'); SECILI_MAC=null; }
+  await verileriGetir();
+  DURUM=DB.gruplar.length?'hazir':'masayok';
+  if(typeof kanalKur==='function') kanalKur();
+  kapatModal(); render();
+  toast(`${g.ad} grubu silindi.`,true);
 }
 
 //== ozet
