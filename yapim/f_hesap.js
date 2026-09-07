@@ -59,6 +59,69 @@ function borcHareketleri(id){
   return h.sort((x,y)=>(y.tarih+y.sira).localeCompare(x.tarih+x.sira));
 }
 
+/* Tüm oyunların tarih sıralı dökümü — her oyunun borca katkısı ve durumu
+   açıkça görünsün. "Yarıda kes" ile sonuçsuz kapanan oyun borca girmez;
+   net sıfır çıkmıyorsa sebebi çoğu zaman budur, bu döküm onu gösterir. */
+function oyunSatiri(c){
+  const bahis=bahisOzet(c.bahis)||'Onur';
+  const borcDogar=bahisBorcluKalemler(c.bahis).length>0;
+  let durum='', sonuc='—', sinif='dim', sayildi=false;
+  if(!c.bitti){
+    durum = c.talik ? '⏸️ ertelendi' : '🟢 açık · sürüyor';
+  }else if(c.oyun==='batak'){
+    const kz=c.kazanan??batakMac(c).macKazanan;
+    if(kz==null){ durum='⚠️ sonuçsuz kapandı'; sonuc='yarıda kesilmiş'; sinif='neg'; }
+    else{
+      const kazAd=c.takimlar[kz].oyuncular.map(ad).join(' & ');
+      const kayAd=c.takimlar[1-kz].oyuncular.map(ad).join(' & ');
+      sonuc=`${kazAd} kazandı`; sinif='pos';
+      durum = borcDogar ? `${kayAd} → ${bahis}` : 'onur · borç yok';
+      sayildi = borcDogar;
+    }
+  }else{
+    const sr=yzMac(c).sira;
+    if(!sr.length){ durum='⚠️ sonuçsuz kapandı'; sinif='neg'; }
+    else{
+      sonuc=`${ad(sr[0].id)} birinci · ${ad(sr[sr.length-1].id)} sonuncu`; sinif='pos';
+      durum = borcDogar ? `${ad(sr[sr.length-1].id)} → ${bahis}` : 'onur · borç yok';
+      sayildi = borcDogar;
+    }
+  }
+  return {c,bahis,durum,sonuc,sinif,sayildi};
+}
+function oyunDokumu(){
+  const g=aktifGrup();
+  const hepsi=(DB.celseler||[]).filter(c=>g&&c.grupId===g.id)
+    .sort((a,b)=>String((b.tarih||'')+(b.id||'')).localeCompare(String((a.tarih||'')+(a.id||''))));
+  if(!hepsi.length) return '';
+  const sat=hepsi.map(oyunSatiri);
+  const sorunlu=sat.filter(s=>s.c.bitti&&s.sinif==='neg'&&bahisBorcluKalemler(s.c.bahis).length);
+  const uyari=sorunlu.length?`<div class="xs" style="color:#DD8A8A;background:rgba(221,138,138,.1);
+      border:1px solid rgba(221,138,138,.35);border-radius:10px;padding:8px 10px;margin-bottom:10px">
+      ⚠️ ${sorunlu.length} oyun <b>sonuçsuz</b> kapanmış (yarıda kesilmiş) — bunlar borç hesabına
+      <b>girmez</b>. Net sıfır çıkmıyorsa sebebi büyük ihtimalle budur: kazanılan oyun kazanansız kapatılmış.
+      İlgili oyunu açıp sonucu işlersen borç kendiliğinden netleşir.</div>`:'';
+  const row=s=>{const c=s.c;
+    return `<div class="row" style="padding:7px 0;gap:9px;align-items:flex-start">
+      <div class="xs dim" style="flex-shrink:0;width:52px;line-height:1.25">${trh(c.tarih)}<br>
+        <span class="pill" style="font-size:9px;padding:1px 5px">${c.oyun==='batak'?'Batak':'101'}</span></div>
+      <div class="grow" style="min-width:0">
+        <div class="sm ell" style="font-weight:600">${esc(s.sonuc)}</div>
+        <div class="xs ${s.sinif}" style="margin-top:1px">${esc(s.durum)}</div>
+      </div>
+      ${s.sayildi?'<span class="pill green" style="flex-shrink:0;font-size:9px">borçta</span>'
+        :(c.bitti&&s.sinif==='neg'?'<span class="pill red" style="flex-shrink:0;font-size:9px">sayılmadı</span>':'')}
+    </div>`;};
+  return `<div class="card">
+    <h3>📜 Oyun Dökümü</h3>
+    <div class="xs dim" style="margin-bottom:8px">Tüm oyunlar, tarih sırasıyla. Hangi oyunun borca girdiği burada görünür.</div>
+    ${uyari}
+    <div>${sat.map(row).join('<div class="sep" style="margin:0 -14px"></div>')}</div>
+    <div class="xs dim" style="margin-top:9px">${hepsi.length} oyun · <span class="pill green" style="font-size:9px">borçta</span> = bahsi hesaba işlendi ·
+      <span class="pill red" style="font-size:9px">sayılmadı</span> = sonuçsuz kapandı</div>
+  </div>`;
+}
+
 function borcHesabi(){
   const t=borcTablosu();
   const kayit=Object.entries(t).filter(([,v])=>v!==0)
@@ -72,7 +135,8 @@ function borcHesabi(){
     <div class="two" style="margin-top:6px">
       <button class="btn-p btn-sm" onclick="borcEkleAc()">+ Borç Kaydı</button>
       <button class="btn-b btn-sm" onclick="devirSor()">⚡ Devir Kayıtları</button>
-    </div></div>`;
+    </div></div>
+    ${oyunDokumu()}`;
 
   const borclu=kayit.filter(r=>r.v<0).sort((a,b)=>a.v-b.v);
   const alacakli=kayit.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
@@ -104,18 +168,25 @@ function borcHesabi(){
     });
   });
   netSatir.sort((a,b)=>Math.abs(b.n)-Math.abs(a.n));
+  const hepKapali = netSatir.length && netSatir.every(r=>r.n===0);
   const netKart = netSatir.length?`<div class="card">
-    <h3>⚖️ Net Hesap</h3>
-    <div class="xs dim" style="margin-bottom:8px">Hem borçlu hem alacaklı olanların sadeleşmiş hâli.
-      Birbirini götüren kalemler burada net görünür.</div>
-    ${netSatir.map(r=>`<div class="row" style="padding:7px 0;gap:9px">
-      ${avatar(r.id,30)}
+    <h3>⚖️ Sadeleşmiş Hesap</h3>
+    <div class="xs dim" style="margin-bottom:8px">Aynı kişi bir kalemde hem borçlu hem alacaklıysa ikisi birbirini götürür. Düz hâli:</div>
+    ${hepKapali?`<div class="row" style="gap:9px;padding:8px 10px;background:rgba(140,199,155,.12);
+      border:1px solid rgba(140,199,155,.4);border-radius:10px;margin-bottom:6px">
+      <span style="font-size:18px">✅</span>
+      <div class="sm" style="color:#8CC79B;font-weight:600">Kimsenin net borcu yok — karşılıklı bahisler ödeşmiş.</div></div>`:''}
+    ${netSatir.map(r=>`<div class="row" style="padding:8px 0;gap:9px">
+      ${avatar(r.id,32)}
       <div class="grow" style="min-width:0">
-        <div style="font-weight:600;font-size:13.5px">${esc(ad(r.id))}</div>
-        <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)} · ${r.alacak} alacak, ${r.borc} borç</div></div>
-      <div class="serif ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="font-size:18px;min-width:44px;text-align:right">
-        ${r.n===0?'kapandı':(r.n<0?Math.abs(r.n)+' borç':'+'+r.n)}</div>
-    </div>`).join('')}
+        <div style="font-weight:600;font-size:14px">${esc(ad(r.id))} <span class="xs dim" style="font-weight:400">${bahisIkon(r.ne)} ${esc(r.ne)}</span></div>
+        <div class="xs ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="margin-top:2px">${
+          r.n===0 ? `başa baş · ${r.borc} borç, ${r.alacak} alacak → ödeşti`
+          : r.n<0 ? `net ${Math.abs(r.n)} ${esc(r.ne)} borçlu · (${r.alacak} alacağı düşülmüş)`
+                  : `net ${r.n} ${esc(r.ne)} alacaklı · (${r.borc} borcu düşülmüş)`}</div></div>
+      <div class="serif ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="font-size:20px;min-width:44px;text-align:right">
+        ${r.n===0?'0':(r.n<0?Math.abs(r.n):'+'+r.n)}</div>
+    </div>`).join('<div class="sep" style="margin:0 -14px"></div>')}
   </div>`:'';
 
   return `
@@ -137,6 +208,7 @@ function borcHesabi(){
     <button class="btn-g btn-full" onclick="borcOzetiAc()">📋 Hesap Özetini Kopyala</button>
     <div class="xs dim" style="margin-top:8px">Gruba yapıştırılacak hâli. Kimse "ben ödemiştim" diyemez.</div>
   </div>
+  ${oyunDokumu()}
   <div class="card tight xs dim">Eşli batakta borç TARAFA yazılır: kaybeden çift birlikte
     <b>bir</b> tane borçlanır, kişi başı bir değil. 101'de sonuncu borçlanır, birinci alacaklı olur.
     "Onur"a oynanan maç borç doğurmaz.</div>`;
