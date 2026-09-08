@@ -32,10 +32,23 @@ const MOCKS_MASA_ON = 'kkd_mocks_masa';
 const MOCKS_ADRES_ON = 'kkd_mocks_adresler';
 function mocksAdresler(){ try{ return JSON.parse(localStorage.getItem(MOCKS_ADRES_ON)||'[]'); }catch(e){ return []; } }
 function mocksAdresYaz(l){ try{ localStorage.setItem(MOCKS_ADRES_ON,JSON.stringify(l)); }catch(e){} }
-function mocksMasaNo(){ try{ return localStorage.getItem(MOCKS_MASA_ON)||'241'; }catch(e){ return '241'; } }
+/* VARSAYILAN YOK (07.09.2026). Eskiden '241' gömülüydü; o numara
+   "DAİRE 25 SADIK ALMALI" çıkıyor — yani sipariş/garson çağrısı yanlış
+   yere, hatta başkasının dairesine gidebilir. Numara seçilmeden sipariş
+   düğmeleri açılmıyor. Doğru numarayı masadaki QR söylüyor; "Sipariş
+   Adresi" ekranında numarayı yazınca kafenin kendi ucundan ADI teyit
+   ediliyor (ör. 1000 → "SALON 21"). */
+function mocksMasaNo(){ try{ return localStorage.getItem(MOCKS_MASA_ON)||''; }catch(e){ return ''; } }
+const mocksMasaVarMi = ()=>!!String(mocksMasaNo()||'').trim();
 function mocksMasaAdiOku(){ try{ return localStorage.getItem(MOCKS_MASA_ON+'_ad')||''; }catch(e){ return ''; } }
 function mocksAdresSec(no,ad){ try{ localStorage.setItem(MOCKS_MASA_ON,String(no)); localStorage.setItem(MOCKS_MASA_ON+'_ad',ad||''); }catch(e){} }
-const mocksMenuUrl = ()=>'https://themocks.qr.menulux.com/?tableno='+encodeURIComponent(mocksMasaNo())+'#!/';
+const mocksMenuUrl = ()=>'https://themocks.qr.menulux.com/'
+  + (mocksMasaVarMi()?'?tableno='+encodeURIComponent(mocksMasaNo()):'') + '#!/';
+/* Tek ürüne doğrudan git — kafenin kendi sipariş akışı, ürün açık gelir.
+   Yol onların yönlendirme tablosunda var: app.product → /product/:productId */
+const mocksUrunUrl = id=>'https://themocks.qr.menulux.com/'
+  + (mocksMasaVarMi()?'?tableno='+encodeURIComponent(mocksMasaNo()):'')
+  + '#!/product/'+encodeURIComponent(id);
 const MOCKS_ONBELLEK = 'kkd_mocks_menu';
 const MOCKS_HESAP_ON = 'kkd_mocks_hesap';
 
@@ -238,7 +251,10 @@ function mocksCiz() {
       <div class="row" style="justify-content:space-between;gap:8px">
         <div class="grow" style="min-width:0">
           <div class="xs dim">Sipariş adresi</div>
-          <div class="sm ell" style="font-weight:700">${esc(mocksMasaAdiOku()||('Masa/Daire '+mocksMasaNo()))}</div></div>
+          <div class="sm ell" style="font-weight:700;${mocksMasaVarMi()?'':'color:#DD8A8A'}">${
+            mocksMasaVarMi()
+              ? esc(mocksMasaAdiOku()||('Masa/Daire '+mocksMasaNo()))
+              : 'seçilmedi — sipariş için gerekli'}</div></div>
         <button class="btn-xs btn-gh" style="flex-shrink:0" onclick="mocksMasaAc()">Değiştir</button>
       </div>
     </div>
@@ -325,6 +341,9 @@ function mocksHesapPaylas() {
    sipariş olur, (b) bizim sistemimiz değil, izinsiz kullanım olur.
    Menüyü OKUMAK herkese açık; SİPARİŞ YAZMAK değil.
 
+   (İşletmeci Tuğrul masadan arkadaş; mesele onunla bir sorun DEĞİL —
+   mesele Menulux'ün ucunu izinsiz kullanmak ve mutfağa gerçek iş açmak.)
+
    YAPILAN: siparişi metne çeviriyoruz, WhatsApp'ı açıyoruz, GÖNDEREN
    İNSAN oluyor. Kafe tarafında hiçbir şeyi zorlamıyoruz, sipariş
    normal yolla — bir insanın mesajıyla — gidiyor. Numara bir kez
@@ -355,6 +374,10 @@ function mocksSiparisMetni(){
 function mocksSiparisAc(){
   const h=mocksHesapRef();
   if(!h.length) return toast('Hesap boş — önce ürün ekle',true);
+  if(!mocksMasaVarMi()){
+    toast('Önce sipariş adresini seç — yanlış masaya gitmesin',true);
+    return mocksMasaAc();
+  }
   const tel=mocksTelOku();
   acModal(`<h2 class="serif" style="margin:0 0 4px">Siparişi Gönder</h2>
     <div class="xs dim" style="margin-bottom:12px">Sipariş <b>WhatsApp'tan sen</b> gönderiyorsun.
@@ -373,7 +396,17 @@ function mocksSiparisAc(){
     <div class="two" style="margin-top:8px">
       <button class="btn-b btn-sm" onclick="kopyala(mocksSiparisMetni());toast('Sipariş metni kopyalandı')">📋 Metni Kopyala</button>
       <a class="btn-gh btn-sm" style="text-align:center;text-decoration:none;display:block;padding:9px 0"
-        href="${mocksMenuUrl()}" target="_blank" rel="noopener">🔗 QR Menüden Ver</a>
+        href="${mocksMenuUrl()}" target="_blank" rel="noopener">🔗 QR Menüyü Aç</a>
+    </div>
+
+    <div class="sep"></div>
+    <div class="xs dim" style="font-weight:700;margin-bottom:6px">QR MENÜDEN TEK TEK VER</div>
+    <div class="xs dim" style="margin-bottom:8px">Her satır kafenin kendi uygulamasında <b>o ürünü açık</b> getirir;
+      orada "Sepete Ekle" deyip siparişi resmî yoldan verirsin. Sepeti biz devredemiyoruz — onların sepeti
+      tarayıcılarının hafızasında duruyor, dışarıdan yazılamıyor.</div>
+    <div class="stack">
+      ${h.map(x=>`<a class="btn-gh btn-sm" style="text-decoration:none;display:block;text-align:left;padding:8px 10px"
+        href="${mocksUrunUrl(x.id)}" target="_blank" rel="noopener">${x.adet}× ${esc(x.ad)} <span class="xs dim">→ QR'da aç</span></a>`).join('')}
     </div>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="mocksCiz()">Geri</button>`);
 }
@@ -419,7 +452,9 @@ function mocksAdresKullan(no,ad){ mocksAdresSec(no,ad); toast(ad+' seçildi'); m
 function mocksAdresSil(no){
   const l=mocksAdresler().filter(a=>String(a.no)!==String(no));
   mocksAdresYaz(l);
-  if(String(mocksMasaNo())===String(no)){ const y=l[0]; mocksAdresSec(y?y.no:'241', y?y.ad:''); }
+  /* Seçili adresi sildiyse: başka kayıt varsa ona geç, yoksa BOŞ bırak.
+     Eskiden '241'e düşüyordu — silinen adresin yerine başkasının dairesi. */
+  if(String(mocksMasaNo())===String(no)){ const y=l[0]; mocksAdresSec(y?y.no:'', y?y.ad:''); }
   mocksMasaAc();
 }
 async function mocksMasaDogrula(){
