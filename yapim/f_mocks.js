@@ -442,7 +442,7 @@ function mocksMasaAc(){
 
     <div class="xs dim" style="font-weight:700;margin-bottom:6px">YENİ ADRES EKLE</div>
     <div class="field"><label class="fl">Daire / salon no</label>
-      <input id="mkNo" inputmode="numeric" placeholder="örn. 241 ya da salon no"
+      <input id="mkNo" inputmode="numeric" placeholder="masadaki QR'da yazan numara"
         onkeydown="if(event.key==='Enter')mocksMasaDogrula()"></div>
     <div id="mkNoSonuc" class="xs" style="margin-top:8px"></div>
     <button class="btn-p btn-full" id="mkNoBtn" style="margin-top:12px" onclick="mocksMasaDogrula()">Dogrula ve Ekle</button>
