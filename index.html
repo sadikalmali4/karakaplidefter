@@ -2085,9 +2085,11 @@ function gecmisPartiler(c){
       }
       const pt=yzPartiToplam(p,c),k=p.kazanan||yzPartiKazanan(p,c);
       const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]);
+      const yetk=(typeof yzEtiketOzet==='function')?yzEtiketOzet(c,p):[];
       return `<div><div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
         ${k?`<span class="pill gold">${esc(liste(k.map(ad)))} aldı</span>`:''}</div>
-        <div class="xs dim" style="margin-top:3px">${sr.map(id=>`${esc(ad(id))} ${pt[id]}`).join(' · ')}</div></div>`;
+        <div class="xs dim" style="margin-top:3px">${sr.map(id=>`${esc(ad(id))} ${pt[id]}`).join(' · ')}</div>
+        ${yetk.length?`<div class="xs dim" style="margin-top:3px">${yetk.map(esc).join(' · ')}</div>`:''}</div>`;
     }).join('')}</div></details></div>`;
 }
 
@@ -2670,7 +2672,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.8 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 9.9 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -4657,6 +4659,12 @@ function tbSign(r,i){
   const el=parti.eller[r];
   if(!Array.isArray(el.ham)) el.ham=[0,0];
   el.ham[i]=(s===''||s==='-')?0:(parseInt(s,10)||0);
+  /* − boş son satırda basıldıysa satır açılmış olur; değer hâlâ yoksa geri al.
+     Yoksa "1 el yazıldı" diyip tabelada 0/0 hayalet satır kalıyor. */
+  while(parti.eller.length){
+    const e=parti.eller[parti.eller.length-1];
+    if(Array.isArray(e.ham) && !e.ham[0] && !e.ham[1] && !e.etiket) parti.eller.pop(); else break;
+  }
   parti.kazanan=null; kaydet();
   if(batakPartiKazanan(parti)!==null){ render(); return; }
   tbTazele();
@@ -4828,26 +4836,121 @@ function batakTabela(){
    açamadı +200, elinde kalan +X … hangisi olduysa sayısı yazılır).
    elSayisi (11) el dolunca parti biter; toplamı en DÜŞÜK olan alır.
    ========================================================= */
-function yzIzgara(n){ return `display:grid;grid-template-columns:24px repeat(${n},minmax(58px,1fr));gap:6px;align-items:center`; }
+function yzIzgara(n){ return `display:grid;grid-template-columns:34px repeat(${n},minmax(70px,1fr));gap:6px;align-items:center`; }
 
 function yzHamSatir(el,c){
   if(el && el.ham) return c.oyuncular.map(id=>Number(el.ham[id])||0);
   return c.oyuncular.map(id=>yzElPuan(el,id));
 }
+/* 101'DE EKSİ (07.09.2026): iOS sayı tuş takımında eksi tuşu YOK.
+   Batak'a − düğmesi konmuştu, 101 atlanmıştı — oysa burada eksi daha çok
+   gerekiyor: eli bitiren ${DB.ayar.yz.bitiren}, silme ${DB.ayar.yz.silme}, ödül.
+   Çözüm batakla aynı: type=text + inputmode=numeric (kısmi "-" silinmesin)
+   ve hücrenin sağında − düğmesi. */
 function yzHucre(r,id,deger,kilit){
-  return `<input type="number" inputmode="numeric" data-r="${r}" data-oy="${id}"
-    value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="·"
-    onchange="yzTbYaz(${r},'${id}',this.value)" onkeydown="yzTbTus(event,${r},'${id}')"
-    style="width:100%;text-align:center;font:600 15px/1 Georgia,serif;padding:9px 1px;
-      background:${kilit?'transparent':'var(--panel2)'};
-      border-color:${kilit?'transparent':'var(--line)'}">`;
+  return `<div style="position:relative">
+    <input type="text" inputmode="numeric" pattern="-?[0-9]*" data-r="${r}" data-oy="${id}"
+      value="${deger===''?'':deger}" ${kilit?'disabled':''} placeholder="·"
+      onchange="yzTbYaz(${r},'${id}',this.value)" onkeydown="yzTbTus(event,${r},'${id}')"
+      style="width:100%;text-align:center;font:600 15px/1 Georgia,serif;padding:9px 21px 9px 2px;
+        background:${kilit?'transparent':'var(--panel2)'};
+        border-color:${kilit?'transparent':'var(--line)'}">
+    ${kilit?'':`<button type="button" onclick="yzSign(${r},'${id}')" title="eksi — bas, sonra sayıyı yaz" aria-label="eksi"
+      style="position:absolute;right:2px;top:50%;transform:translateY(-50%);width:20px;height:24px;
+        border:1px solid var(--line);border-radius:6px;background:var(--panel3);color:var(--green);
+        font-weight:700;font-size:15px;line-height:1;padding:0;cursor:pointer">−</button>`}
+  </div>`;
 }
+/* − düğmesi: başındaki eksiyi aç/kapat. Boş hücrede de çalışır. */
+function yzSign(r,id){
+  const c=DB.aktif; if(!c) return;
+  const inp=document.querySelector(`#yzGovde input[data-r="${r}"][data-oy="${id}"]`);
+  let s=inp?String(inp.value).trim():'';
+  s = s.startsWith('-') ? s.slice(1) : ('-'+s);
+  if(inp){ inp.value=s; try{ inp.focus(); }catch(e){} }
+  const parti=yzMac(c).aktif;
+  while(parti.eller.length<=r) parti.eller.push({ham:{}});
+  const el=parti.eller[r];
+  if(!el.ham) el.ham={};
+  el.ham[id]=(s===''||s==='-')?0:(parseInt(s,10)||0);
+  /* boş satır açıldıysa geri al (notu varsa dokunma) */
+  while(parti.eller.length){
+    const e=parti.eller[parti.eller.length-1];
+    if(e.ham && c.oyuncular.every(x=>!e.ham[x]) && !e.etiket) parti.eller.pop(); else break;
+  }
+  parti.kazanan=null; kaydet();
+  const N=DB.ayar.yz.elSayisi||11;
+  if(parti.eller.length>=N){ render(); return; }
+  yzTbTazele();
+}
+/* 101 EL NOTU — batakla aynı mantık, listesi 101'e göre.
+   "Çizdi (13/13)" batak işidir, buraya konmadı; yerine 101'in gerçek
+   olayları var (eli bitirme, açamama, silme). */
+const YZ_ETIKET=[
+  {t:'iyi_acti',   k:'🎯', ad:'İyi el açtı'},
+  {t:'iyi_oynadi', k:'👏', ad:'İyi oynadı'},
+  {t:'kotu_acti',  k:'💥', ad:'Kötü el açtı'},
+  {t:'bitirdi',    k:'✂️', ad:'Eli bitirdi'},
+  {t:'acamadi',    k:'🙈', ad:'Açamadı'},
+  {t:'silme',      k:'🧹', ad:'Silme yaptı'},
+  {t:'ciplak',     k:'🍑', ad:'Kendini çıplak hissetti'}
+];
+const yzEtiketK=t=>(YZ_ETIKET.find(x=>x.t===t)||{}).k||'';
 function yzTbSatirHtml(r,degerler,kilit,c){
+  const el=((yzMac(c).aktif.eller)||[])[r];
+  const em=el&&el.etiket?yzEtiketK(el.etiket.t):'';
+  const no=(!kilit)
+    ? `<button type="button" onclick="yzEtiketAc(${r})" title="bu ele mizahi not ekle"
+        style="background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 0;
+          cursor:pointer;color:var(--ink2);font-size:11px;line-height:1.15;text-align:center;width:100%">${r+1}<br>${em||'🎭'}</button>`
+    : `<div class="xs dim center">${r+1}${em?`<br>${em}`:''}</div>`;
   return `<div style="${yzIzgara(c.oyuncular.length)};margin-bottom:5px" data-satir="${r}">
-    <div class="xs dim center">${r+1}</div>
+    ${no}
     ${c.oyuncular.map((id,k)=>yzHucre(r,id,degerler?degerler[k]:'',kilit)).join('')}
   </div>`;
 }
+let _yzEtiketSira=null;
+function yzEtiketAc(r){
+  const c=DB.aktif; if(!c) return;
+  const parti=yzMac(c).aktif;
+  while(parti.eller.length<=r) parti.eller.push({ham:{}});
+  const el=parti.eller[r];
+  const mev=el.etiket?el.etiket.t:null;
+  acModal(`<h2 class="serif" style="margin:0 0 4px">${r+1}. El — Not</h2>
+    <div class="xs dim" style="margin-bottom:12px">Ele mizahi bir not iliştir; tabelada ve geçmişte görünür.</div>
+    <label class="fl">Kime? (isteğe bağlı)</label>
+    <div class="row wrap" id="yzEtKim" style="gap:6px;margin:6px 0 12px">
+      ${c.oyuncular.map(oid=>`<span class="chip ${el.etiket&&el.etiket.oy===oid?'on':''}" data-oy="${oid}"
+        onclick="chipTek(this)">${esc(ad(oid))}</span>`).join('')}
+    </div>
+    <label class="fl">Not</label>
+    <div class="stack" style="margin-top:6px">
+      ${YZ_ETIKET.map(x=>`<button class="btn-full btn-sm ${mev===x.t?'btn-g':'btn-gh'}" style="text-align:left"
+        onclick="yzEtiketSec(${r},'${x.t}')">${x.k} ${x.ad}</button>`).join('')}
+    </div>
+    ${el.etiket?`<button class="btn-dn btn-full btn-sm" style="margin-top:10px" onclick="yzEtiketSil(${r})">Notu kaldır</button>`:''}
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+function yzEtiketSec(r,t){
+  const c=DB.aktif, parti=yzMac(c).aktif, el=(parti.eller||[])[r]; if(!el) return;
+  const sec=document.querySelector('#yzEtKim .chip.on');
+  el.etiket={t, oy:sec?sec.dataset.oy:null};
+  kaydet(); kapatModal(); render();
+  toast(`${yzEtiketK(t)} ${(YZ_ETIKET.find(x=>x.t===t)||{}).ad} — ${r+1}. el`);
+}
+function yzEtiketSil(r){
+  const el=(yzMac(DB.aktif).aktif.eller||[])[r]; if(!el) return;
+  delete el.etiket; kaydet(); kapatModal(); render();
+}
+/* Bir 101 partisinin etiketli ellerini yazıya çevir (geçmiş partiler) */
+function yzEtiketOzet(c,parti){
+  return (parti.eller||[]).map((el,r)=>{
+    if(!el.etiket) return null;
+    const x=YZ_ETIKET.find(y=>y.t===el.etiket.t); if(!x) return null;
+    return `${r+1}. el ${x.k} ${x.ad}${el.etiket.oy?` (${ad(el.etiket.oy)})`:''}`;
+  }).filter(Boolean);
+}
+
 function yzTbToplamHtml(){
   const c=DB.aktif, a=DB.ayar.yz, parti=yzMac(c).aktif;
   const top=yzPartiToplam(parti,c);
@@ -4895,7 +4998,7 @@ function yzTabela(){
     <div class="sep"></div>
 
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
-      <div style="min-width:${24+c.oyuncular.length*64}px">
+      <div style="min-width:${34+c.oyuncular.length*76}px">
         <div style="${yzIzgara(c.oyuncular.length)};align-items:end">
           <div></div>
           ${c.oyuncular.map(id=>`<div class="center">
@@ -4935,7 +5038,8 @@ function yzTabela(){
 
   ${!MISAFIR&&!doldu&&satir.length?`<div class="card tight center">
     <button class="btn-gh btn-sm" onclick="celseKapat()">Yarıda kes, tabelayı olduğu gibi kapat</button></div>`:''}
-  <div class="card tight center xs dim">Sayıyı olduğu gibi yaz; 101'de eksi de yazılır (örn. −100).
+  <div class="card tight center xs dim">Eksi için hücredeki <b style="color:var(--green)">−</b> düğmesine bas (sonra sayıyı yaz), ya da başına − koyup yaz.
+    El numarasına (<b>🎭</b>) dokununca o ele mizahi not eklersin (🎯 iyi el açtı, 👏 iyi oynadı, 💥 kötü el açtı, ✂️ bitirdi, 🙈 açamadı, 🧹 silme, 🍑 çıplak).
     Ceza ve ödül kutuları gerekiyorsa masa <b>⚖️ Ceza / Ödül</b> şıkkıyla açılmalı;
     orada her oyuncu için sayı, ceza (+) ve ödül (−) ayrı ayrı girilir.</div>`;
 }
@@ -4954,7 +5058,8 @@ function yzTbYaz(r,id,deger){
   /* sondaki tamamen boş satırları at */
   while(parti.eller.length){
     const e=parti.eller[parti.eller.length-1];
-    const bosMu = e.ham && c.oyuncular.every(x=>!e.ham[x]);
+    /* NOTU OLAN SATIR ATILMAZ (boş satıra 🎭 not eklenebiliyor) */
+    const bosMu = e.ham && c.oyuncular.every(x=>!e.ham[x]) && !e.etiket;
     if(bosMu) parti.eller.pop(); else break;
   }
   parti.kazanan=null;
@@ -5021,7 +5126,9 @@ function tbYaz(r,i,deger){
   /* sondaki tamamen boş satırları at — yanlışlıkla açılmış satır kalmasın */
   while(parti.eller.length){
     const e=parti.eller[parti.eller.length-1];
-    if(Array.isArray(e.ham) && !e.ham[0] && !e.ham[1]) parti.eller.pop(); else break;
+    /* NOTU OLAN SATIR ATILMAZ: boş son satıra 🎭 not eklenebiliyor;
+       eskiden buradan sessizce siliniyordu (not kayboluyordu). */
+    if(Array.isArray(e.ham) && !e.ham[0] && !e.ham[1] && !e.etiket) parti.eller.pop(); else break;
   }
   parti.kazanan=null;
   kaydet();                                  // buluta gecikmeli yazar

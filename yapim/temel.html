@@ -1402,9 +1402,11 @@ function gecmisPartiler(c){
       }
       const pt=yzPartiToplam(p,c),k=p.kazanan||yzPartiKazanan(p,c);
       const sr=c.oyuncular.slice().sort((x,y)=>pt[x]-pt[y]);
+      const yetk=(typeof yzEtiketOzet==='function')?yzEtiketOzet(c,p):[];
       return `<div><div class="row" style="justify-content:space-between"><span class="sm">${partiAd(c,i)}</span>
         ${k?`<span class="pill gold">${esc(liste(k.map(ad)))} aldı</span>`:''}</div>
-        <div class="xs dim" style="margin-top:3px">${sr.map(id=>`${esc(ad(id))} ${pt[id]}`).join(' · ')}</div></div>`;
+        <div class="xs dim" style="margin-top:3px">${sr.map(id=>`${esc(ad(id))} ${pt[id]}`).join(' · ')}</div>
+        ${yetk.length?`<div class="xs dim" style="margin-top:3px">${yetk.map(esc).join(' · ')}</div>`:''}</div>`;
     }).join('')}</div></details></div>`;
 }
 
