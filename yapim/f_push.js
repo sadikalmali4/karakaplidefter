@@ -16,7 +16,11 @@
    bozulmaz.
    ========================================================= */
 
-const VAPID_PUBLIC='BGmk0OslRwGU7rX2XANgiUlsnXCPI04kSvhxM5QLmWRk3jBMFf4c9M1mICVK9BF9FaeVQQr-7f5ajVGgEBLT0Ps';
+/* ANAHTAR DÖNDÜRÜLDÜ 07.09.2026. Eski çift (BGmk0Osl… / KcgR95wy…) bir
+   commit yorumunda public depoya girmişti; geçmiş silinmediği için anahtar
+   DÖNDÜRÜLDÜ — eskisi artık hiçbir şeye yaramıyor. Özel anahtar YALNIZ
+   Supabase Edge secret'inde; buraya ve depoya asla yazılmaz. */
+const VAPID_PUBLIC='BCLFeZHw_oz6XrDjKxS2BXqbvEuXUG3NLnwB5-smvrs74C7aDK7M4dpFQSqfAx-JgeotVuuRzrrM6KJr_2KVICA';
 const PUSH_FN='bildirim-gonder';          // Edge Function adı
 
 function pushDestekli(){

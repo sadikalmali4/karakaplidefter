@@ -129,6 +129,8 @@ function genelMuayyideler(){
   /* Borç / ısmarlama temelli ünvanlar — grup geneli (batak+101 ortak).
      borcTablosu() güncel bakiyeyi verir: eksi borç, artı alacak. */
   borcUnvanlari().forEach(x=>out.push(x));
+  /* Süre, şerh, eş/rakip ve devamsızlık ünvanları (f_istatistik.js) */
+  if(typeof ekUnvanlar==='function'){ try{ ekUnvanlar().forEach(x=>out.push(x)); }catch(e){} }
   return out;
 }
 

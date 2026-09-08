@@ -56,11 +56,13 @@ function viewAkis(){
     </div>
   </div>`;
 
-  if(!ust.length) return yazma+`<div class="card"><div class="empty">
+  if(!ust.length) return yazma+((typeof istatistikKart==='function')?istatistikKart():'')
+    +`<div class="card"><div class="empty">
     <div class="big">💬</div>Akış boş.
     <div class="sm" style="margin-top:6px">İlk lafı sen et. Kapanan her zabıt da buraya düşecek.</div></div></div>`;
 
-  return yazma+ust.map(a=>akisKart(a,yorumlar(a.id))).join('');
+  const ist=(typeof istatistikKart==='function')?istatistikKart():'';
+  return yazma+ist+ust.map(a=>akisKart(a,yorumlar(a.id))).join('');
 }
 
 function akisKart(a,yrm){

@@ -249,6 +249,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_grupyonet.js') + '\n'
               + F('f_sahip.js') + '\n'
               + F('f_surekisi.js') + '\n'
+              + F('f_istatistik.js') + '\n'
               + F('f_ozet.js') + '\n'
               + F('f_tahmin.js') + '\n' + F('f_tahmin2.js') + '\n'
               + F('f_tmisafir.js') + '\n'
