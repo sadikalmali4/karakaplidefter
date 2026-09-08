@@ -55,10 +55,48 @@ function mocksHesapKaydet(){ if(mocksMacAktif() && typeof kaydet==='function') k
 function mocksMacAc(){ mocksAc(); }
 function mocksGenelAc(){ mocksAc(); }
 
-/* Sık verilenler: kullanıcı listesi + otomatik öğrenilen sayaç.
-   İkisi birleşip en üstte "Sık Sipariş" bölümü oluyor. */
-const MOCKS_FAV_ON = 'kkd_mocks_fav';
-const MOCKS_SIK = ['çay','büyük çay','fincan çay','fincan','kahve','türk kahve','oralet','su','kuruyemiş','fıstık','soda','çerez'];
+/* SIK SİPARİŞ — SABİT LİSTE (kullanıcı, 07.09.2026: "hep orası değişiyor").
+   Eskiden anahtar kelime + otomatik sayaçla puanlanıyordu; her seferinde
+   sıra değişiyordu. Artık liste SABİT ve elle düzenlenir: ürünün yanındaki
+   ⭐ ile ekle/çıkar, sıra bozulmaz.
+
+   Varsayılanlar kullanıcının saydıkları (07.09.2026), ürün no'ları The
+   Mocks menüsünden teyit edildi. "Büyük çay" o adla menüde YOK; karşılığı
+   Fincan Çay (50 ₺) — kullanıcı 07.09.2026'da teyit etti.
+   Kafe ürünü yeniden oluşturursa no değişir; o yüzden ADLA da eşleşiyor. */
+const MOCKS_FAV_ON  = 'kkd_mocks_fav';
+const MOCKS_SABIT_ON = 'kkd_mocks_sabit';
+const MOCKS_SABIT_VARSAYILAN = [
+  {id:3744493, ad:'Çay'},
+  {id:3744494, ad:'Fincan Çay'},
+  {id:3801924, ad:'Oralet'},
+  {id:3744475, ad:'Su'},
+  {id:3777860, ad:'Karışık Kuruyemiş'},
+  {id:3783126, ad:'Tuzlu Fıstık'},
+  {id:3745045, ad:'Çilekli Magnolia'},
+  {id:3810095, ad:'Oreolu Magnolia'}
+];
+function mocksSabitOku(){
+  try{ const l=JSON.parse(localStorage.getItem(MOCKS_SABIT_ON)||'null');
+    return Array.isArray(l)?l:MOCKS_SABIT_VARSAYILAN.slice(); }
+  catch(e){ return MOCKS_SABIT_VARSAYILAN.slice(); }
+}
+function mocksSabitYaz(l){ try{ localStorage.setItem(MOCKS_SABIT_ON,JSON.stringify(l)); }catch(e){} }
+function mocksSabitMi(id){ return mocksSabitOku().some(x=>Number(x.id)===Number(id)); }
+function mocksSabitCevir(id){
+  const l=mocksSabitOku(), i=l.findIndex(x=>Number(x.id)===Number(id));
+  if(i>=0){ l.splice(i,1); mocksSabitYaz(l); toast('Sık siparişten çıkarıldı'); }
+  else{
+    const u=(MOCKS?MOCKS.gruplar.flatMap(g=>g.urunler):[]).find(x=>Number(x.id)===Number(id));
+    if(!u) return;
+    l.push({id:Number(id),ad:u.ad}); mocksSabitYaz(l); toast('⭐ '+u.ad+' sık siparişe eklendi');
+  }
+  mocksCiz();
+}
+function mocksSabitSifirla(){
+  mocksSabitYaz(MOCKS_SABIT_VARSAYILAN.slice());
+  toast('Sık sipariş varsayılana döndü'); mocksCiz();
+}
 let MOCKS_SAYAC = (()=>{ try{ return JSON.parse(localStorage.getItem(MOCKS_FAV_ON)||'{}'); }catch(e){ return {}; } })();
 function mocksSayacYaz(){ try{ localStorage.setItem(MOCKS_FAV_ON,JSON.stringify(MOCKS_SAYAC)); }catch(e){} }
 
@@ -149,18 +187,20 @@ function mocksTemizle() {
 
 /* Sık sipariş: adı MOCKS_SIK'te geçenler + en çok eklenenler.
    Menüdeki gerçek ürünlerle eşleştirilir; olmayan atlanır. */
+/* Sabit listeyi menüdeki güncel ürüne bağlar. ÖNCE no ile, bulunamazsa
+   ADLA eşleşir (kafe ürünü silip yeniden açarsa no değişiyor).
+   Sıra listedeki sıradır — kendiliğinden değişmez. */
 function mocksSikUrunler(){
   if(!MOCKS) return [];
   const hepsi=MOCKS.gruplar.flatMap(g=>g.urunler.map(u=>({...u,grup:g.ad})));
-  const puan=u=>{
-    let p=(MOCKS_SAYAC[u.id]||0)*10;                 // en çok eklediğin
-    const ad=u.ad.toLocaleLowerCase('tr-TR');
-    const kelime=ad.split(/[\s,()]+/);              // "su" -> "Sucuklu"a takılmasın
-    if(MOCKS_SIK.some(k=>k.includes(' ')?ad.includes(k):kelime.includes(k))) p+=5;
-    return p;
-  };
-  return hepsi.map(u=>({u,p:puan(u)})).filter(x=>x.p>0)
-    .sort((a,b)=>b.p-a.p).slice(0,8).map(x=>x.u);
+  const nrm=t=>String(t||'').toLocaleLowerCase('tr-TR').trim();
+  const out=[];
+  mocksSabitOku().forEach(sb2=>{
+    let u=hepsi.find(x=>Number(x.id)===Number(sb2.id));
+    if(!u && sb2.ad) u=hepsi.find(x=>nrm(x.ad)===nrm(sb2.ad));
+    if(u && !out.some(o=>o.id===u.id)) out.push(u);
+  });
+  return out;
 }
 
 /* ---------------- ekran ---------------- */
@@ -219,7 +259,8 @@ function mocksCiz() {
           <button class="btn-xs btn-gh" onclick="mocksArtir(${x.id},1)">+</button>
           <span class="sm" style="min-width:56px;text-align:right;font-weight:600">${mocksTL(x.fiyat * x.adet)}</span>
         </div></div>`).join('')}
-      <div class="two" style="margin-top:9px">
+      <button class="btn-p btn-full btn-sm" style="margin-top:9px" onclick="mocksSiparisAc()">📲 Siparişi WhatsApp'a Hazırla</button>
+      <div class="two" style="margin-top:7px">
         <button class="btn-b btn-sm" onclick="mocksHesapPaylas()">📋 Hesabı Kopyala</button>
         <button class="btn-gh btn-sm" onclick="mocksTemizle()">Sıfırla</button>
       </div>
@@ -227,7 +268,10 @@ function mocksCiz() {
       Sipariş gitmez, yalnız ne içtiğinizin tutarını tutar.</div>`}
 
     ${(()=>{ const sik=mocksSikUrunler(); return sik.length?`
-      <div class="xs dim" style="margin-bottom:6px;font-weight:700">⭐ SIK SİPARİŞ</div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span class="xs dim" style="font-weight:700">⭐ SIK SİPARİŞ</span>
+        <button class="btn-xs btn-gh" style="padding:3px 7px" onclick="mocksSabitSifirla()">varsayılana dön</button>
+      </div>
       <div class="row wrap" style="gap:6px;margin-bottom:12px">
         ${sik.map(u=>`<button class="btn-sm btn-gh" style="padding:7px 11px"
           onclick="mocksEkle(${u.id})">
@@ -246,6 +290,8 @@ function mocksCiz() {
           ${u.desc ? `<div class="xs dim ell">${esc(u.desc)}</div>` : ''}</div>
         <div class="sm" style="font-weight:700;flex-shrink:0;min-width:52px;text-align:right">
           ${u.fiyat ? mocksTL(u.fiyat) : '<span class="xs dim">—</span>'}</div>
+        <button class="btn-xs btn-gh" style="flex-shrink:0;padding:4px 7px"
+          title="sık siparişe ekle/çıkar" onclick="mocksSabitCevir(${u.id})">${mocksSabitMi(u.id)?'⭐':'☆'}</button>
         <button class="btn-xs btn-g" style="flex-shrink:0"
           onclick="mocksEkle(${u.id})">+ Ekle</button>
       </div>`).join('<div style="height:1px;background:var(--line)"></div>')}
@@ -268,6 +314,78 @@ function mocksHesapPaylas() {
   kopyala(L.join('\n'));
 }
 
+
+/* =========================================================
+   SİPARİŞİ WHATSAPP'A HAZIRLA
+
+   NEDEN DOĞRUDAN SİPARİŞ GEÇMİYORUZ: Menulux'ün sipariş ucu
+   (OnlineOrderAPI/Post) kafenin kendi web istemcisi için; belgelenmiş
+   bir arayüz değil. Oraya kendi başımıza istek atmak (a) gerçek
+   mutfağa iş açar — yanlış giden bir kayıt kimsenin iptal etmediği
+   sipariş olur, (b) bizim sistemimiz değil, izinsiz kullanım olur.
+   Menüyü OKUMAK herkese açık; SİPARİŞ YAZMAK değil.
+
+   YAPILAN: siparişi metne çeviriyoruz, WhatsApp'ı açıyoruz, GÖNDEREN
+   İNSAN oluyor. Kafe tarafında hiçbir şeyi zorlamıyoruz, sipariş
+   normal yolla — bir insanın mesajıyla — gidiyor. Numara bir kez
+   kaydedilir, cihazda durur.
+   Resmî ikinci yol da yerinde: "QR Menüsünü Aç" kafenin kendi
+   sipariş akışına masa numarasıyla gidiyor.
+   ========================================================= */
+const MOCKS_TEL_ON='kkd_mocks_tel';
+function mocksTelOku(){ try{ return localStorage.getItem(MOCKS_TEL_ON)||''; }catch(e){ return ''; } }
+function mocksTelYaz(t){ try{ localStorage.setItem(MOCKS_TEL_ON,String(t||'')); }catch(e){} }
+/* wa.me sadece rakam ister: 90XXXXXXXXXX */
+function mocksTelDuzelt(t){
+  let d=String(t||'').replace(/[^0-9]/g,'');
+  if(d.startsWith('00')) d=d.slice(2);
+  if(d.length===10) d='90'+d;                 // 5XX...
+  if(d.length===11 && d.startsWith('0')) d='90'+d.slice(1);
+  return d;
+}
+function mocksSiparisMetni(){
+  const h=mocksHesapRef();
+  const yer=mocksMasaAdiOku()||('Masa/Daire '+mocksMasaNo());
+  const L=['Merhaba, '+yer+' icin siparis:',''];
+  h.forEach(x=>L.push('- '+x.adet+' x '+x.ad));
+  L.push('');
+  L.push('Toplam (menu fiyatiyla): '+mocksTL(mocksToplam()));
+  return L.join(String.fromCharCode(10));
+}
+function mocksSiparisAc(){
+  const h=mocksHesapRef();
+  if(!h.length) return toast('Hesap boş — önce ürün ekle',true);
+  const tel=mocksTelOku();
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Siparişi Gönder</h2>
+    <div class="xs dim" style="margin-bottom:12px">Sipariş <b>WhatsApp'tan sen</b> gönderiyorsun.
+      Uygulama kafenin sistemine kendi başına sipariş <b>yazmaz</b> — o gerçek mutfağa iş açar
+      ve bizim sistemimiz değil. Metni hazırlıyoruz, göndermek sende.</div>
+
+    <div class="card tight" style="margin:0 0 12px;background:var(--panel2);white-space:pre-wrap;
+      font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.5">${esc(mocksSiparisMetni())}</div>
+
+    <div class="field"><label class="fl">The Mocks WhatsApp numarası</label>
+      <input id="mkTel" value="${esc(tel)}" placeholder="0532 000 00 00" inputmode="tel">
+      <div class="xs dim" style="margin-top:5px">Bir kez yaz, bu cihazda kalır. Numarayı bilmiyorsan
+        aşağıdan metni kopyalayıp kendi sohbetine yapıştırabilirsin.</div></div>
+
+    <button class="btn-p btn-full" style="margin-top:12px" onclick="mocksSiparisGonder()">📲 WhatsApp'ta Aç</button>
+    <div class="two" style="margin-top:8px">
+      <button class="btn-b btn-sm" onclick="kopyala(mocksSiparisMetni());toast('Sipariş metni kopyalandı')">📋 Metni Kopyala</button>
+      <a class="btn-gh btn-sm" style="text-align:center;text-decoration:none;display:block;padding:9px 0"
+        href="${mocksMenuUrl()}" target="_blank" rel="noopener">🔗 QR Menüden Ver</a>
+    </div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="mocksCiz()">Geri</button>`);
+}
+function mocksSiparisGonder(){
+  const ham=($('#mkTel')?.value||'').trim();
+  const d=mocksTelDuzelt(ham);
+  if(d.length<12) return toast('Numarayı tam yaz (ör. 0532 000 00 00)',true);
+  mocksTelYaz(ham);
+  const url='https://wa.me/'+d+'?text='+encodeURIComponent(mocksSiparisMetni());
+  window.open(url,'_blank','noopener');
+  toast('WhatsApp açıldı — göndermeyi sen onaylayacaksın');
+}
 
 //== mocksMasa
 /* Siparis adresi (daire/masa no) ayari. Numara KULLANICIDAN gelir;
