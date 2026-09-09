@@ -79,7 +79,7 @@ function haftaOzetiUret(gun){
   const borclu=Object.entries(t).filter(([,v])=>v<0)
     .map(([k,v])=>{const i=k.indexOf('|');
       const taraf=tarafKisiler(k.slice(0,i));
-      return `${taraf.map(ad).join(' & ')} ${Math.abs(v)} ${k.slice(i+1)}${taraf.length>1?' (ortak)':''}`;});
+      return `${taraf.map(ad).join(' & ')} ${typeof frak==='function'?frak(v):Math.abs(v)} ${k.slice(i+1)}`;});
   if(borclu.length){
     L.push('');
     L.push(`ZİMMET: ${liste(borclu)}. İfa süresi bir sonraki celseye kadardır.`);

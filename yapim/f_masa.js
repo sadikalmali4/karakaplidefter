@@ -19,6 +19,7 @@ function viewCelse(){
   const yuruyen=DB.acik.filter(c=>!c.talik);
   const son=grupCelseleri().slice().sort((a,b)=>(b.tarih+(b._sira||'')).localeCompare(a.tarih+(a._sira||'')))[0];
   return `
+    ${typeof kartimKart==='function'?kartimKart():''}
     ${yuruyen.length?`<div class="card">
       <h3><span class="canli"></span>Açık Masalar (${yuruyen.length})</h3>
       ${yuruyen.map(acikMasaSatir).join('<div class="sep"></div>')}

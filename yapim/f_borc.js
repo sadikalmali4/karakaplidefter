@@ -83,61 +83,66 @@ function bahisOku(){
 }
 
 /* --------- tabela: maçlardan alacak/borç, akıştan ödeme --------- */
-/* Borç TARAFA yazılır, kişiye değil.
-   Eşli batakta kaybeden çift BİR şişe borçlanır; ikisine birer yazılırsa
-   tabelada iki şişe görünür — yaşanan hata buydu. 101'de taraf tek kişidir,
-   aynı mantık kendiliğinden çalışır. */
+/* KİŞİ BAZLI ½ MODEL (kullanıcı, 09.09.2026): karma (değişen eşli) oynandığı
+   için borç TAKIMA değil KİŞİYE yazılır. Eşli batakta kaybeden çiftin 1 şişe
+   borcu iki kişiye ½'şer bölünür; aynı kişinin FARKLI eşlerdeki ½'leri toplanır
+   (iki yarım bir tam olur) ve düzgün netleşir. 101'de taraf tek kişi → tam pay.
+   Anahtar artık tek kişi: "kisiId|bahis". Depolama (ödeme.taraf, borcKaydi,
+   takimlar) DEĞİŞMEDİ; eski ödemeler de kişi başına bölünüp doğru netlenir. */
 const tarafKey = ids => (ids||[]).filter(Boolean).slice().sort().join('+');
 const tarafKisiler = k => String(k||'').split('+').filter(Boolean);
+/* kesir biçimleyici: 0.5→"½", 1→"1", 1.5→"1½" (mutlak değer, işaretsiz) */
+function frak(n){
+  n=Math.abs(Number(n)||0);
+  const tam=Math.floor(n+1e-9), k=n-tam;
+  if(Math.abs(k-0.5)<1e-6) return (tam?tam:'')+'½';
+  if(k>1e-6) return String(Math.round(n*100)/100);
+  return String(tam);
+}
 
 function borcTablosu(brut){
-  const t={};        // "tarafKey|bahis" → bakiye (+ alacaklı, − borçlu)
-  /* brut verilirse: kişi bazında GROSS (borç/alacak ayrı) — net ekstre için.
-     tarafKey netlemesinden ÖNCE, her kişiye ayrı yazılır. */
-  const ekle=(ids,ne,n)=>{
-    const k0=tarafKey(ids); if(!k0||BORCSUZ.includes(ne)) return;
-    const k=`${k0}|${ne}`; t[k]=(t[k]||0)+n;
-    if(brut){ (ids||[]).filter(Boolean).forEach(id=>{
-      const m=(brut[id]=brut[id]||{}); const g=(m[ne]=m[ne]||{borc:0,alacak:0});
-      if(n<0) g.borc+=-n; else g.alacak+=n; }); }
-  };
+  const t={};        // "kisiId|bahis" → net (+ alacaklı, − borçlu), 0.5 adımlı
+  /* brut verilirse: kişi başı GROSS (borç/alacak ayrı, ödemeler HARİÇ) —
+     "ödeşti" tespiti için (aktifliği olup net 0'a inen kalem). */
+  const gross=(id,ne,n)=>{ if(!id||BORCSUZ.includes(ne)) return;
+    const k=`${id}|${ne}`; t[k]=(t[k]||0)+n;
+    if(brut){ const m=(brut[id]=brut[id]||{}); const g=(m[ne]=m[ne]||{borc:0,alacak:0});
+      if(n<0) g.borc+=-n; else g.alacak+=n; } };
+  const ode=(id,ne,n)=>{ if(!id||BORCSUZ.includes(ne)) return; const k=`${id}|${ne}`; t[k]=(t[k]||0)+n; };
 
   for(const c of grupCelseleri()){
     const kalemler=bahisBorcluKalemler(c.bahis); if(!kalemler.length) continue;
     if(c.oyun==='batak'){
       const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
-      c.takimlar.forEach((tk,ti)=>
-        kalemler.forEach(x=>ekle(tk.oyuncular,x.ne,ti===kz?x.adet:-x.adet)));
+      c.takimlar.forEach((tk,ti)=>{
+        const uy=(tk.oyuncular||[]).filter(Boolean), pay=uy.length||1;   // kişi başı pay
+        kalemler.forEach(x=>{ const birim=(ti===kz?x.adet:-x.adet)/pay;
+          uy.forEach(id=>gross(id,x.ne,birim)); });
+      });
     }else{
       const sr=yzMac(c).sira; if(!sr.length) continue;
-      kalemler.forEach(x=>{ ekle([sr[0].id],x.ne,x.adet); ekle([sr[sr.length-1].id],x.ne,-x.adet); });
+      kalemler.forEach(x=>{ gross(sr[0].id,x.ne,x.adet); gross(sr[sr.length-1].id,x.ne,-x.adet); });
     }
   }
-  /* akıştaki elle borç kayıtları (devir, iddia, söz) — taraf olarak */
+  /* elle borç kayıtları (devir, iddia, söz) — listelenen kişilere ½'şer bölünür */
   (DB.akis||[]).forEach(a=>{
-    const k=a.veri&&a.veri.borcKaydi;
-    if(!k||!k.ne) return;
+    const k=a.veri&&a.veri.borcKaydi; if(!k||!k.ne) return;
     const n=Number(k.adet)||1;
-    ekle(k.borclular,k.ne,-n);
-    ekle(k.alacaklilar,k.ne,n);
+    const bl=(k.borclular||[]).filter(Boolean), al=(k.alacaklilar||[]).filter(Boolean);
+    const nb=bl.length||1, na=al.length||1;
+    bl.forEach(id=>gross(id,k.ne,-n/nb));
+    al.forEach(id=>gross(id,k.ne, n/na));
   });
-  /* akıştaki ödemeler borcu kapatır. Eski kayıtlar tek kişi (o.kim) tutuyordu;
-     yenilerde taraf (o.taraf) var. İkisi de okunuyor.
-
-     ÖNEMLİ: ödeme İKİ tarafı da kapatır — borçlunun borcu azalır,
-     ALACAKLININ alacağı da azalır. Eskiden yalnız borçlu tarafı
-     düşüyordu, alacaklı ödendiği hâlde alacaklı görünüyordu.
-     o.alacakli yoksa (eski kayıt) eski davranış korunuyor. */
+  /* ödemeler: ödeyen(ler)in borcunu, alacaklı(lar)ın alacağını KİŞİ BAŞINA düşürür.
+     Eski takım ödemesi (taraf=[A,B], adet=1) → her birine ½ → ikisini de kapatır. */
   (DB.akis||[]).forEach(a=>{
-    const o=a.veri&&a.veri.odeme;
-    if(!o||!o.ne) return;
+    const o=a.veri&&a.veri.odeme; if(!o||!o.ne) return;
     const n=Number(o.adet)||0;
-    const k0=o.taraf ? tarafKey(o.taraf) : tarafKey([o.kim]);
-    if(k0) t[`${k0}|${o.ne}`]=(t[`${k0}|${o.ne}`]||0)+n;   // borçlu: eksi azalır
-    if(Array.isArray(o.alacakli)&&o.alacakli.length){
-      const k1=tarafKey(o.alacakli);
-      if(k1) t[`${k1}|${o.ne}`]=(t[`${k1}|${o.ne}`]||0)-n; // alacaklı: artı azalır
-    }
+    const odeyen=((o.taraf&&o.taraf.length)?o.taraf:[o.kim]).filter(Boolean);
+    const pb=odeyen.length||1;
+    odeyen.forEach(id=>ode(id,o.ne, n/pb));            // borçlu: eksi azalır
+    const al=(Array.isArray(o.alacakli)?o.alacakli:[]).filter(Boolean);
+    if(al.length){ const pa=al.length; al.forEach(id=>ode(id,o.ne,-n/pa)); } // alacaklı azalır
   });
   return t;
 }
@@ -158,20 +163,20 @@ function borcKart(){
       <div style="font-weight:600;font-size:13.5px" class="ell">${esc(r.taraf.map(ad).join(' & '))}</div>
       <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}${r.taraf.length>1?' · ortak':''}</div></div>
     <div class="serif" style="font-size:18px">
-      <span class="${r.v<0?'neg':'pos'}">${r.v<0?Math.abs(r.v):'+'+r.v}</span></div>
+      <span class="${r.v<0?'neg':'pos'}">${r.v<0?frak(r.v):'+'+frak(r.v)}</span></div>
     ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-gh"
       onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
   </div>`;
 
   return `<div class="card">
     <h3>🥃 Borç Tabelası</h3>
-    <div class="xs dim" style="margin-bottom:8px">Maçlardan doğan borçlar. Ödeme kaydedilince düşer ve akışa işlenir.</div>
+    <div class="xs dim" style="margin-bottom:8px">Kişi başına borç. Karma oynandığı için pay yarım (½) olabilir; iki yarım bir tam eder.</div>
     ${borclu.length?`<div class="xs" style="color:#DD8A8A;font-weight:700;margin:4px 0">BORÇLU</div>
       ${borclu.map(satir).join('')}`:''}
     ${alacakli.length?`<div class="sep"></div>
       <div class="xs" style="color:#8CC79B;font-weight:700;margin:4px 0">ALACAKLI</div>
       ${alacakli.map(satir).join('')}`:''}
-    <div class="xs dim" style="margin-top:9px">Batak'ta kaybeden takımın ikisi de borçlanır; 101'de sonuncu borçlanır, birinci alacaklı olur.
+    <div class="xs dim" style="margin-top:9px">Eşli batakta kaybeden çiftin borcu ikiye bölünür (kişi başı ½); 101'de sonuncu borçlanır, birinci alacaklı olur.
       <br><b>Ödemeyi yalnız ${esc((oy(kurucuOyuncu())||{}).ad||'masayı kuran')} işaretler</b> — borçlu kendi ödemesini kayda geçiremez.</div>
   </div>`;
 }
@@ -197,19 +202,19 @@ function borcOdeAc(taraf,ne,enfazla){
     <div class="row" style="gap:10px;margin-bottom:12px">
       ${taraf.map(id=>avatar(id,36)).join('')}
       <div><div style="font-weight:700">${esc(taraf.map(ad).join(' & '))}</div>
-        <div class="xs dim">${bahisIkon(ne)} ${esc(ne)} · ${enfazla} borç${ortak?' (ortak)':''}</div></div></div>
+        <div class="xs dim">${bahisIkon(ne)} ${esc(ne)} · ${frak(enfazla)} borç${ortak?' (ortak)':''}</div></div></div>
 
     ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
       <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
         ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
           data-ids='${JSON.stringify(x.ids)}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
-          <span class="xs dim">${x.v}</span></span>`).join('')}
+          <span class="xs dim">${frak(x.v)}</span></span>`).join('')}
       </div>
-      <div class="xs dim" style="margin-top:6px">Seçilen tarafın alacağı da bu miktarda düşer.
+      <div class="xs dim" style="margin-top:6px">Seçilen kişinin alacağı da bu miktarda düşer.
         Boş bırakırsan yalnız borçlunun borcu kapanır.</div></div>`:''}
 
-    <div class="field"><label class="fl">Kaç tanesini ödedi?</label>
-      <input type="number" id="boAdet" value="${enfazla}" min="1" max="${enfazla}"></div>
+    <div class="field"><label class="fl">Ne kadarını ödedi? (½ girilebilir)</label>
+      <input type="number" id="boAdet" value="${enfazla}" min="0.5" max="${enfazla}" step="0.5"></div>
     <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
       onclick='borcOdeKaydet(${JSON.stringify(taraf)},${JSON.stringify(ne)},${enfazla})'>Ödendi Olarak İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
@@ -222,7 +227,8 @@ function chipTek(el){
   if(!secili) el.classList.add('on');
 }
 async function borcOdeKaydet(taraf,ne,enfazla){
-  const adet=Math.max(1,Math.min(enfazla,parseInt($('#boAdet').value,10)||1));
+  let adet=parseFloat(String($('#boAdet').value).replace(',','.'))||enfazla;
+  adet=Math.round(Math.max(0.5,Math.min(enfazla,adet))*2)/2;   // 0.5 adımına yuvarla
   const secili=document.querySelector('#boAlacakli .chip.on');
   let alacakli=null;
   try{ alacakli=secili?JSON.parse(secili.dataset.ids):null; }catch(e){ alacakli=null; }
@@ -230,8 +236,8 @@ async function borcOdeKaydet(taraf,ne,enfazla){
   const kim=liste(taraf.map(ad));
   const kime=alacakli&&alacakli.length?` ${liste(alacakli.map(ad))} lehine olan`:'';
   const metin=taraf.length>1
-    ? `${kim}, ${adet} ${ne}${kime} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
-    : `${kim}, ${adet} ${ne}${kime} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
+    ? `${kim}, ${frak(adet)} ${ne}${kime} ortak borcunu ifa etmişlerdir. Zimmetleri bu miktarda azalmıştır.`
+    : `${kim}, ${frak(adet)} ${ne}${kime} borcunu ifa etmiştir. Zimmeti bu miktarda azalmıştır.`;
   const ok=await akisEkle('mesaj',metin,{odeme:{taraf,kim:taraf[0],ne,adet,alacakli}});
   if(!ok){ btn.disabled=false; btn.textContent='Ödendi Olarak İşle'; return; }
   kapatModal(); render(); toast(metin,true);

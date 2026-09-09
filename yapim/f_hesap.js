@@ -15,11 +15,11 @@ function borcHareketleri(id){
       const kz=c.kazanan??batakMac(c).macKazanan; if(kz==null) continue;
       const ti=c.takimlar.findIndex(t=>t.oyuncular.includes(id)); if(ti<0) continue;
       const rakip=c.takimlar[1-ti].oyuncular.map(ad).join(' & ');
-      /* Borç tarafa ait: eş varsa hareket ORTAK olarak gösterilir, iki kişiye
-         ayrı ayrı yazılmaz. Tabeladaki bakiye de bu yüzden tek şişe. */
+      /* KİŞİ BAŞINA ½: eşli takımın payı ikiye bölünür; ekstredeki rakam da yarım. */
+      const pay=(c.takimlar[ti].oyuncular||[]).filter(Boolean).length||1;
       const es=c.takimlar[ti].oyuncular.filter(x=>x!==id).map(ad);
-      const ortakNot=es.length?` (ortak · ${es.join(' & ')} ile)`:'';
-      kalemler.forEach(x=>h.push({tarih:c.tarih,sira:c._sira||'',ne:x.ne,adet:ti===kz?x.adet:-x.adet,
+      const ortakNot=es.length?` (½ · ${es.join(' & ')} ile paylaşımlı)`:'';
+      kalemler.forEach(x=>h.push({tarih:c.tarih,sira:c._sira||'',ne:x.ne,adet:(ti===kz?x.adet:-x.adet)/pay,
         ortak:es.length>0,
         aciklama:(ti===kz?'Batak galibiyeti · ':'Batak yenilgisi · ')+rakip+ortakNot,macId:c.id}));
     }else{
@@ -34,27 +34,29 @@ function borcHareketleri(id){
     const k=a.veri&&a.veri.borcKaydi;
     if(k&&k.ne){
       const n=Number(k.adet)||1;
-      const ortakNot=t=>{
+      const nb=(k.borclular||[]).filter(Boolean).length||1, na=(k.alacaklilar||[]).filter(Boolean).length||1;
+      const ortakNot=(t,c)=>{
         const es=(t||[]).filter(x=>x!==id).map(ad);
-        return es.length?` (ortak · ${es.join(' & ')} ile)`:'';
+        return es.length?` (${c>1?'½ · ':''}${es.join(' & ')} ile)`:'';
       };
       if((k.borclular||[]).includes(id))
-        h.push({tarih:(a.olusturma||'').slice(0,10),sira:a.olusturma||'',ne:k.ne,adet:-n,
+        h.push({tarih:(a.olusturma||'').slice(0,10),sira:a.olusturma||'',ne:k.ne,adet:-n/nb,
           ortak:(k.borclular||[]).length>1,
-          aciklama:(k.aciklama||'Borç kaydı · '+liste((k.alacaklilar||[]).map(ad))+' lehine')+ortakNot(k.borclular)});
+          aciklama:(k.aciklama||'Borç kaydı · '+liste((k.alacaklilar||[]).map(ad))+' lehine')+ortakNot(k.borclular,nb)});
       if((k.alacaklilar||[]).includes(id))
-        h.push({tarih:(a.olusturma||'').slice(0,10),sira:a.olusturma||'',ne:k.ne,adet:n,
+        h.push({tarih:(a.olusturma||'').slice(0,10),sira:a.olusturma||'',ne:k.ne,adet:n/na,
           ortak:(k.alacaklilar||[]).length>1,
-          aciklama:'Alacak kaydı · '+liste((k.borclular||[]).map(ad))+' zimmetinde'+ortakNot(k.alacaklilar)});
+          aciklama:'Alacak kaydı · '+liste((k.borclular||[]).map(ad))+' zimmetinde'+ortakNot(k.alacaklilar,na)});
     }
     const o=a.veri&&a.veri.odeme;
     if(!o) return;
     const odeyenler=o.taraf&&o.taraf.length?o.taraf:[o.kim];   // eski kayıtlar tek kişi
     if(!odeyenler.includes(id)) return;
+    const pb=odeyenler.filter(Boolean).length||1;
     const digerleri=odeyenler.filter(x=>x!==id).map(ad);
     h.push({tarih:(a.olusturma||'').slice(0,10),sira:a.olusturma||'',ne:o.ne,
-      adet:Number(o.adet)||0,ortak:odeyenler.length>1,
-      aciklama:'Ödeme yapıldı'+(digerleri.length?` (ortak · ${digerleri.join(' & ')} ile)`:''),odeme:true});
+      adet:(Number(o.adet)||0)/pb,ortak:odeyenler.length>1,
+      aciklama:'Ödeme yapıldı'+(digerleri.length?` (${pb>1?'½ · ':''}${digerleri.join(' & ')} ile)`:''),odeme:true});
   });
   return h.sort((x,y)=>(y.tarih+y.sira).localeCompare(x.tarih+x.sira));
 }
@@ -149,9 +151,9 @@ function borcHesabi(){
       `<span style="margin-left:${i?-10:0}px;display:inline-block">${avatar(id,32)}</span>`).join('')}</div>
     <div class="grow" style="min-width:0">
       <div style="font-weight:600;font-size:14px" class="ell">${esc(r.taraf.map(ad).join(' & '))}</div>
-      <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}${r.taraf.length>1?' · ortak':''}</div></div>
+      <div class="xs dim">${bahisIkon(r.ne)} ${esc(r.ne)}</div></div>
     <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px;min-width:34px;text-align:right">
-      ${r.v<0?Math.abs(r.v):'+'+r.v}</div>
+      ${r.v<0?frak(r.v):'+'+frak(r.v)}</div>
     <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
       ${r.taraf.map(id=>`<button class="btn-xs btn-gh" onclick="ekstreAc('${id}')">${
         r.taraf.length>1?esc(ad(id)):'Ekstre'}</button>`).join('')}
@@ -159,50 +161,50 @@ function borcHesabi(){
         onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 
-  /* KİŞİ BAZINDA NET: aynı kalemde hem borçlu hem alacaklı olan
-     (ör. Tuğrul 1 cin borç + 1 cin alacak) net rakamıyla görünür.
-     GROSS'u borcTablosu'ndan brut ile alıyoruz (netlemeden önce). */
+  /* ÖDEŞME DETAYI (altta): aynı kişi aynı kalemde hem borçlanıp hem alacaklı
+     olmuşsa (karma oyunun tipik hâli) ½'ler birbirini götürür; burada
+     "ödeşti / net ne kaldı" düz cümleyle görünür. GROSS'u brut'tan alıyoruz. */
   const brut={}; borcTablosu(brut);
   const netSatir=[];
   Object.keys(brut).forEach(id=>{
     Object.entries(brut[id]).forEach(([ne,e])=>{
-      if(e.borc>0 && e.alacak>0)   // iki yönlü — net asıl burada anlamlı
-        netSatir.push({id,ne,n:e.alacak-e.borc,borc:e.borc,alacak:e.alacak,cift:true});
+      if(e.borc>0 && e.alacak>0)   // iki yönlü — ödeşme asıl burada anlamlı
+        netSatir.push({id,ne,n:e.alacak-e.borc,borc:e.borc,alacak:e.alacak});
     });
   });
   netSatir.sort((a,b)=>Math.abs(b.n)-Math.abs(a.n));
-  const hepKapali = netSatir.length && netSatir.every(r=>r.n===0);
+  const hepKapali = netSatir.length && netSatir.every(r=>Math.abs(r.n)<1e-6);
   const netKart = netSatir.length?`<div class="card">
-    <h3>⚖️ Sadeleşmiş Hesap</h3>
-    <div class="xs dim" style="margin-bottom:8px">Aynı kişi bir kalemde hem borçlu hem alacaklıysa ikisi birbirini götürür. Düz hâli:</div>
+    <h3>⚖️ Ödeşme Detayı</h3>
+    <div class="xs dim" style="margin-bottom:8px">Karma oynayınca aynı kişi bir kalemde hem borçlanır hem alacaklı olur; ½'ler birbirini götürür. Düz hâli:</div>
     ${hepKapali?`<div class="row" style="gap:9px;padding:8px 10px;background:rgba(140,199,155,.12);
       border:1px solid rgba(140,199,155,.4);border-radius:10px;margin-bottom:6px">
       <span style="font-size:18px">✅</span>
-      <div class="sm" style="color:#8CC79B;font-weight:600">Kimsenin net borcu yok — karşılıklı bahisler ödeşmiş.</div></div>`:''}
+      <div class="sm" style="color:#8CC79B;font-weight:600">Bu kalemlerde kimsenin net borcu yok — ödeşmiş.</div></div>`:''}
     ${netSatir.map(r=>`<div class="row" style="padding:8px 0;gap:9px">
       ${avatar(r.id,32)}
       <div class="grow" style="min-width:0">
         <div style="font-weight:600;font-size:14px">${esc(ad(r.id))} <span class="xs dim" style="font-weight:400">${bahisIkon(r.ne)} ${esc(r.ne)}</span></div>
         <div class="xs ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="margin-top:2px">${
-          r.n===0 ? `başa baş · ${r.borc} borç, ${r.alacak} alacak → ödeşti`
-          : r.n<0 ? `net ${Math.abs(r.n)} ${esc(r.ne)} borçlu · (${r.alacak} alacağı düşülmüş)`
-                  : `net ${r.n} ${esc(r.ne)} alacaklı · (${r.borc} borcu düşülmüş)`}</div></div>
+          Math.abs(r.n)<1e-6 ? `başa baş · ${frak(r.borc)} borç, ${frak(r.alacak)} alacak → ödeşti`
+          : r.n<0 ? `net ${frak(r.n)} ${esc(r.ne)} borçlu · (${frak(r.alacak)} alacağı düşülmüş)`
+                  : `net ${frak(r.n)} ${esc(r.ne)} alacaklı · (${frak(r.borc)} borcu düşülmüş)`}</div></div>
       <div class="serif ${r.n<0?'neg':(r.n>0?'pos':'dim')}" style="font-size:20px;min-width:44px;text-align:right">
-        ${r.n===0?'0':(r.n<0?Math.abs(r.n):'+'+r.n)}</div>
+        ${Math.abs(r.n)<1e-6?'0':(r.n<0?frak(r.n):'+'+frak(r.n))}</div>
     </div>`).join('<div class="sep" style="margin:0 -14px"></div>')}
   </div>`:'';
 
   return `
-  ${netKart}
   <div class="card">
     <h3>🥃 Borçlular Hesabı</h3>
-    <div class="xs dim" style="margin-bottom:6px">Maçlardan doğan borçlar. Ödeme kaydedilince düşer ve akışa işlenir.</div>
+    <div class="xs dim" style="margin-bottom:6px">Kişi başına net borç. Karma oynandığı için pay ½ olabilir; iki yarım bir tam eder.</div>
     ${borclu.length?`<div class="xs" style="color:#DD8A8A;font-weight:700;margin:8px 0 2px">BORÇLU</div>
       ${borclu.map(satir).join('<div class="sep" style="margin:0 -14px"></div>')}`:''}
     ${alacakli.length?`<div class="sep"></div>
       <div class="xs" style="color:#8CC79B;font-weight:700;margin:2px 0">ALACAKLI</div>
       ${alacakli.map(satir).join('<div class="sep" style="margin:0 -14px"></div>')}`:''}
   </div>
+  ${netKart}
   <div class="card">
     <div class="two" style="margin-bottom:10px">
       <button class="btn-p btn-sm" onclick="borcEkleAc()">+ Borç Kaydı</button>
@@ -212,9 +214,9 @@ function borcHesabi(){
     <div class="xs dim" style="margin-top:8px">Gruba yapıştırılacak hâli. Kimse "ben ödemiştim" diyemez.</div>
   </div>
   ${oyunDokumu()}
-  <div class="card tight xs dim">Eşli batakta borç TARAFA yazılır: kaybeden çift birlikte
-    <b>bir</b> tane borçlanır, kişi başı bir değil. 101'de sonuncu borçlanır, birinci alacaklı olur.
-    "Onur"a oynanan maç borç doğurmaz.</div>`;
+  <div class="card tight xs dim">Karma (değişen eşli) oynandığı için borç KİŞİYE yazılır: eşli batakta
+    kaybeden çiftin bir şişesi ikiye bölünür (kişi başı ½), iki yarım bir tam eder. 101'de sonuncu borçlanır,
+    birinci alacaklı olur. "Onur"a oynanan maç borç doğurmaz.</div>`;
 }
 
 function ekstreAc(id){
@@ -226,8 +228,8 @@ function ekstreAc(id){
       <div><h2 class="serif" style="margin:0">${esc(ad(id))}</h2>
         <div class="xs dim">hesap ekstresi</div></div></div>
     <div class="row wrap" style="gap:6px;margin:12px 0">
-      ${Object.entries(bakiye).filter(([,v])=>v!==0).map(([ne,v])=>
-        `<span class="pill ${v<0?'red':'green'}">${bahisIkon(ne)} ${esc(ne)} ${v<0?Math.abs(v)+' borç':'+'+v+' alacak'}</span>`).join('')
+      ${Object.entries(bakiye).filter(([,v])=>Math.abs(v)>1e-6).map(([ne,v])=>
+        `<span class="pill ${v<0?'red':'green'}">${bahisIkon(ne)} ${esc(ne)} ${v<0?frak(v)+' borç':'+'+frak(v)+' alacak'}</span>`).join('')
         ||'<span class="pill">temiz</span>'}
     </div>
     ${h.length?`<div style="overflow-x:auto"><table>
@@ -236,7 +238,7 @@ function ekstreAc(id){
         <td class="xs dim">${trh(x.tarih)}</td>
         <td style="text-align:left"><div class="sm">${esc(x.aciklama)}</div>
           <div class="xs dim">${bahisIkon(x.ne)} ${esc(x.ne)}</div></td>
-        <td><b class="${x.adet<0?'neg':'pos'}">${art(x.adet)}</b></td></tr>`).join('')}
+        <td><b class="${x.adet<0?'neg':'pos'}">${(x.adet<0?'−':'+')+frak(x.adet)}</b></td></tr>`).join('')}
       </tbody></table></div>`
      :'<div class="sm dim">Hareket yok.</div>'}
     <button class="btn-gh btn-full btn-sm" style="margin-top:14px" onclick="kapatModal()">Kapat</button>`);
@@ -256,12 +258,12 @@ function borcOzetiUret(){
   const alacakli=kayit.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
   if(borclu.length){
     L.push('BORÇLULAR:');
-    borclu.forEach(r=>L.push(`  • ${r.taraf.map(ad).join(' & ')} — ${Math.abs(r.v)} ${r.ne}${r.taraf.length>1?' (ortak)':''}`));
+    borclu.forEach(r=>L.push(`  • ${r.taraf.map(ad).join(' & ')} — ${frak(r.v)} ${r.ne}`));
   }
   if(alacakli.length){
     L.push('');
     L.push('ALACAKLILAR:');
-    alacakli.forEach(r=>L.push(`  • ${r.taraf.map(ad).join(' & ')} — ${r.v} ${r.ne}${r.taraf.length>1?' (ortak)':''}`));
+    alacakli.forEach(r=>L.push(`  • ${r.taraf.map(ad).join(' & ')} — ${frak(r.v)} ${r.ne}`));
   }
   L.push('');
   const enCok=borclu[0];

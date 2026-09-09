@@ -76,7 +76,7 @@ function raporBorc(){
   const borclu=kayit.filter(r=>r.v<0).sort((a,b)=>a.v-b.v);
   const alacakli=kayit.filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
   const sat=(r,işaret)=>`<tr><td>${esc(r.taraf)}</td><td>${esc(r.ne)}</td>
-    <td class="rsag">${işaret}${Math.abs(r.v)}</td></tr>`;
+    <td class="rsag">${işaret}${typeof frak==='function'?frak(r.v):Math.abs(r.v)}</td></tr>`;
   return `<table class="rtab"><thead><tr><th>Taraf</th><th>Kalem</th><th class="rsag">Adet</th></tr></thead><tbody>
     ${borclu.length?`<tr class="rgrp"><td colspan="3">BORÇLU</td></tr>${borclu.map(r=>sat(r,'−')).join('')}`:''}
     ${alacakli.length?`<tr class="rgrp"><td colspan="3">ALACAKLI</td></tr>${alacakli.map(r=>sat(r,'+')).join('')}`:''}

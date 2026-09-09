@@ -72,9 +72,9 @@ _ekle("""      ${avatar(son,26)}
 
 # Borç hesabına oransal çubuk
 _ekle("""    <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px;min-width:34px;text-align:right">
-      ${r.v<0?Math.abs(r.v):'+'+r.v}</div>""",
+      ${r.v<0?frak(r.v):'+'+frak(r.v)}</div>""",
       """    <div style="min-width:58px;text-align:right">
-      <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px">${r.v<0?Math.abs(r.v):'+'+r.v}</div>
+      <div class="serif ${r.v<0?'neg':'pos'}" style="font-size:20px">${r.v<0?frak(r.v):'+'+frak(r.v)}</div>
       <div class="bar" style="margin-top:3px"><i style="width:${Math.round(Math.min(1,Math.abs(r.v)/enBuyuk)*100)}%;
         background:${r.v<0?'var(--red)':'var(--green)'}"></i></div></div>""",
       'borç çubuğu')
