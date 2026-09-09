@@ -2732,7 +2732,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.7 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -6945,6 +6945,10 @@ function kartSvg(c){
   const d=kartVeri(c);
   const G=KART_G, Y=KART_Y;
   const orta=G/2;
+  /* Mühür rengi seçili temadan gelsin — KIRMIZI DEĞİL (kullanıcı bordoyu
+     kaldırttı). Varsayılan yeşil çuha; okunamayacak kadar açık gelirse altına düş. */
+  let vurgu='#2E6B4F';
+  try{ vurgu=(getComputedStyle(document.documentElement).getPropertyValue('--accent')||'').trim()||vurgu; }catch(e){}
   const galipAd = liste(d.galip.map(ad));
   const maglupAd = liste(d.maglup.map(ad));
 
@@ -6966,8 +6970,8 @@ function kartSvg(c){
   <rect x="26" y="26" width="${G-52}" height="8" fill="#C9A227" rx="4"/>
 
   <!-- başlık -->
-  <circle cx="${orta}" cy="150" r="34" fill="none" stroke="#A32E38" stroke-width="4"/>
-  <text x="${orta}" y="150" fill="#A32E38" font-family="Georgia,serif" font-weight="700" font-size="34" text-anchor="middle" dominant-baseline="central">P</text>
+  <circle cx="${orta}" cy="150" r="34" fill="none" stroke="${vurgu}" stroke-width="4"/>
+  <text x="${orta}" y="150" fill="${vurgu}" font-family="Georgia,serif" font-weight="700" font-size="34" text-anchor="middle" dominant-baseline="central">P</text>
   <text x="${orta}" y="228" fill="#A2968A" font-family="Georgia,serif" font-size="26" letter-spacing="4" text-anchor="middle">KARA KAPLI DEFTER</text>
   <text x="${orta}" y="272" fill="#6E635A" font-family="Georgia,serif" font-size="20" letter-spacing="2" text-anchor="middle">PARKVERDE · ${kartEsc(trh(d.tarih))}${d.yer?' · '+kartEsc(d.yer):''}</text>
 
