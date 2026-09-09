@@ -87,6 +87,7 @@ function viewSicil(){
       ${sicilKarne('batak')}
       ${sicilKarne('101')}
     </div>
+    ${typeof takimLigi==='function'?takimLigi():''}
     ${typeof sureKisiKart==='function'?sureKisiKart():''}`;
 }
 

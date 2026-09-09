@@ -88,7 +88,11 @@ function viewAyar(){
       </div>`;}).join('')}
   </div>`:''}
 
-  <div class="card">
+  ${typeof takimKart==='function'?takimKart():''}
+
+  <details class="katlanir" style="margin-bottom:12px">
+    <summary>🎴 Oyun Kuralları — batak &amp; 101 <span class="xs dim" style="font-weight:400;text-transform:none;letter-spacing:0">(kurulunca bir kez ayarlanır)</span></summary>
+  <div class="card" style="margin-top:10px">
     <h3>Batak Kuralları</h3>
     ${k?'':'<div class="uyari" style="margin-bottom:12px">Kuralları yalnız grubu kuran değiştirebilir. Sen görüyorsun, değiştiremiyorsun.</div>'}
     <div class="two">
@@ -145,6 +149,7 @@ function viewAyar(){
     <div class="field"><label class="fl">3. sıra</label><input value="${esc(a.yz.muey3)}" ${kilit} onchange="ayarSet('yz','muey3',this.value)" placeholder="Çay ısmarlar"></div>
     <div class="field"><label class="fl">4. sıra</label><input value="${esc(a.yz.muey4)}" ${kilit} onchange="ayarSet('yz','muey4',this.value)" placeholder="Hesabı öder"></div>
   </div>
+  </details>
 
   <div class="card">
     <h3>Masa Yönergesi</h3>
@@ -209,5 +214,5 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.7 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.8 · bulut</div>`;
 }

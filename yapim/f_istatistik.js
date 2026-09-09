@@ -133,6 +133,9 @@ function masaNotlari(){
   c.forEach(x=>(x.kafe||[]).forEach(k=>{ kafeTop+=(Number(k.fiyat)||0)*(Number(k.adet)||0); kafeKalem+=(Number(k.adet)||0); }));
   if(kafeKalem) ek('☕',`Masaya <b>${kafeKalem}</b> kalem söylendi${kafeTop?` — menü fiyatıyla ${mocksTL?mocksTL(kafeTop):kafeTop+' ₺'}`:''}.`);
 
+  /* --- takım göndermeleri --- */
+  if(typeof takimNotlari==='function'){ try{ takimNotlari().forEach(x=>N.push(x)); }catch(e){} }
+
   /* --- Yeşilçam repliği: gün tohumuyla sabit, her gün başkası --- */
   if(typeof replikRast==='function'){
     const r=replikRast('gun'+istGunNo()+(DB.aktifGrup||''));

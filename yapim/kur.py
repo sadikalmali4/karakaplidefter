@@ -250,6 +250,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_sahip.js') + '\n'
               + F('f_surekisi.js') + '\n'
               + F('f_istatistik.js') + '\n'
+              + F('f_takim.js') + '\n'
               + F('f_gorunum.js') + '\n'
               + F('f_kart.js') + '\n'
               + F('f_ozet.js') + '\n'

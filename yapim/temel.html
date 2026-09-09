@@ -188,6 +188,16 @@ button:active{filter:brightness(1.18); transform:scale(.975)}
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
 }
+
+
+/* katlanir ayar bolumu — kart gibi baslik */
+.katlanir>summary{list-style:none;cursor:pointer;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:13px 14px;font:700 12.5px/1 inherit;color:var(--ink2);
+  text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:8px}
+.katlanir>summary::-webkit-details-marker{display:none}
+.katlanir>summary::after{content:"▾";margin-left:auto;color:var(--ink3);transition:transform .2s}
+.katlanir[open]>summary::after{transform:rotate(180deg)}
+.katlanir[open]>summary{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:0}
 /* ========== /GÖRSEL CİLA ========== */
 
 .fotoSec{width:76px;height:76px;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;
@@ -1563,7 +1573,7 @@ function sabikaGorunum(id,oyun){
   const rozetleri=muayyideler(oyun).filter(r=>r.kim===id);
   return `<button class="btn-sm btn-gh" style="margin-bottom:10px" onclick="SABIKA_ID=null;render()">‹ Sicile dön</button>
   <div class="card tight"><div class="row" style="gap:12px">${avatar(id,48)}
-    <div class="grow"><div class="serif" style="font-size:19px">${esc(o.ad)}${
+    <div class="grow"><div class="serif" style="font-size:19px">${esc(o.ad)} ${typeof takimRozet==='function'?takimRozet(id,11):''}${
       dgKalan(o.dogum)===0?' <span class="pill gold">🎂 bugün</span>':''}</div>
       <div class="xs dim">${sv.k} ${sv.ad} · ${toplamMac(id)} maç${
         o.dogum?` · ${yas(o.dogum)} yaşında${dgKalan(o.dogum)>0&&dgKalan(o.dogum)<=45?` · doğum günü ${dgMetni(dgKalan(o.dogum))}`:''}`:''}</div></div></div>
