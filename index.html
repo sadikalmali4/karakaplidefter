@@ -141,6 +141,55 @@ details>div{margin-top:10px}
 .rozet.yeni{border-color:var(--gold);background:#2B2410;animation:parla .9s ease}
 @keyframes parla{0%{transform:scale(.94);opacity:.4}60%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
 
+/* ========== GÖRSEL CİLA (10.5) ==========
+   Tema renkleri, mikro-animasyonlar, sekme geçişi. Hepsi
+   prefers-reduced-motion ile kapanır; kimlik (sıcak koyu zemin +
+   altın skor) korunur, yalnız VURGU rengi değişir. */
+
+/* --- tema paletleri: yalnız --accent / --accent2 değişir --- */
+:root[data-tema="cuha"]{ --accent:#2E6B45; --accent2:#3E8B5A; }
+:root[data-tema="gece"]{ --accent:#345E80; --accent2:#4C82A8; }
+:root[data-tema="moru"]{ --accent:#6E3A5F; --accent2:#8E4E7B; }
+:root[data-tema="komur"]{ --accent:#5A524C; --accent2:#7A6F66; }
+
+/* --- yazı tipi: Modern = serifleri sisteme çevir --- */
+html[data-yazi="modern"] .serif,
+html[data-yazi="modern"] h1, html[data-yazi="modern"] h2, html[data-yazi="modern"] h3,
+html[data-yazi="modern"] .zabit{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important;
+  letter-spacing:0;
+}
+/* --- büyütme: yaşça büyük gözler için --- */
+html[data-boy="buyuk"] #view{ zoom:1.09; }
+
+/* --- basış geri bildirimi --- */
+button{transition:filter .12s, transform .07s}
+button:active{filter:brightness(1.18); transform:scale(.975)}
+.chip{transition:background .12s,border-color .12s,color .12s,transform .07s}
+.chip:active{transform:scale(.96)}
+
+/* --- yeni rozete tek seferlik ışık süpürmesi --- */
+.rozet.yeni{position:relative;overflow:hidden}
+.rozet.yeni::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 32%,rgba(201,162,39,.28) 50%,transparent 68%);
+  transform:translateX(-120%);animation:sheen 1.15s ease .35s 1}
+@keyframes sheen{to{transform:translateX(120%)}}
+
+/* --- altın pill'e hafif nabız (yalnız aktif/canlı hissi) --- */
+.pill.gold{transition:filter .2s}
+
+/* --- sekme geçişi: yalnız TAB değişince (render'da titremesin) --- */
+@keyframes viewgir{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+#view.gecisli{animation:viewgir .22s ease}
+
+/* --- masaüstünde kartlara hafif kenar canlanması --- */
+@media(hover:hover){ .card{transition:border-color .15s} }
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+/* ========== /GÖRSEL CİLA ========== */
+
 .fotoSec{width:76px;height:76px;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;
   cursor:pointer;background-size:cover;background-position:center;color:var(--ink3);font-size:11px;text-align:center;flex-shrink:0}
 .grupBar{display:flex;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);
@@ -302,6 +351,7 @@ const kurucuMu=()=>UYELIKLER.some(u=>u.masa_id===DB.aktifGrup&&u.rol==='kurucu'&
 const tabelaciMiyim=()=>!!MISAFIR||!!(DB.aktif&&OTURUM&&DB.aktif._hesap===OTURUM.id);
 
 async function baslat(){
+  if(typeof gorunumUygula==='function') gorunumUygula();
   if(!window.supabase||!window.supabase.createClient){
     DURUM='hata'; HATA='Supabase kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'; return render();
   }
@@ -1244,6 +1294,7 @@ function zabitUret(c){
 /* =========================================================
    RENDER
    ========================================================= */
+let _sonTab=null;
 function render(){
   const tb=document.querySelector('nav.tabbar');
   const v=$('#view');
@@ -1307,6 +1358,8 @@ function render(){
   if(TAB==='ayar')  v.innerHTML=viewAyar();
   if(TAB==='ayar' && typeof pushDurum==='function')
     pushDurum().then(d=>{ const h=document.getElementById('pushKartHost'); if(h) h.innerHTML=pushKart(d); });
+  /* Sekme GERÇEKTEN değişince hafif geçiş — normal render'da titremez */
+  if(TAB!==_sonTab){ v.classList.remove('gecisli'); void v.offsetWidth; v.classList.add('gecisli'); _sonTab=TAB; }
   yazIsigi();
 }
 
@@ -2497,6 +2550,8 @@ function viewAyar(){
       <b>Grup kodu</b> ise açık davet — kodu girenin isteği ${k?'sana':'grubu kurana'} düşer, onaydan geçer.</div>
   </div>
 
+  ${typeof gorunumKart==='function'?gorunumKart():''}
+
   ${BEKLEYENLER.length?`<div class="card" style="border-color:var(--gold)">
     <h3 style="color:var(--gold)">Onay Bekleyenler (${BEKLEYENLER.length})</h3>
     <div class="stack">${BEKLEYENLER.map(b=>`
@@ -2677,7 +2732,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.4 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.5 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -6580,6 +6635,12 @@ function masaNotlari(){
   c.forEach(x=>(x.kafe||[]).forEach(k=>{ kafeTop+=(Number(k.fiyat)||0)*(Number(k.adet)||0); kafeKalem+=(Number(k.adet)||0); }));
   if(kafeKalem) ek('☕',`Masaya <b>${kafeKalem}</b> kalem söylendi${kafeTop?` — menü fiyatıyla ${mocksTL?mocksTL(kafeTop):kafeTop+' ₺'}`:''}.`);
 
+  /* --- Yeşilçam repliği: gün tohumuyla sabit, her gün başkası --- */
+  if(typeof replikRast==='function'){
+    const r=replikRast('gun'+istGunNo()+(DB.aktifGrup||''));
+    if(r) ek('🎬',`<i>"${r}"</i>`);
+  }
+
   /* --- akış --- */
   const ak=(DB.akis||[]).filter(a=>a.grupId===DB.aktifGrup);
   if(ak.length>3){
@@ -6691,6 +6752,67 @@ function ekUnvanlar(){
 }
 
 /* =========================================================
+   GÖRÜNÜM — tema rengi, yazı tipi, büyütme
+   Kişiye özel, CİHAZDA saklanır (localStorage); buluta gitmez,
+   başkasının ekranını değiştirmez. baslat() ve her değişiklikte
+   gorunumUygula() <html>'e data-tema / data-yazi / data-boy basar,
+   gerisini CSS yapar.
+   ========================================================= */
+
+const TEMALAR=[
+  {k:'', ad:'Bordo', renk:'#A32E38'},
+  {k:'cuha', ad:'Yeşil Çuha', renk:'#2E6B45'},
+  {k:'gece', ad:'Gece Mavisi', renk:'#345E80'},
+  {k:'moru', ad:'Patlıcan', renk:'#6E3A5F'},
+  {k:'komur', ad:'Kömür', renk:'#5A524C'}
+];
+function gorunumOku(){
+  try{ return {
+    tema: localStorage.getItem('kkd_tema')||'',
+    yazi: localStorage.getItem('kkd_yazi')||'klasik',
+    boy:  localStorage.getItem('kkd_boy')||'normal'
+  }; }catch(e){ return {tema:'',yazi:'klasik',boy:'normal'}; }
+}
+function gorunumUygula(){
+  const g=gorunumOku(), h=document.documentElement;
+  if(g.tema) h.setAttribute('data-tema',g.tema); else h.removeAttribute('data-tema');
+  if(g.yazi==='modern') h.setAttribute('data-yazi','modern'); else h.removeAttribute('data-yazi');
+  if(g.boy==='buyuk') h.setAttribute('data-boy','buyuk'); else h.removeAttribute('data-boy');
+}
+function gorunumSet(alan,deger){
+  try{ localStorage.setItem('kkd_'+alan,deger); }catch(e){}
+  gorunumUygula();
+  render();
+}
+
+function gorunumKart(){
+  const g=gorunumOku();
+  return `<div class="card">
+    <h3>🎨 Görünüm</h3>
+    <div class="xs dim" style="margin-bottom:10px">Yalnız senin cihazında geçerli — kimsenin ekranını değiştirmez.</div>
+
+    <label class="fl">Masa Rengi</label>
+    <div class="row wrap" style="gap:8px;margin:6px 0 14px">
+      ${TEMALAR.map(t=>`<button class="chip ${g.tema===t.k?'on':''}" onclick="gorunumSet('tema','${t.k}')"
+        style="gap:7px"><span style="width:14px;height:14px;border-radius:50%;background:${t.renk};display:inline-block;border:1px solid rgba(255,255,255,.2)"></span>${t.ad}</button>`).join('')}
+    </div>
+
+    <label class="fl">Yazı Tipi</label>
+    <div class="seg" style="margin:6px 0 14px">
+      <button class="${g.yazi!=='modern'?'on':''}" onclick="gorunumSet('yazi','klasik')" style="font-family:Georgia,serif">Klasik</button>
+      <button class="${g.yazi==='modern'?'on':''}" onclick="gorunumSet('yazi','modern')">Modern</button>
+    </div>
+
+    <label class="fl">Yazı Boyu</label>
+    <div class="seg" style="margin:6px 0 4px">
+      <button class="${g.boy!=='buyuk'?'on':''}" onclick="gorunumSet('boy','normal')">Normal</button>
+      <button class="${g.boy==='buyuk'?'on':''}" onclick="gorunumSet('boy','buyuk')" style="font-size:16px">Büyük</button>
+    </div>
+    <div class="xs dim" style="margin-top:6px">Büyük, ekrandaki her şeyi biraz büyütür — gözü yorulan için.</div>
+  </div>`;
+}
+
+/* =========================================================
    PAYLAŞILABİLİR SKOR KARTI — "Bu Gece Parkverde"
 
    İstek (kullanıcı, 09.09.2026): maç kapanınca WhatsApp grubuna
@@ -6707,6 +6829,36 @@ function ekUnvanlar(){
    sayfasına (WhatsApp orada çıkar); yoksa indirme + "uzun bas kaydet"
    için görsel modalda gösteriliyor.
    ========================================================= */
+
+/* ---------------------------------------------------------
+   YEŞİLÇAM REPLİKLERİ — eski Türk filmi ağzı, masaya serpilir.
+   Skor kartı başlığında ve "Masadan Notlar"da 🎬 satırı olarak
+   çıkar. Kişiye/gerçeğe gönderme YOK — genel, melodram tonu.
+   İstek: kullanıcı, 09.09.2026. --------------------------------- */
+const REPLIKLER=[
+  "Bu şehir sana da bana da yeter be Kazım.",
+  "Zengin de ağlarmış, kaybeden de.",
+  "Kağıdın yoksa elinde, kime ne yutturacaksın?",
+  "Feleğin çemberinden geçtik, bu masadan geçemedik.",
+  "Amorti bile çıkmadı be abi.",
+  "Ağlama sevgilim, sadece bir parti kaybettik.",
+  "Ben bu masada büyüdüm evladım.",
+  "Kaderim buymuş, kozum yokmuş.",
+  "Namus meselesi bu, ihaleyi tutacağım.",
+  "Bir çay söyle, hesabı sonra konuşuruz.",
+  "Paran çoksa masaya otur, yüreğin varsa ihaleye gir.",
+  "Sen benim kim olduğumu biliyor musun? Bu masanın sponsoruyum.",
+  "Gülüm, bu el senin değildi.",
+  "Dünya bir yana, bu koz bir yana.",
+  "Kaybettik ama onurumuzla kaybettik.",
+  "Beyler, bu masada centilmenlik ölmedi."
+];
+function replikRast(tohum){
+  if(!REPLIKLER.length) return '';
+  const t = (tohum==null) ? Math.floor(Math.random()*REPLIKLER.length)
+    : Math.abs(String(tohum).split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % REPLIKLER.length;
+  return REPLIKLER[t];
+}
 
 const KART_G = 1080, KART_Y = 1350;
 
@@ -6770,7 +6922,8 @@ function kartVeri(c){
     'Puanlar konuştu, itiraz olmadı.'
   ];
   const tohum = String(c.id||'').split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
-  let baslik = havuz[tohum % havuz.length];
+  /* Tek sayılı tohum → Yeşilçam repliği, çift → oyun başlığı; çeşit olsun */
+  let baslik = (tohum % 2 === 1) ? replikRast(c.id) : havuz[tohum % havuz.length];
   if(cizdi>0) baslik = `${cizdi} kez çizildi — 13 elin 13'ü.`;
 
   return {batak,galip,maglup,skor,altSkor,el,sure,kafe,cizdi,baslik,tarih:c.tarih,yer:c.yer};

@@ -83,6 +83,7 @@ const kurucuMu=()=>UYELIKLER.some(u=>u.masa_id===DB.aktifGrup&&u.rol==='kurucu'&
 const tabelaciMiyim=()=>!!MISAFIR||!!(DB.aktif&&OTURUM&&DB.aktif._hesap===OTURUM.id);
 
 async function baslat(){
+  if(typeof gorunumUygula==='function') gorunumUygula();
   if(!window.supabase||!window.supabase.createClient){
     DURUM='hata'; HATA='Supabase kütüphanesi yüklenemedi. İnternet bağlantını kontrol et.'; return render();
   }

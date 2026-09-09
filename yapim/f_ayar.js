@@ -27,6 +27,8 @@ function viewAyar(){
       <b>Grup kodu</b> ise açık davet — kodu girenin isteği ${k?'sana':'grubu kurana'} düşer, onaydan geçer.</div>
   </div>
 
+  ${typeof gorunumKart==='function'?gorunumKart():''}
+
   ${BEKLEYENLER.length?`<div class="card" style="border-color:var(--gold)">
     <h3 style="color:var(--gold)">Onay Bekleyenler (${BEKLEYENLER.length})</h3>
     <div class="stack">${BEKLEYENLER.map(b=>`
@@ -207,5 +209,5 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.4 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.5 · bulut</div>`;
 }

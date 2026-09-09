@@ -141,6 +141,55 @@ details>div{margin-top:10px}
 .rozet.yeni{border-color:var(--gold);background:#2B2410;animation:parla .9s ease}
 @keyframes parla{0%{transform:scale(.94);opacity:.4}60%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
 
+/* ========== GÖRSEL CİLA (10.5) ==========
+   Tema renkleri, mikro-animasyonlar, sekme geçişi. Hepsi
+   prefers-reduced-motion ile kapanır; kimlik (sıcak koyu zemin +
+   altın skor) korunur, yalnız VURGU rengi değişir. */
+
+/* --- tema paletleri: yalnız --accent / --accent2 değişir --- */
+:root[data-tema="cuha"]{ --accent:#2E6B45; --accent2:#3E8B5A; }
+:root[data-tema="gece"]{ --accent:#345E80; --accent2:#4C82A8; }
+:root[data-tema="moru"]{ --accent:#6E3A5F; --accent2:#8E4E7B; }
+:root[data-tema="komur"]{ --accent:#5A524C; --accent2:#7A6F66; }
+
+/* --- yazı tipi: Modern = serifleri sisteme çevir --- */
+html[data-yazi="modern"] .serif,
+html[data-yazi="modern"] h1, html[data-yazi="modern"] h2, html[data-yazi="modern"] h3,
+html[data-yazi="modern"] .zabit{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important;
+  letter-spacing:0;
+}
+/* --- büyütme: yaşça büyük gözler için --- */
+html[data-boy="buyuk"] #view{ zoom:1.09; }
+
+/* --- basış geri bildirimi --- */
+button{transition:filter .12s, transform .07s}
+button:active{filter:brightness(1.18); transform:scale(.975)}
+.chip{transition:background .12s,border-color .12s,color .12s,transform .07s}
+.chip:active{transform:scale(.96)}
+
+/* --- yeni rozete tek seferlik ışık süpürmesi --- */
+.rozet.yeni{position:relative;overflow:hidden}
+.rozet.yeni::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 32%,rgba(201,162,39,.28) 50%,transparent 68%);
+  transform:translateX(-120%);animation:sheen 1.15s ease .35s 1}
+@keyframes sheen{to{transform:translateX(120%)}}
+
+/* --- altın pill'e hafif nabız (yalnız aktif/canlı hissi) --- */
+.pill.gold{transition:filter .2s}
+
+/* --- sekme geçişi: yalnız TAB değişince (render'da titremesin) --- */
+@keyframes viewgir{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+#view.gecisli{animation:viewgir .22s ease}
+
+/* --- masaüstünde kartlara hafif kenar canlanması --- */
+@media(hover:hover){ .card{transition:border-color .15s} }
+
+@media(prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+/* ========== /GÖRSEL CİLA ========== */
+
 .fotoSec{width:76px;height:76px;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center;
   cursor:pointer;background-size:cover;background-position:center;color:var(--ink3);font-size:11px;text-align:center;flex-shrink:0}
 .grupBar{display:flex;gap:7px;align-items:center;background:var(--panel2);border:1px solid var(--line);

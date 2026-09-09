@@ -1,4 +1,5 @@
 //== render
+let _sonTab=null;
 function render(){
   const tb=document.querySelector('nav.tabbar');
   const v=$('#view');
@@ -62,6 +63,8 @@ function render(){
   if(TAB==='ayar')  v.innerHTML=viewAyar();
   if(TAB==='ayar' && typeof pushDurum==='function')
     pushDurum().then(d=>{ const h=document.getElementById('pushKartHost'); if(h) h.innerHTML=pushKart(d); });
+  /* Sekme GERÇEKTEN değişince hafif geçiş — normal render'da titremez */
+  if(TAB!==_sonTab){ v.classList.remove('gecisli'); void v.offsetWidth; v.classList.add('gecisli'); _sonTab=TAB; }
   yazIsigi();
 }
 

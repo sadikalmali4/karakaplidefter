@@ -16,6 +16,36 @@
    için görsel modalda gösteriliyor.
    ========================================================= */
 
+/* ---------------------------------------------------------
+   YEŞİLÇAM REPLİKLERİ — eski Türk filmi ağzı, masaya serpilir.
+   Skor kartı başlığında ve "Masadan Notlar"da 🎬 satırı olarak
+   çıkar. Kişiye/gerçeğe gönderme YOK — genel, melodram tonu.
+   İstek: kullanıcı, 09.09.2026. --------------------------------- */
+const REPLIKLER=[
+  "Bu şehir sana da bana da yeter be Kazım.",
+  "Zengin de ağlarmış, kaybeden de.",
+  "Kağıdın yoksa elinde, kime ne yutturacaksın?",
+  "Feleğin çemberinden geçtik, bu masadan geçemedik.",
+  "Amorti bile çıkmadı be abi.",
+  "Ağlama sevgilim, sadece bir parti kaybettik.",
+  "Ben bu masada büyüdüm evladım.",
+  "Kaderim buymuş, kozum yokmuş.",
+  "Namus meselesi bu, ihaleyi tutacağım.",
+  "Bir çay söyle, hesabı sonra konuşuruz.",
+  "Paran çoksa masaya otur, yüreğin varsa ihaleye gir.",
+  "Sen benim kim olduğumu biliyor musun? Bu masanın sponsoruyum.",
+  "Gülüm, bu el senin değildi.",
+  "Dünya bir yana, bu koz bir yana.",
+  "Kaybettik ama onurumuzla kaybettik.",
+  "Beyler, bu masada centilmenlik ölmedi."
+];
+function replikRast(tohum){
+  if(!REPLIKLER.length) return '';
+  const t = (tohum==null) ? Math.floor(Math.random()*REPLIKLER.length)
+    : Math.abs(String(tohum).split('').reduce((a,c)=>a+c.charCodeAt(0),0)) % REPLIKLER.length;
+  return REPLIKLER[t];
+}
+
 const KART_G = 1080, KART_Y = 1350;
 
 function kartEsc(s){ return String(s==null?'':s)
@@ -78,7 +108,8 @@ function kartVeri(c){
     'Puanlar konuştu, itiraz olmadı.'
   ];
   const tohum = String(c.id||'').split('').reduce((a,ch)=>a+ch.charCodeAt(0),0);
-  let baslik = havuz[tohum % havuz.length];
+  /* Tek sayılı tohum → Yeşilçam repliği, çift → oyun başlığı; çeşit olsun */
+  let baslik = (tohum % 2 === 1) ? replikRast(c.id) : havuz[tohum % havuz.length];
   if(cizdi>0) baslik = `${cizdi} kez çizildi — 13 elin 13'ü.`;
 
   return {batak,galip,maglup,skor,altSkor,el,sure,kafe,cizdi,baslik,tarih:c.tarih,yer:c.yer};

@@ -133,6 +133,12 @@ function masaNotlari(){
   c.forEach(x=>(x.kafe||[]).forEach(k=>{ kafeTop+=(Number(k.fiyat)||0)*(Number(k.adet)||0); kafeKalem+=(Number(k.adet)||0); }));
   if(kafeKalem) ek('☕',`Masaya <b>${kafeKalem}</b> kalem söylendi${kafeTop?` — menü fiyatıyla ${mocksTL?mocksTL(kafeTop):kafeTop+' ₺'}`:''}.`);
 
+  /* --- Yeşilçam repliği: gün tohumuyla sabit, her gün başkası --- */
+  if(typeof replikRast==='function'){
+    const r=replikRast('gun'+istGunNo()+(DB.aktifGrup||''));
+    if(r) ek('🎬',`<i>"${r}"</i>`);
+  }
+
   /* --- akış --- */
   const ak=(DB.akis||[]).filter(a=>a.grupId===DB.aktifGrup);
   if(ak.length>3){
