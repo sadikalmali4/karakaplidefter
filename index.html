@@ -2748,7 +2748,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.8 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.9 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -6789,13 +6789,22 @@ function ekUnvanlar(){
    ========================================================= */
 
 const TAKIMLAR={
-  FB:  {ad:'Fenerbahçe',  kisa:'FB',  r1:'#164F8C', r2:'#F4D03F', yazi:'#fff',
+  FB:  {ad:'Fenerbahçe',  kisa:'FB',  amblem:'🐤', halka:'#2E6FB0', r1:'#164F8C', r2:'#F4D03F', yazi:'#fff',
         laf:['Masa Kadıköy’e taşındı.','Şampiyonluk masada gelir.','Sarı-lacivert sicil tutuyor.']},
-  GS:  {ad:'Galatasaray', kisa:'GS',  r1:'#A4123F', r2:'#F5B301', yazi:'#fff',
+  GS:  {ad:'Galatasaray', kisa:'GS',  amblem:'🦁', halka:'#C4143F', r1:'#A4123F', r2:'#F5B301', yazi:'#fff',
         laf:['Sürü içinde tek Aslan.','Tek başına dört yıldız taşıyor.','Aslan masaya kondu.']},
-  BJK: {ad:'Beşiktaş',    kisa:'BJK', r1:'#111111', r2:'#e8e8e8', yazi:'#fff',
+  BJK: {ad:'Beşiktaş',    kisa:'BJK', amblem:'🦅', halka:'#CFCFCF', r1:'#111111', r2:'#e8e8e8', yazi:'#fff',
         laf:['Kartal masaya kondu.','Siyah-beyaz kanatlar açıldı.','Çarşı burada da var.']}
 };
+/* NOT: gerçek kulüp armaları tescilli/telifli — herkese açık uygulamaya
+   gömülmez. Onun yerine takımın MASKOTU (Kanarya/Aslan/Kartal) takım
+   renginde halka içinde; hem serbest hem daha görsel. */
+function takimAmblemHtml(t,boy){
+  const b=boy||20, f=Math.round(b*0.62);
+  return `<span title="${esc(t.ad)}" style="display:inline-flex;align-items:center;justify-content:center;
+    width:${b}px;height:${b}px;border-radius:50%;background:var(--panel2);
+    border:1.5px solid ${t.halka};font-size:${f}px;line-height:1;vertical-align:middle;flex-shrink:0">${t.amblem}</span>`;
+}
 const TAKIM_VARSAYILAN={  // isimle eşleşen hazır kadro
   'volkan':'BJK','ufuk':'BJK',
   'sadık':'FB','sadik':'FB','mustafa':'FB','hüseyin':'FB','huseyin':'FB','tuğrul':'FB','tugrul':'FB','emre':'FB','ali':'FB',
@@ -6809,23 +6818,13 @@ function takimBilgi(id){ const k=takimKodu(id); return k?TAKIMLAR[k]:null; }
 /* küçük rozet — iki renkli pill */
 function takimRozet(id,boy){
   const t=takimBilgi(id); if(!t) return '';
-  const f=boy||10.5;
-  return `<span title="${esc(t.ad)}" style="display:inline-flex;align-items:center;gap:0;
-    font-size:${f}px;font-weight:800;letter-spacing:.3px;border-radius:5px;overflow:hidden;
-    border:1px solid rgba(255,255,255,.12);vertical-align:middle">
-    <span style="background:${t.r1};color:${t.yazi};padding:1px 4px">${t.kisa}</span>
-    <span style="background:${t.r2};width:5px;align-self:stretch"></span></span>`;
+  return takimAmblemHtml(t,boy||20);
 }
 
 /* koda göre rozet (oyuncu değil takım) */
 function takimRozetKod(kod,boy){
   const t=TAKIMLAR[kod]; if(!t) return '';
-  const f=boy||10.5;
-  return `<span title="${esc(t.ad)}" style="display:inline-flex;align-items:center;
-    font-size:${f}px;font-weight:800;letter-spacing:.3px;border-radius:5px;overflow:hidden;
-    border:1px solid rgba(255,255,255,.12);vertical-align:middle">
-    <span style="background:${t.r1};color:${t.yazi};padding:1px 4px">${t.kisa}</span>
-    <span style="background:${t.r2};width:5px;align-self:stretch"></span></span>`;
+  return takimAmblemHtml(t,boy||22);
 }
 
 async function takimSet(id,kod){
@@ -6863,7 +6862,7 @@ function takimKart(){
       <div class="grow ell" style="font-weight:600;font-size:13.5px">${esc(o.ad)} ${takimRozet(o.id)}</div>
       ${k?`<div class="row" style="gap:4px;flex-shrink:0">
         ${kodlar.map(c=>`<button class="btn-xs ${takimKodu(o.id)===c?'btn-g':'btn-gh'}" style="padding:4px 8px"
-          onclick="takimSet('${o.id}','${takimKodu(o.id)===c?'':c}')">${c}</button>`).join('')}
+          onclick="takimSet('${o.id}','${takimKodu(o.id)===c?'':c}')">${TAKIMLAR[c].amblem} ${c}</button>`).join('')}
       </div>`:''}
     </div>`).join('<div class="sep" style="margin:0 -14px"></div>')}
     ${k?`<button class="btn-b btn-full btn-sm" style="margin-top:12px" onclick="takimParkverdeAta()">⚡ Parkverde Kadrosunu Ata</button>
