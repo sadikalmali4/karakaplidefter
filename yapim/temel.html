@@ -1461,7 +1461,8 @@ function zabitGoster(c,yeni){
         <div><div style="font-weight:700;font-size:13.5px">${esc(r.ad)} — <span style="color:var(--gold)">${esc(ad(r.kim))}</span></div>
         <div class="xs muted">${esc(r.aciklama||'')}</div></div></div>`).join('')}</div></div>`:''}
     <div class="zabit" id="zMetin">${esc(c.zabit)}</div>
-    <button class="btn-g btn-full" style="margin-top:12px" onclick="kopyala(document.getElementById('zMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
+    <button class="btn-g btn-full" style="margin-top:12px" onclick="macKartAc('${c.id}')">📸 Skor Kartı Üret (WhatsApp'a görsel)</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kopyala(document.getElementById('zMetin').textContent)">📋 Metni Kopyala</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal();git('rozet')">Müeyyidelere Bak</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
 }
@@ -1630,6 +1631,7 @@ function arsivSatir(c,sade){
     </div>
     <div style="display:flex;flex-direction:column;gap:6px">
       <button class="btn-xs" onclick="zabitAc('${c.id}')">Zabıt</button>
+      <button class="btn-xs btn-b" onclick="macKartAc('${c.id}')">📸 Kart</button>
       ${sade?'':`<button class="btn-xs btn-dn" onclick="celseSil('${c.id}')">Sil</button>`}
     </div></div>`;
 }

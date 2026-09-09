@@ -15,7 +15,7 @@ const BAHISLER=[
   {ad:'Hesap',  k:'🧾'},
   {ad:'Onur',   k:'🎖️'}   // borç doğurmaz
 ];
-const bahisIkon=ne=>(BAHISLER.find(b=>b.ad===ne)||{}).k||'🎁';
+const bahisIkon=ne=>{ if(/₺|kafe/i.test(String(ne||''))) return '☕'; return (BAHISLER.find(b=>b.ad===ne)||{}).k||'🎁'; };
 const BORCSUZ=['Onur',''];
 
 /* Bir maçın bahsi birden çok kalem olabilir: hem hesap, hem içecek.

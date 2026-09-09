@@ -497,12 +497,79 @@ function macKafeKart(c){
   const k=Array.isArray(c.kafe)?c.kafe:[];
   const yaz = c._hesap===OTURUM?.id && !c.bitti;   // yalnız tabelacı ekler
   if(!k.length && !yaz) return '';
+  const top=macKafeToplam(c);
+  /* Kafe → Borç köprüsü: "hesabı kaybeden öder". Yalnız kurucu yazabilir
+     (yama 11 borç kaydını kurucuya kısıyor) ve tutar > 0 olmalı. */
+  const kopru = top>0 && typeof kurucuMu==='function' && kurucuMu();
   return `<div class="card tight">
     <div class="row" style="justify-content:space-between;align-items:center">
       <div><div class="xs dim">☕ Masa Hesabı · The Mocks</div>
-        <div class="serif" style="font-size:19px;color:var(--gold)">${k.length?macKafeToplam(c)+' ₺':'—'}</div></div>
+        <div class="serif" style="font-size:19px;color:var(--gold)">${k.length?top+' ₺':'—'}</div></div>
       ${yaz?`<button class="btn-sm btn-b" onclick="mocksMacAc()">+ Çay / Kahve / Ekle</button>`:''}
     </div>
     ${k.length?`<div class="xs dim" style="margin-top:6px">${k.map(x=>`${x.adet}× ${esc(x.ad)}`).join(' · ')}</div>`:''}
+    ${kopru?`<button class="btn-sm btn-gh btn-full" style="margin-top:9px" onclick="kafeBorcAc('${c.id}')">🧾 Hesabı borç tabelasına yaz</button>`:''}
   </div>`;
+}
+
+/* =========================================================
+   KAFE HESABINI BORÇ TABELASINA GEÇİR — "kaybeden öder"
+   Kafe tutarı ₺ cinsinden; borç tabelasında ayrı kalem olarak
+   ("Kafe ₺") tutuluyor, cin/çay ile karışmıyor, kendi içinde
+   netleşiyor. Yalnız kurucu; borcKaydiYaz zaten kurucuya kısık.
+   ========================================================= */
+function kafeMacKaybeden(c){
+  if(!c) return {borclu:[],alacakli:[]};
+  if(c.oyun==='batak'){
+    const kz = (c.kazanan!=null)?c.kazanan:(typeof batakMac==='function'?batakMac(c).macKazanan:null);
+    if(kz==null||!c.takimlar) return {borclu:[],alacakli:[]};
+    return {borclu:(c.takimlar[1-kz].oyuncular||[]).filter(Boolean),
+            alacakli:(c.takimlar[kz].oyuncular||[]).filter(Boolean)};
+  }
+  const sr=(typeof yzMac==='function')?yzMac(c).sira:[];
+  if(!sr.length) return {borclu:[],alacakli:[]};
+  return {borclu:[sr[sr.length-1].id], alacakli:[sr[0].id]};
+}
+function kafeBorcAc(id){
+  const c=(DB.celseler||[]).concat(DB.acik||[]).find(x=>x.id===id);
+  if(!c) return toast('Oyun bulunamadı',true);
+  if(typeof kurucuMu==='function' && !kurucuMu()) return toast('Bunu yalnız masayı kuran yapabilir',true);
+  const top=macKafeToplam(c);
+  if(!(top>0)) return toast('Kafe hesabı boş',true);
+  const kb=kafeMacKaybeden(c);
+  const oyn=(typeof grupOyunculari==='function')?grupOyunculari():[];
+  const secili=id2=>kb.borclu.includes(id2)?'on':'';
+  const secA=id2=>kb.alacakli.includes(id2)?'on':'';
+  const sonuc = c.bitti ? (kb.borclu.length?`Kaybeden: ${liste(kb.borclu.map(ad))}`:'Sonuç belirsiz') : 'Oyun daha kapanmadı';
+  acModal(`<h2 class="serif" style="margin:0 0 4px">Hesabı Borca Yaz</h2>
+    <div class="xs dim" style="margin-bottom:4px">${trh(c.tarih)} · ${c.oyun==='batak'?'Batak':'101'} · ${esc(sonuc)}</div>
+    <div class="card tight" style="margin:6px 0 12px;background:var(--panel2)">
+      <div class="row" style="justify-content:space-between"><span class="sm">☕ The Mocks toplamı</span>
+        <span class="serif" style="font-size:18px;color:var(--gold)">${top} ₺</span></div></div>
+    <div class="xs dim" style="margin-bottom:10px">Kaybeden taraf otomatik seçildi; istersen değiştir.
+      Tutar borç tabelasına <b>Kafe ₺</b> kalemi olarak düşer, ödeme işlenince kapanır.</div>
+    <div class="field"><label class="fl">Ödeyecek (borçlu)</label>
+      <div class="row wrap" id="kbBorclu">${oyn.map(o=>
+        `<div class="chip ${secili(o.id)}" data-id="${o.id}" onclick="this.classList.toggle('on')">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div></div>
+    <div class="field" style="margin-top:12px"><label class="fl">Lehine (alacaklı)</label>
+      <div class="row wrap" id="kbAlacakli">${oyn.map(o=>
+        `<div class="chip ${secA(o.id)}" data-id="${o.id}" onclick="this.classList.toggle('on')">${avatar(o.id,20)}${esc(o.ad)}</div>`).join('')}</div></div>
+    <button class="btn-p btn-full" id="kbBtn" style="margin-top:14px" onclick="kafeBorcKaydet('${id}')">Borç Tabelasına Geçir</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
+}
+async function kafeBorcKaydet(id){
+  const c=(DB.celseler||[]).concat(DB.acik||[]).find(x=>x.id===id); if(!c) return;
+  const borclular=[...document.querySelectorAll('#kbBorclu .chip.on')].map(e=>e.dataset.id);
+  const alacaklilar=[...document.querySelectorAll('#kbAlacakli .chip.on')].map(e=>e.dataset.id);
+  if(!borclular.length) return toast('Ödeyecek kişiyi seç',true);
+  if(!alacaklilar.length) return toast('Lehine olanı seç',true);
+  if(borclular.some(x=>alacaklilar.includes(x))) return toast('Aynı kişi hem borçlu hem alacaklı olamaz',true);
+  const top=macKafeToplam(c);
+  const btn=$('#kbBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
+  const dokum=(c.kafe||[]).map(x=>`${x.adet} ${x.ad}`).join(', ');
+  const ok=await borcKaydiYaz({borclular,alacaklilar,ne:'Kafe ₺',adet:top,
+    aciklama:`${trh(c.tarih)} The Mocks hesabı (${dokum}). Kaybeden öder kuralı.`});
+  if(!ok){ btn.disabled=false; btn.textContent='Borç Tabelasına Geçir'; return; }
+  kapatModal(); render();
+  toast(`${liste(borclular.map(ad))} → ${top} ₺ kafe borcu tabelaya işlendi`,true);
 }
