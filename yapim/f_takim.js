@@ -17,7 +17,7 @@
    ========================================================= */
 
 const TAKIMLAR={
-  FB:  {ad:'Fenerbahçe',  kisa:'FB',  amblem:'🐤', halka:'#2E6FB0', r1:'#164F8C', r2:'#F4D03F', yazi:'#fff',
+  FB:  {ad:'Fenerbahçe',  kisa:'FB',  amblem:'🐂', halka:'#2E6FB0', r1:'#164F8C', r2:'#F4D03F', yazi:'#fff',
         laf:['Masa Kadıköy’e taşındı.','Şampiyonluk masada gelir.','Sarı-lacivert sicil tutuyor.']},
   GS:  {ad:'Galatasaray', kisa:'GS',  amblem:'🦁', halka:'#C4143F', r1:'#A4123F', r2:'#F5B301', yazi:'#fff',
         laf:['Sürü içinde tek Aslan.','Tek başına dört yıldız taşıyor.','Aslan masaya kondu.']},
