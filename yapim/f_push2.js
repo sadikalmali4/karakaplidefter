@@ -44,13 +44,7 @@ async function pushHazirla(){
 /* pushAc()'ın izin istemeyen hâli: izin zaten varken abone eder. */
 async function pushAboneOl(sessiz){
   const reg=await navigator.serviceWorker.ready;
-  let ab=await reg.pushManager.getSubscription();
-  if(!ab){
-    ab=await reg.pushManager.subscribe({
-      userVisibleOnly:true,
-      applicationServerKey:b64uBuf(VAPID_PUBLIC)
-    });
-  }
+  const ab=await pushTazeAbone(reg);   // eski VAPID anahtarlıysa bırakıp yeniden aboneler
   const j=ab.toJSON();
   const {error}=await sb.from('push_abonelikleri').upsert({
     profil_id:OTURUM.id, masa_id:DB.aktifGrup,

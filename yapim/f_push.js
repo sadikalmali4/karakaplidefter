@@ -38,10 +38,36 @@ async function pushAbonelik(){
   return reg ? reg.pushManager.getSubscription() : null;
 }
 
+/* VAPID DÖNDÜRME TUZAĞI (10.3): eski abonelik ESKİ açık anahtara bağlı kalır;
+   farklı applicationServerKey ile subscribe() "different applicationServerKey
+   already exists" hatası verir ve sessizce başarısız olur. Bu yüzden mevcut
+   aboneliğin anahtarı GÜNCEL anahtarla uyuşmuyorsa onu BIRAKIP yeniden
+   aboneleniyoruz; "abone" sayılması da anahtar uyumuna bağlı. */
+function pushAyniAnahtar(ab){
+  try{
+    const cur=b64uBuf(VAPID_PUBLIC), k=ab&&ab.options&&ab.options.applicationServerKey;
+    if(!k) return false;
+    const a=new Uint8Array(k); if(a.length!==cur.length) return false;
+    for(let i=0;i<a.length;i++) if(a[i]!==cur[i]) return false;
+    return true;
+  }catch(e){ return false; }
+}
+async function pushTazeAbone(reg){
+  let ab=await reg.pushManager.getSubscription();
+  if(ab && !pushAyniAnahtar(ab)){                       // eski anahtarlı — bırak
+    try{ await sb.from('push_abonelikleri').delete().eq('endpoint',ab.endpoint); }catch(e){}
+    try{ await ab.unsubscribe(); }catch(e){}
+    ab=null;
+  }
+  if(!ab) ab=await reg.pushManager.subscribe({
+    userVisibleOnly:true, applicationServerKey:b64uBuf(VAPID_PUBLIC) });
+  return ab;
+}
+
 async function pushDurum(){
   if(!pushDestekli()) return {destek:false};
   const ab=await pushAbonelik();
-  return {destek:true, izin:Notification.permission, abone:!!ab};
+  return {destek:true, izin:Notification.permission, abone: !!ab && pushAyniAnahtar(ab)};
 }
 
 async function pushAc(){
@@ -50,13 +76,7 @@ async function pushAc(){
     const izin=await Notification.requestPermission();
     if(izin!=='granted') return toast('Bildirim izni verilmedi',true);
     const reg=await navigator.serviceWorker.ready;
-    let ab=await reg.pushManager.getSubscription();
-    if(!ab){
-      ab=await reg.pushManager.subscribe({
-        userVisibleOnly:true,
-        applicationServerKey:b64uBuf(VAPID_PUBLIC)
-      });
-    }
+    const ab=await pushTazeAbone(reg);
     const j=ab.toJSON();
     const {error}=await sb.from('push_abonelikleri').upsert({
       profil_id:OTURUM.id, masa_id:DB.aktifGrup,
