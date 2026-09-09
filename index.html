@@ -147,8 +147,8 @@ details>div{margin-top:10px}
    altın skor) korunur, yalnız VURGU rengi değişir. */
 
 /* --- tema paletleri: yalnız --accent / --accent2 değişir --- */
-:root[data-tema="cuha"]{ --accent:#2E6B45; --accent2:#3E8B5A; }
 :root[data-tema="gece"]{ --accent:#345E80; --accent2:#4C82A8; }
+:root[data-tema="antika"]{ --accent:#7A5C3A; --accent2:#9A784E; }
 :root[data-tema="moru"]{ --accent:#6E3A5F; --accent2:#8E4E7B; }
 :root[data-tema="komur"]{ --accent:#5A524C; --accent2:#7A6F66; }
 
@@ -2732,7 +2732,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 10.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -6759,10 +6759,13 @@ function ekUnvanlar(){
    gerisini CSS yapar.
    ========================================================= */
 
+/* Kırmızı/bordo BİLEREK YOK: kullanıcı "kırmızıyı kaldır" dedi ve
+   yama_gorsel.py varsayılanı yeşile çeviriyor. Varsayılan (k='') zaten
+   o yeşil; buradaki liste ona alternatif serin/nötr renkler. */
 const TEMALAR=[
-  {k:'', ad:'Bordo', renk:'#A32E38'},
-  {k:'cuha', ad:'Yeşil Çuha', renk:'#2E6B45'},
+  {k:'', ad:'Yeşil Çuha', renk:'#2E6B4F'},
   {k:'gece', ad:'Gece Mavisi', renk:'#345E80'},
+  {k:'antika', ad:'Antika', renk:'#7A5C3A'},
   {k:'moru', ad:'Patlıcan', renk:'#6E3A5F'},
   {k:'komur', ad:'Kömür', renk:'#5A524C'}
 ];

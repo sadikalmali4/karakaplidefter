@@ -6,10 +6,13 @@
    gerisini CSS yapar.
    ========================================================= */
 
+/* Kırmızı/bordo BİLEREK YOK: kullanıcı "kırmızıyı kaldır" dedi ve
+   yama_gorsel.py varsayılanı yeşile çeviriyor. Varsayılan (k='') zaten
+   o yeşil; buradaki liste ona alternatif serin/nötr renkler. */
 const TEMALAR=[
-  {k:'', ad:'Bordo', renk:'#A32E38'},
-  {k:'cuha', ad:'Yeşil Çuha', renk:'#2E6B45'},
+  {k:'', ad:'Yeşil Çuha', renk:'#2E6B4F'},
   {k:'gece', ad:'Gece Mavisi', renk:'#345E80'},
+  {k:'antika', ad:'Antika', renk:'#7A5C3A'},
   {k:'moru', ad:'Patlıcan', renk:'#6E3A5F'},
   {k:'komur', ad:'Kömür', renk:'#5A524C'}
 ];
