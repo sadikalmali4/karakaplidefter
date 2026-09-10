@@ -103,6 +103,9 @@ function haftaOzetiUret(gun){
     L.push(`${oy==='batak'?'BATAK':'101'} SİCİLİ: ${em?`${unvanAd(em.kim)} önde`:''}${em&&sp?', ':''}${sp?`${unvanAd(sp.kim)} sponsor`:''}.`);
   });
 
+  const en=(typeof elNotlariListe==='function')?elNotlariListe(list,12):[];
+  if(en.length){ L.push(''); L.push('EL NOTLARI:'); en.forEach(s=>L.push(`  • ${s}`)); }
+
   L.push('');
   L.push('Bir sonraki celsenin tarihi taraflarca serbestçe belirlenecektir.');
   return L.join('\n');

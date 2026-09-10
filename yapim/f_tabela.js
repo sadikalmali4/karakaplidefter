@@ -134,6 +134,21 @@ function tbEtiketOzet(c,parti){
   }).filter(Boolean);
   return l;
 }
+/* Bir celse listesindeki mizahi el etiketlerini düz metin satırlarına çevir
+   (batak tbEtiketOzet / 101 yzEtiketOzet). Özetlerde/raporlarda ortak kullanılır. */
+function elNotlariListe(celseler,limit){
+  const en=[];
+  (celseler||[]).forEach(c=>{
+    const parts=c.partiler||[{eller:c.eller||[]}];
+    parts.forEach(p=>{
+      const oz=c.oyun==='batak'
+        ? ((typeof tbEtiketOzet==='function')?tbEtiketOzet(c,p):[])
+        : ((typeof yzEtiketOzet==='function')?yzEtiketOzet(c,p):[]);
+      (oz||[]).forEach(s=>en.push(s));
+    });
+  });
+  return limit?en.slice(0,limit):en;
+}
 function tbToplamHtml(){
   const c=DB.aktif, a=DB.ayar.batak, parti=tbAktifParti();
   const {top}=batakPartiToplam(parti);

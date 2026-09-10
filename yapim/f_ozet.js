@@ -55,6 +55,9 @@ function ayOzetiMetni(ym){
     L.push(`Ayın galibi ${ad(v.lider.id)}: ${v.lider.mac} maçta ${v.lider.gal} birincilik.`);
   if(v.enBorclu)
     L.push(`Ayın kesesi ${ad(v.enBorclu.id)}: ${v.enBorclu.adet} kalem yeni borç. Kahve ocağı ısınmıştır.`);
+  const aylik=grupCelseleri().filter(c=>String(c.tarih||'').slice(0,7)===ym);
+  const en=(typeof elNotlariListe==='function')?elNotlariListe(aylik,10):[];
+  if(en.length){ L.push(''); L.push('EL NOTLARI:'); en.forEach(s=>L.push(`  • ${s}`)); }
   L.push('');
   L.push('İtirazlar bir sonraki ayın ilk çayında dinlenir.');
   return L.join('\n');
