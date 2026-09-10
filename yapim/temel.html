@@ -759,6 +759,17 @@ function zabitUret(c){
     acikIdd.slice(0,4).forEach(i=>L.push(`  • ${ad(i.kim)}${i.kime?` ↔ ${ad(i.kime)}`:''}: “${i.metin}”${i.bahis?` — ${i.bahis}`:''}${i.vade?` (vade ${trh(i.vade)})`:''}`));
   }
 
+  /* EL NOTLARI — ellere iliştirilen mizahi etiketler (batak: tbEtiketOzet,
+     101: yzEtiketOzet). Zabıt akışa ve rapora aktığı için orada da çıkar. */
+  const elNot=[];
+  (c.partiler||[]).forEach((p,i)=>{
+    const oz = c.oyun==='batak'
+      ? ((typeof tbEtiketOzet==='function')?tbEtiketOzet(c,p):[])
+      : ((typeof yzEtiketOzet==='function')?yzEtiketOzet(c,p):[]);
+    (oz||[]).forEach(s=>elNot.push(((c.partiler.length>1)?`${partiAd(c,i)} · `:'')+s));
+  });
+  if(elNot.length){ L.push(''); L.push('EL NOTLARI:'); elNot.forEach(s=>L.push(`  • ${s}`)); }
+
   if(c.not){ L.push(''); L.push(`ŞERH: ${c.not}`); }
   L.push('');
   L.push(`Tabelayı ${c.tabelaci?ad(c.tabelaci):'masa'} tutmuştur; kayıtlara itiraz süresi dolmuştur.`);

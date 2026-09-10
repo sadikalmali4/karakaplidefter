@@ -84,6 +84,23 @@ function raporBorc(){
 }
 
 /* --- rapor gövdesi --- */
+/* Ellere iliştirilen mizahi etiketleri (batak+101) rapora topla */
+function raporElNotlari(){
+  const sat=[];
+  grupCelseleri().forEach(c=>{
+    const parts=c.partiler||[{eller:c.eller||[]}];
+    parts.forEach(p=>{
+      const oz=c.oyun==='batak'
+        ? ((typeof tbEtiketOzet==='function')?tbEtiketOzet(c,p):[])
+        : ((typeof yzEtiketOzet==='function')?yzEtiketOzet(c,p):[]);
+      (oz||[]).forEach(s=>sat.push({tarih:c.tarih||'',oyun:c.oyun,s}));
+    });
+  });
+  if(!sat.length) return '';
+  sat.sort((a,b)=>String(b.tarih).localeCompare(String(a.tarih)));
+  return sat.slice(0,40).map(x=>`<div class="rmini">${trh(x.tarih)} · ${x.oyun==='batak'?'Batak':'101'} — ${esc(x.s)}</div>`).join('');
+}
+
 function raporGovde(){
   const g=aktifGrup()||{ad:'Masa',emoji:'🍀'};
   const kadro=DB.oyuncular.filter(o=>o.masaId===DB.aktifGrup&&o.aktif)
@@ -117,7 +134,9 @@ function raporGovde(){
 
     <h2 class="rh2">5 · ZİMMET (BORÇ TABLOSU)</h2>${raporBorc()}
 
-    ${efs.length?`<h2 class="rh2">6 · MASA EFSANELERİ</h2>
+    ${(()=>{const en=raporElNotlari();return en?`<h2 class="rh2">6 · HÂTIRA ELLER</h2>${en}`:'';})()}
+
+    ${efs.length?`<h2 class="rh2">7 · MASA EFSANELERİ</h2>
       ${efs.map(e=>`<div class="refs"><b>${esc(e.baslik||'')}</b>
         <div class="rmini">${esc(e.metin||e.aciklama||'')}</div></div>`).join('')}`:''}
 
