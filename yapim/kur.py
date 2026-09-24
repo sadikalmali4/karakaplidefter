@@ -254,6 +254,7 @@ s = s.replace('/* ---------- modal ---------- */',
               + F('f_gorunum.js') + '\n'
               + F('f_kart.js') + '\n'
               + F('f_kartim.js') + '\n'
+              + F('f_bilirkisi.js') + '\n'
               + F('f_ozet.js') + '\n'
               + F('f_tahmin.js') + '\n' + F('f_tahmin2.js') + '\n'
               + F('f_tmisafir.js') + '\n'

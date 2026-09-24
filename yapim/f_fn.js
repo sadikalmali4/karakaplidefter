@@ -55,7 +55,7 @@ function render(){
   if(TAB==='celse') v.innerHTML=serit+viewCelse();
   /* Yurdyen partinin sayaci saniyede bir tazelensin (tam cizim yok) */
   setTimeout(()=>{ if(document.querySelector('.sureSayac')) sureTikBasla(); },0);
-  if(TAB==='akis')  v.innerHTML=serit+viewAkis();
+  if(TAB==='akis')  v.innerHTML=serit+(typeof bilirkisiSerit==='function'?bilirkisiSerit():'')+viewAkis();
   if(TAB==='sicil') v.innerHTML=viewSicil();
   if(TAB==='iddia') v.innerHTML=viewIddia();
   if(TAB==='arsiv') v.innerHTML=viewArsiv();
