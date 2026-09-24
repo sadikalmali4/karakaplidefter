@@ -214,5 +214,5 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.4 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.5 · bulut</div>`;
 }
