@@ -264,7 +264,7 @@ function haftaResimCiz(gun){
     _haftaSarCtx(olc,body,ic-(bullet?16:0)).forEach((l,i)=>blok.push({tip:bullet?'li':'p',t:(i===0?pre:'   ')+l}));
   });
   const basH=150, botH=86;
-  const H=basH + blok.reduce((s,b)=>s+(b.tip==='bos'?12:(b.tip==='bas'?36:LH)),0) + botH;
+  const H=basH + blok.reduce((s,b)=>s+(b.tip==='bos'?10:(b.tip==='bas'?48:LH)),0) + botH;
   const cv=document.createElement('canvas'); cv.width=W*SC; cv.height=H*SC;
   const ctx=cv.getContext('2d'); ctx.scale(SC,SC);
   ctx.textBaseline='alphabetic';
@@ -277,8 +277,8 @@ function haftaResimCiz(gun){
   ctx.textAlign='left';
   let y=basH;
   blok.forEach(b=>{
-    if(b.tip==='bos'){ y+=12; return; }
-    if(b.tip==='bas'){ y+=24; ctx.fillStyle='#8a2f23'; ctx.font='bold 19px Georgia,serif'; ctx.fillText(b.t,P,y); y+=12; return; }
+    if(b.tip==='bos'){ y+=10; return; }
+    if(b.tip==='bas'){ y+=26; ctx.fillStyle='#8a2f23'; ctx.font='bold 19px Georgia,serif'; ctx.fillText(b.t,P,y); y+=22; return; }
     ctx.fillStyle='#2a2622'; ctx.font=_HF_GOVDE; ctx.fillText(b.t, b.tip==='li'?P+8:P, y); y+=LH;
   });
   ctx.textAlign='center'; ctx.fillStyle='#8a2f23'; ctx.font='15px Georgia,serif'; ctx.fillText('§ Kara Kaplı Defter',W/2,H-38);
