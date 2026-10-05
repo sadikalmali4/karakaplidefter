@@ -1764,7 +1764,8 @@ function celseBaslat(oyun){
       <div class="xs dim" style="margin-top:6px">Puanları tabelacı yazar; yazma yetkisi fiilen ona geçer.
         "Hesapsız" işaretli birini seçersen kalem sende kalır — telefonunu uzatman gerekir.</div></div>
 
-    <button class="btn-p btn-full" style="margin-top:16px" id="mKurBtn" onclick="celseKur('${oyun}')">Tabelayı Aç</button>`);
+    <button class="btn-p btn-full" style="margin-top:16px" id="mKurBtn" onclick="celseKur('${oyun}')">Tabelayı Aç</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
   girisNotu();
 }
 function girisNotu(){
@@ -2198,7 +2199,9 @@ async function celseKesinlestir(){
   clearTimeout(_yazZaman);          // bekleyen gecikmeli yazma kapanışın üstüne binmesin
   const oncekiRozet=rozetSahipleri(c.oyun);
   /* Maç kapanıyor: yürüyen partinin süresi de mühürlensin */
-  if(typeof sureKapat==='function') sureKapat(c.partiler[c.partiler.length-1]);
+  /* Açık partileri OYNANAN SON ANA (p.son) mühürle — kapatma tıklaması geç
+     olsa bile (maç unutulup sonra kapatılırsa) süre şişmesin. */
+  (c.partiler||[]).forEach(p=>{ if(p&&p.basla&&!p.bitis) p.bitis=p.son||new Date().toISOString(); });
   c.not=$('#zNot').value.trim();
   if(c.giris==='detay'){
     const son=c.partiler[c.partiler.length-1];
@@ -2760,7 +2763,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.6 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -5383,11 +5386,24 @@ function partiSuresi(p) {
    Aradaki molalar sayılmıyor, masada oynanan süre sayılıyor.
    kapaliMs: bitmiş partilerin toplamı (sayaç bunun üstüne ekliyor). */
 function macSuresi(c) {
+  /* Bir parti ne kadar OYNANDI: başlangıçtan SON YAZIMA (p.son) kadar.
+     Kapanış tıklaması (p.bitis) geç olabilir — maç unutulup günler sonra
+     kapatılırsa bitis şişer. Oynanan süre son el yazımıdır, o yüzden
+     p.son'u tercih ediyoruz; böylece "kapatmayı unuttuk" maçı artık
+     istatistiği bozmaz. Yalnız GERÇEKTEN süren maç (arşivlenmemiş + talik
+     değil) canlı sayaçla şimdiye kadar işler. */
+  const canliAcik = !!c && !c.bitti && !c.talik;
   let kapaliMs = 0, acikBas = 0;
   (c?.partiler || []).forEach(p => {
-    if (!_an(p.basla)) return;
-    if (p.bitis) kapaliMs += Math.max(0, _an(p.bitis) - _an(p.basla));
-    else acikBas = _an(p.basla);
+    const b = _an(p.basla); if (!b) return;
+    if (p.bitis) {                               // kapatılmış parti → oynanan son an (p.son) tercih
+      kapaliMs += Math.max(0, (_an(p.son) || _an(p.bitis)) - b);
+    } else if (canliAcik) {                      // süren maçın açık partisi → tik tak (şimdi)
+      acikBas = b;
+    } else if (p.son) {                          // arşiv/talik, bitiş damgasız ama yazım var → son yazıma kadar
+      kapaliMs += Math.max(0, _an(p.son) - b);
+    }
+    // arşiv ama hiç yazım yok → 0
   });
   if (!kapaliMs && !acikBas) return { ms: 0, suruyor: false, kapaliMs: 0, acikBas: 0 };
   const ms = kapaliMs + (acikBas ? Math.max(0, Date.now() - acikBas) : 0);
@@ -8807,7 +8823,7 @@ function borcKart(){
     <div class="serif" style="font-size:18px">
       <span class="${r.v<0?'neg':'pos'}">${r.v<0?frak(r.v):'+'+frak(r.v)}</span></div>
     ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-gh"
-      onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
+      onclick='borcOdeAc(${esc(JSON.stringify(r.taraf))},${esc(JSON.stringify(r.ne))},${Math.abs(r.v)})'>Ödedi</button>`:''}
   </div>`;
 
   return `<div class="card">
@@ -8849,7 +8865,7 @@ function borcOdeAc(taraf,ne,enfazla){
     ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
       <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
         ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
-          data-ids='${JSON.stringify(x.ids)}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
+          data-ids='${esc(JSON.stringify(x.ids))}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
           <span class="xs dim">${frak(x.v)}</span></span>`).join('')}
       </div>
       <div class="xs dim" style="margin-top:6px">Seçilen kişinin alacağı da bu miktarda düşer.
@@ -8858,7 +8874,7 @@ function borcOdeAc(taraf,ne,enfazla){
     <div class="field"><label class="fl">Ne kadarını ödedi? (½ girilebilir)</label>
       <input type="number" id="boAdet" value="${enfazla}" min="0.5" max="${enfazla}" step="0.5"></div>
     <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
-      onclick='borcOdeKaydet(${JSON.stringify(taraf)},${JSON.stringify(ne)},${enfazla})'>Ödendi Olarak İşle</button>
+      onclick='borcOdeKaydet(${esc(JSON.stringify(taraf))},${esc(JSON.stringify(ne))},${enfazla})'>Ödendi Olarak İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }
 
@@ -9111,7 +9127,7 @@ function borcHesabi(){
       ${r.taraf.map(id=>`<button class="btn-xs btn-gh" onclick="ekstreAc('${id}')">${
         r.taraf.length>1?esc(ad(id)):'Ekstre'}</button>`).join('')}
       ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-g"
-        onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
+        onclick='borcOdeAc(${esc(JSON.stringify(r.taraf))},${esc(JSON.stringify(r.ne))},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 
   /* ÖDEŞME DETAYI (altta): aynı kişi aynı kalemde hem borçlanıp hem alacaklı

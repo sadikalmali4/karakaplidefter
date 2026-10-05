@@ -157,7 +157,9 @@ async function celseKesinlestir(){
   clearTimeout(_yazZaman);          // bekleyen gecikmeli yazma kapanışın üstüne binmesin
   const oncekiRozet=rozetSahipleri(c.oyun);
   /* Maç kapanıyor: yürüyen partinin süresi de mühürlensin */
-  if(typeof sureKapat==='function') sureKapat(c.partiler[c.partiler.length-1]);
+  /* Açık partileri OYNANAN SON ANA (p.son) mühürle — kapatma tıklaması geç
+     olsa bile (maç unutulup sonra kapatılırsa) süre şişmesin. */
+  (c.partiler||[]).forEach(p=>{ if(p&&p.basla&&!p.bitis) p.bitis=p.son||new Date().toISOString(); });
   c.not=$('#zNot').value.trim();
   if(c.giris==='detay'){
     const son=c.partiler[c.partiler.length-1];

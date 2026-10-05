@@ -158,7 +158,7 @@ function borcHesabi(){
       ${r.taraf.map(id=>`<button class="btn-xs btn-gh" onclick="ekstreAc('${id}')">${
         r.taraf.length>1?esc(ad(id)):'Ekstre'}</button>`).join('')}
       ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-g"
-        onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
+        onclick='borcOdeAc(${esc(JSON.stringify(r.taraf))},${esc(JSON.stringify(r.ne))},${Math.abs(r.v)})'>Ödedi</button>`:''}
     </div></div>`;
 
   /* ÖDEŞME DETAYI (altta): aynı kişi aynı kalemde hem borçlanıp hem alacaklı

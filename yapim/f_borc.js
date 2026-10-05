@@ -165,7 +165,7 @@ function borcKart(){
     <div class="serif" style="font-size:18px">
       <span class="${r.v<0?'neg':'pos'}">${r.v<0?frak(r.v):'+'+frak(r.v)}</span></div>
     ${r.v<0&&kurucuMu()?`<button class="btn-xs btn-gh"
-      onclick='borcOdeAc(${JSON.stringify(r.taraf)},${JSON.stringify(r.ne)},${Math.abs(r.v)})'>Ödedi</button>`:''}
+      onclick='borcOdeAc(${esc(JSON.stringify(r.taraf))},${esc(JSON.stringify(r.ne))},${Math.abs(r.v)})'>Ödedi</button>`:''}
   </div>`;
 
   return `<div class="card">
@@ -207,7 +207,7 @@ function borcOdeAc(taraf,ne,enfazla){
     ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
       <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
         ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
-          data-ids='${JSON.stringify(x.ids)}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
+          data-ids='${esc(JSON.stringify(x.ids))}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
           <span class="xs dim">${frak(x.v)}</span></span>`).join('')}
       </div>
       <div class="xs dim" style="margin-top:6px">Seçilen kişinin alacağı da bu miktarda düşer.
@@ -216,7 +216,7 @@ function borcOdeAc(taraf,ne,enfazla){
     <div class="field"><label class="fl">Ne kadarını ödedi? (½ girilebilir)</label>
       <input type="number" id="boAdet" value="${enfazla}" min="0.5" max="${enfazla}" step="0.5"></div>
     <button class="btn-p btn-full" id="boBtn" style="margin-top:14px"
-      onclick='borcOdeKaydet(${JSON.stringify(taraf)},${JSON.stringify(ne)},${enfazla})'>Ödendi Olarak İşle</button>
+      onclick='borcOdeKaydet(${esc(JSON.stringify(taraf))},${esc(JSON.stringify(ne))},${enfazla})'>Ödendi Olarak İşle</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Vazgeç</button>`);
 }
 

@@ -41,11 +41,24 @@ function partiSuresi(p) {
    Aradaki molalar sayılmıyor, masada oynanan süre sayılıyor.
    kapaliMs: bitmiş partilerin toplamı (sayaç bunun üstüne ekliyor). */
 function macSuresi(c) {
+  /* Bir parti ne kadar OYNANDI: başlangıçtan SON YAZIMA (p.son) kadar.
+     Kapanış tıklaması (p.bitis) geç olabilir — maç unutulup günler sonra
+     kapatılırsa bitis şişer. Oynanan süre son el yazımıdır, o yüzden
+     p.son'u tercih ediyoruz; böylece "kapatmayı unuttuk" maçı artık
+     istatistiği bozmaz. Yalnız GERÇEKTEN süren maç (arşivlenmemiş + talik
+     değil) canlı sayaçla şimdiye kadar işler. */
+  const canliAcik = !!c && !c.bitti && !c.talik;
   let kapaliMs = 0, acikBas = 0;
   (c?.partiler || []).forEach(p => {
-    if (!_an(p.basla)) return;
-    if (p.bitis) kapaliMs += Math.max(0, _an(p.bitis) - _an(p.basla));
-    else acikBas = _an(p.basla);
+    const b = _an(p.basla); if (!b) return;
+    if (p.bitis) {                               // kapatılmış parti → oynanan son an (p.son) tercih
+      kapaliMs += Math.max(0, (_an(p.son) || _an(p.bitis)) - b);
+    } else if (canliAcik) {                      // süren maçın açık partisi → tik tak (şimdi)
+      acikBas = b;
+    } else if (p.son) {                          // arşiv/talik, bitiş damgasız ama yazım var → son yazıma kadar
+      kapaliMs += Math.max(0, _an(p.son) - b);
+    }
+    // arşiv ama hiç yazım yok → 0
   });
   if (!kapaliMs && !acikBas) return { ms: 0, suruyor: false, kapaliMs: 0, acikBas: 0 };
   const ms = kapaliMs + (acikBas ? Math.max(0, Date.now() - acikBas) : 0);
