@@ -135,6 +135,7 @@ function borcTablosu(brut){
   });
   /* ödemeler: ödeyen(ler)in borcunu, alacaklı(lar)ın alacağını KİŞİ BAŞINA düşürür.
      Eski takım ödemesi (taraf=[A,B], adet=1) → her birine ½ → ikisini de kapatır. */
+  const alacaklisizOde={};   // alacaklı seçilmemiş ESKİ ödemeler: ne → toplam
   (DB.akis||[]).forEach(a=>{
     const o=a.veri&&a.veri.odeme; if(!o||!o.ne) return;
     const n=Number(o.adet)||0;
@@ -143,6 +144,18 @@ function borcTablosu(brut){
     odeyen.forEach(id=>ode(id,o.ne, n/pb));            // borçlu: eksi azalır
     const al=(Array.isArray(o.alacakli)?o.alacakli:[]).filter(Boolean);
     if(al.length){ const pa=al.length; al.forEach(id=>ode(id,o.ne,-n/pa)); } // alacaklı azalır
+    else alacaklisizOde[o.ne]=(alacaklisizOde[o.ne]||0)+n;   // kime yazılacağı belirtilmemiş
+  });
+  /* GERİYE DÖNÜK: alacaklısı seçilmeden işaretlenmiş ödemeler, o kalemin
+     alacaklı(ları)nın "+" bakiyesini de düşürsün (büyükten küçüğe, 0'da durur).
+     Yeni ödemeler artık alacaklıyı hep yazıyor; bu yalnız eski kayıtlar için. */
+  Object.entries(alacaklisizOde).forEach(([ne,tut])=>{
+    let kalan=tut;
+    const alacaklilar=Object.keys(t)
+      .filter(k=>k.slice(k.indexOf('|')+1)===ne && t[k]>1e-9)
+      .sort((a,b)=>t[b]-t[a]);
+    for(const k of alacaklilar){ if(kalan<=1e-9) break;
+      const d=Math.min(t[k],kalan); t[k]-=d; kalan-=d; }
   });
   return t;
 }

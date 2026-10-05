@@ -40,6 +40,23 @@ function haftaOzetiUret(gun){
     }
   });
 
+  /* ara verilen (talik) ve hâlâ süren açık masalar — DÖKÜM biten maçları
+     gösteriyor; bunlar ayrı, çünkü henüz zabta geçmediler. */
+  const talikKim=c=>{
+    if(c.oyun==='batak'&&c.takimlar) return c.takimlar.map(t=>(t.oyuncular||[]).map(ad).join(' & ')).join(' / ');
+    return (c.oyuncular||[]).map(ad).join(', ');
+  };
+  const acikDonem=(DB.acik||[]).filter(c=>!c.tarih||(c.tarih>=b0&&c.tarih<=b1));
+  const talikler=acikDonem.filter(c=>c.talik);
+  const yuruyen=acikDonem.filter(c=>!c.talik);
+  if(talikler.length||yuruyen.length){
+    L.push('');
+    L.push('MASANIN HÂLİ:');
+    talikler.forEach(c=>L.push(`  ⏸️ ${trh(c.tarih)} ${c.oyun==='batak'?'Batak':'101'} — ${talikKim(c)}: ara verildi, `+
+      `${c.talik&&c.talik.not?esc(c.talik.not):'kaldığı elden devam edecek'}. Henüz hükme bağlanmamıştır.`));
+    yuruyen.forEach(c=>L.push(`  ▶️ ${trh(c.tarih)} ${c.oyun==='batak'?'Batak':'101'} — ${talikKim(c)}: masa hâlâ açık, tabela tutuluyor.`));
+  }
+
   /* dönemin galibi: en çok birincilik */
   const say={};
   list.forEach(c=>{
@@ -74,6 +91,17 @@ function haftaOzetiUret(gun){
     L.push(`SPONSORLUK: ${liste(ks.filter(([,n])=>n===en).map(([id])=>ad(id)))} ${en} kez kaybetmiş, masanın masraflarına katkıda bulunmuştur.`);
   }
 
+  /* dönemde oynanan süre (macSuresi artık p.son'a göre; unutulan maç şişirmez) */
+  if(typeof macSuresi==='function'&&typeof SURE_BICIM==='function'){
+    const sl=list.map(c=>macSuresi(c).ms).filter(ms=>ms>0);
+    if(sl.length){
+      const top=sl.reduce((a,b)=>a+b,0);
+      L.push('');
+      L.push(`SÜRE: Dönemde toplam ${SURE_BICIM(top)} masa başında geçirilmiş; celse başına ortalama ${SURE_BICIM(Math.round(top/sl.length))}.`);
+      if(sl.length>1) L.push(`  En uzun celse ${SURE_BICIM(Math.max(...sl))} sürmüştür; sabır kayda geçirilmiştir.`);
+    }
+  }
+
   /* borç durumu */
   const t=borcTablosu();
   const borclu=Object.entries(t).filter(([,v])=>v<0)
@@ -83,6 +111,24 @@ function haftaOzetiUret(gun){
   if(borclu.length){
     L.push('');
     L.push(`ZİMMET: ${liste(borclu)}. İfa süresi bir sonraki celseye kadardır.`);
+  }
+
+  /* dönemde yapılan ödemeler (ifa) */
+  const odemeler=(DB.akis||[]).filter(a=>{
+    const o=a.veri&&a.veri.odeme; if(!o||!o.ne) return false;
+    const d=(a.olusturma||'').slice(0,10); return d>=b0&&d<=b1;
+  }).map(a=>a.veri.odeme);
+  if(odemeler.length){
+    const fr=v=>typeof frak==='function'?frak(v):v;
+    L.push('');
+    L.push('İFA (ÖDENEN BORÇLAR):');
+    odemeler.forEach(o=>{
+      const kim=liste(((o.taraf&&o.taraf.length)?o.taraf:[o.kim]).filter(Boolean).map(ad));
+      const kime=(Array.isArray(o.alacakli)&&o.alacakli.length)?` ${liste(o.alacakli.map(ad))} lehine`:'';
+      L.push(`  • ${kim}, ${fr(o.adet)} ${o.ne}${kime} borcunu ifa etmiştir.`);
+    });
+    if(odemeler.some(o=>/cin|gin|çay|kahve|soda|bira|rakı|viski|nargile|tost/i.test(o.ne||'')))
+      L.push('  Söz konusu ikramlar masaca keyifle tüketilmiş, zimmetler bu ölçüde kapanmıştır.');
   }
 
   /* açık iddialar */
