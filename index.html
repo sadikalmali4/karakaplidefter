@@ -2763,7 +2763,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.6 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.7 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -8864,12 +8864,12 @@ function borcOdeAc(taraf,ne,enfazla){
 
     ${alk.length?`<div class="field"><label class="fl">Kime ödedi?</label>
       <div class="row wrap" id="boAlacakli" style="gap:6px;margin-top:6px">
-        ${alk.map((x,i)=>`<span class="chip ${alk.length===1?'on':''}"
+        ${alk.map((x,i)=>`<span class="chip ${i===0?'on':''}"
           data-ids='${esc(JSON.stringify(x.ids))}' onclick="chipTek(this)">${esc(x.ids.map(ad).join(' & '))}
           <span class="xs dim">${frak(x.v)}</span></span>`).join('')}
       </div>
       <div class="xs dim" style="margin-top:6px">Seçilen kişinin alacağı da bu miktarda düşer.
-        Boş bırakırsan yalnız borçlunun borcu kapanır.</div></div>`:''}
+        (Öntanımlı en yüksek alacaklı seçili; boş bırakırsan da en büyük alacaklıya yazılır.)</div></div>`:''}
 
     <div class="field"><label class="fl">Ne kadarını ödedi? (½ girilebilir)</label>
       <input type="number" id="boAdet" value="${enfazla}" min="0.5" max="${enfazla}" step="0.5"></div>
@@ -8890,6 +8890,9 @@ async function borcOdeKaydet(taraf,ne,enfazla){
   const secili=document.querySelector('#boAlacakli .chip.on');
   let alacakli=null;
   try{ alacakli=secili?JSON.parse(secili.dataset.ids):null; }catch(e){ alacakli=null; }
+  /* Alacaklı seçilmediyse o kalemin EN BÜYÜK alacaklısına otomatik yaz —
+     borçlu ödeyince alacaklının "+" bakiyesi de düşsün (kullanıcı isteği). */
+  if(!alacakli||!alacakli.length){ const alk=alacakliTaraflar(ne); if(alk.length) alacakli=alk[0].ids; }
   const btn=$('#boBtn'); btn.disabled=true; btn.innerHTML='<span class="yukleniyor"></span>';
   const kim=liste(taraf.map(ad));
   const kime=alacakli&&alacakli.length?` ${liste(alacakli.map(ad))} lehine olan`:'';
