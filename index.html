@@ -2763,7 +2763,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.0 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.1 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -11268,57 +11268,54 @@ function haftaRaporAc(gun){
    kartının kanıtlanmış yolu: metni SVG'ye dizip PNG'ye çeviriyoruz,
    navigator.share ile WhatsApp'a dosya olarak gidiyor (harici kütüphane yok,
    dış görsel yok → canvas "tainted" olmaz). */
-function _haftaSar(metin,enb){
+/* Metni GENİŞLİĞE göre ölçerek sar (canvas measureText ile — gerçek font). */
+function _haftaSarCtx(ctx,metin,enbPx){
   const kel=String(metin).split(/\s+/), out=[]; let s='';
-  kel.forEach(k=>{ if((s+' '+k).trim().length>enb){ if(s) out.push(s); s=k; } else s=(s?s+' ':'')+k; });
+  kel.forEach(k=>{ const dene=s?s+' '+k:k;
+    if(ctx.measureText(dene).width>enbPx && s){ out.push(s); s=k; } else s=dene; });
   if(s) out.push(s); return out.length?out:[''];
 }
-function haftaSvgYap(gun){
+/* SVG <text> iOS'ta PNG'ye çevrilince harfleri bozuyordu; onun yerine
+   DOĞRUDAN canvas 2D fillText — yerel font, async yok, raster yarışı yok. */
+const _HF_GOVDE="16px system-ui,-apple-system,Arial,sans-serif";
+function haftaResimCiz(gun){
   const g=aktifGrup()||{ad:'Masa',emoji:'🍀'};
   const ham=haftaOzetiUret(gun||7).split('\n');
   const baslik=(ham.shift()||'').replace(/^[^A-Za-zÇĞİÖŞÜçğıöşü]+/,'')||'DÖNEM ÖZETİ';
-  const G=720, P=46, LH=26;
-  const vis=[];
+  const W=720, P=46, LH=26, SC=2, ic=W-P*2;
+  const olc=document.createElement('canvas').getContext('2d');
+  olc.font=_HF_GOVDE;
+  const blok=[];
   ham.forEach(raw=>{
     const t=raw.trim();
-    if(!t){ vis.push({tip:'bos'}); return; }
+    if(!t){ blok.push({tip:'bos'}); return; }
     const bullet=/^•/.test(t);
     const m=(!bullet)&&t.match(/^([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ0-9 ()]{2,}):\s*(.*)$/);
-    if(m){ vis.push({tip:'bas',t:m[1].trim()});
-      if(m[2]) _haftaSar(m[2],60).forEach(l=>vis.push({tip:'p',t:l})); return; }
+    if(m){ blok.push({tip:'bas',t:m[1].trim()});
+      if(m[2]) _haftaSarCtx(olc,m[2],ic).forEach(l=>blok.push({tip:'p',t:l})); return; }
     const pre=bullet?'•  ':'', body=bullet?t.replace(/^•\s*/,''):t;
-    _haftaSar(body,bullet?54:60).forEach((l,i)=>vis.push({tip:bullet?'li':'p',t:(i===0?pre:'   ')+l}));
+    _haftaSarCtx(olc,body,ic-(bullet?16:0)).forEach((l,i)=>blok.push({tip:bullet?'li':'p',t:(i===0?pre:'   ')+l}));
   });
   const basH=150, botH=86;
-  const Y=basH + vis.reduce((s,v)=>s+(v.tip==='bos'?12:(v.tip==='bas'?36:LH)),0) + botH;
-  let y=basH, govde='';
-  vis.forEach(v=>{
-    if(v.tip==='bos'){ y+=12; return; }
-    if(v.tip==='bas'){ y+=24; govde+=`<text x="${P}" y="${y}" font-family="Georgia,'Times New Roman',serif" font-size="19" font-weight="700" fill="#8a2f23">${esc(v.t)}</text>`; y+=12; return; }
-    govde+=`<text x="${v.tip==='li'?P+6:P}" y="${y}" font-family="system-ui,Arial,sans-serif" font-size="16" fill="#2a2622">${esc(v.t)}</text>`; y+=LH;
+  const H=basH + blok.reduce((s,b)=>s+(b.tip==='bos'?12:(b.tip==='bas'?36:LH)),0) + botH;
+  const cv=document.createElement('canvas'); cv.width=W*SC; cv.height=H*SC;
+  const ctx=cv.getContext('2d'); ctx.scale(SC,SC);
+  ctx.textBaseline='alphabetic';
+  ctx.fillStyle='#efe9dd'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#c9bfa8'; ctx.lineWidth=2; ctx.strokeRect(14,14,W-28,H-28);
+  ctx.textAlign='center';
+  ctx.fillStyle='#8a2f23'; ctx.font='36px Georgia,serif'; ctx.fillText('§',W/2,72);
+  ctx.fillStyle='#6b6256'; ctx.font='13px system-ui,Arial,sans-serif'; ctx.fillText((g.ad||'').toLocaleUpperCase('tr-TR')+' MASA DİVANI',W/2,98);
+  ctx.fillStyle='#2a2622'; ctx.font='bold 24px Georgia,serif'; ctx.fillText(baslik.toLocaleUpperCase('tr-TR'),W/2,128);
+  ctx.textAlign='left';
+  let y=basH;
+  blok.forEach(b=>{
+    if(b.tip==='bos'){ y+=12; return; }
+    if(b.tip==='bas'){ y+=24; ctx.fillStyle='#8a2f23'; ctx.font='bold 19px Georgia,serif'; ctx.fillText(b.t,P,y); y+=12; return; }
+    ctx.fillStyle='#2a2622'; ctx.font=_HF_GOVDE; ctx.fillText(b.t, b.tip==='li'?P+8:P, y); y+=LH;
   });
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${G}" height="${Y}" viewBox="0 0 ${G} ${Y}">
-    <rect width="${G}" height="${Y}" fill="#efe9dd"/>
-    <rect x="14" y="14" width="${G-28}" height="${Y-28}" fill="none" stroke="#c9bfa8" stroke-width="2"/>
-    <text x="${G/2}" y="64" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#8a2f23">§</text>
-    <text x="${G/2}" y="94" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-size="13" letter-spacing="2" fill="#6b6256">${esc((g.ad||'').toLocaleUpperCase('tr-TR'))} MASA DİVANI</text>
-    <text x="${G/2}" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#2a2622">${esc(baslik.toLocaleUpperCase('tr-TR'))}</text>
-    ${govde}
-    <text x="${G/2}" y="${Y-38}" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#8a2f23">§ Kara Kaplı Defter</text>
-  </svg>`;
-  return {svg,w:G,h:Y};
-}
-function _svgPng(svg,w,h){
-  return new Promise((coz,red)=>{
-    const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}); const url=URL.createObjectURL(blob);
-    const img=new Image();
-    img.onload=()=>{ try{ const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
-      const ctx=cv.getContext('2d'); ctx.fillStyle='#efe9dd'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
-      URL.revokeObjectURL(url); cv.toBlob(b=>b?coz(b):red(new Error('PNG üretilemedi')),'image/png');
-    }catch(e){ URL.revokeObjectURL(url); red(e); } };
-    img.onerror=()=>{ URL.revokeObjectURL(url); red(new Error('SVG çizilemedi')); };
-    img.src=url;
-  });
+  ctx.textAlign='center'; ctx.fillStyle='#8a2f23'; ctx.font='15px Georgia,serif'; ctx.fillText('§ Kara Kaplı Defter',W/2,H-38);
+  return cv;
 }
 let _haftaUrl=null;
 async function haftaResimAc(gun){
@@ -11326,7 +11323,8 @@ async function haftaResimAc(gun){
     <div class="center" style="padding:24px 0"><span class="yukleniyor"></span>
       <div class="sm dim" style="margin-top:10px">Görüntü hazırlanıyor…</div></div>`);
   let blob;
-  try{ const r=haftaSvgYap(gun||7); blob=await _svgPng(r.svg,r.w,r.h); }
+  try{ const cv=haftaResimCiz(gun||7);
+    blob=await new Promise((c,r)=>cv.toBlob(b=>b?c(b):r(new Error('PNG üretilemedi')),'image/png')); }
   catch(e){ return acModal(`<h2 class="serif" style="margin:0 0 8px">📸 Dönem Özeti</h2>
     <div class="card tight" style="border-color:var(--red)"><div class="sm" style="color:#D2A08F">Görüntü üretilemedi: ${esc(typeof hataMetni==='function'?hataMetni(e):String(e))}</div></div>
     <button class="btn-gh btn-full btn-sm" style="margin-top:12px" onclick="kapatModal()">Kapat</button>`); }
