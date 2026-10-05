@@ -166,10 +166,14 @@ function haftaOzetiAc(gun){
     </div>
     <div class="zabit" id="hoMetin" style="font-size:13px">${esc(metin)}</div>
     <button class="btn-g btn-full" style="margin-top:12px"
-      onclick="kopyala(document.getElementById('hoMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
-    <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="kapatModal();haftaRaporAc(${gun||7})">🖨️ PDF / Yazdır</button>
+      onclick="haftaResimAc(${gun||7})">📲 Resim olarak paylaş (WhatsApp)</button>
+    <div class="two" style="margin-top:8px">
+      <button class="btn-b btn-sm" onclick="kopyala(document.getElementById('hoMetin').textContent)">📋 Kopyala</button>
+      <button class="btn-b btn-sm" onclick="kapatModal();haftaRaporAc(${gun||7})">🖨️ PDF / Yazdır</button>
+    </div>
     <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="haftaOzetiAkisa(${gun||7})">💬 Akışa da yaz</button>
-    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>
+    <div class="xs dim" style="margin-top:8px;text-align:center">iPhone'da ana ekrana ekli uygulamada yazdırma çalışmayabilir; <b>Resim olarak paylaş</b> her yerde çalışır.</div>`);
 }
 async function haftaOzetiAkisa(gun){
   const id=await akisEkle('mesaj',haftaOzetiUret(gun),{ozet:'donem',gun});
@@ -224,6 +228,96 @@ function haftaRaporAc(gun){
     document.head.appendChild(st);
   }
   window.scrollTo(0,0);
+}
+
+/* --------- DÖNEM ÖZETİ — RESİM (WhatsApp/iOS için) ---------
+   iOS'ta ana ekrana ekli PWA'da window.print()/indirme çalışmaz. Skor
+   kartının kanıtlanmış yolu: metni SVG'ye dizip PNG'ye çeviriyoruz,
+   navigator.share ile WhatsApp'a dosya olarak gidiyor (harici kütüphane yok,
+   dış görsel yok → canvas "tainted" olmaz). */
+function _haftaSar(metin,enb){
+  const kel=String(metin).split(/\s+/), out=[]; let s='';
+  kel.forEach(k=>{ if((s+' '+k).trim().length>enb){ if(s) out.push(s); s=k; } else s=(s?s+' ':'')+k; });
+  if(s) out.push(s); return out.length?out:[''];
+}
+function haftaSvgYap(gun){
+  const g=aktifGrup()||{ad:'Masa',emoji:'🍀'};
+  const ham=haftaOzetiUret(gun||7).split('\n');
+  const baslik=(ham.shift()||'').replace(/^[^A-Za-zÇĞİÖŞÜçğıöşü]+/,'')||'DÖNEM ÖZETİ';
+  const G=720, P=46, LH=26;
+  const vis=[];
+  ham.forEach(raw=>{
+    const t=raw.trim();
+    if(!t){ vis.push({tip:'bos'}); return; }
+    const bullet=/^•/.test(t);
+    const m=(!bullet)&&t.match(/^([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ0-9 ()]{2,}):\s*(.*)$/);
+    if(m){ vis.push({tip:'bas',t:m[1].trim()});
+      if(m[2]) _haftaSar(m[2],60).forEach(l=>vis.push({tip:'p',t:l})); return; }
+    const pre=bullet?'•  ':'', body=bullet?t.replace(/^•\s*/,''):t;
+    _haftaSar(body,bullet?54:60).forEach((l,i)=>vis.push({tip:bullet?'li':'p',t:(i===0?pre:'   ')+l}));
+  });
+  const basH=150, botH=86;
+  const Y=basH + vis.reduce((s,v)=>s+(v.tip==='bos'?12:(v.tip==='bas'?36:LH)),0) + botH;
+  let y=basH, govde='';
+  vis.forEach(v=>{
+    if(v.tip==='bos'){ y+=12; return; }
+    if(v.tip==='bas'){ y+=24; govde+=`<text x="${P}" y="${y}" font-family="Georgia,'Times New Roman',serif" font-size="19" font-weight="700" fill="#8a2f23">${esc(v.t)}</text>`; y+=12; return; }
+    govde+=`<text x="${v.tip==='li'?P+6:P}" y="${y}" font-family="system-ui,Arial,sans-serif" font-size="16" fill="#2a2622">${esc(v.t)}</text>`; y+=LH;
+  });
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${G}" height="${Y}" viewBox="0 0 ${G} ${Y}">
+    <rect width="${G}" height="${Y}" fill="#efe9dd"/>
+    <rect x="14" y="14" width="${G-28}" height="${Y-28}" fill="none" stroke="#c9bfa8" stroke-width="2"/>
+    <text x="${G/2}" y="64" text-anchor="middle" font-family="Georgia,serif" font-size="36" fill="#8a2f23">§</text>
+    <text x="${G/2}" y="94" text-anchor="middle" font-family="system-ui,Arial,sans-serif" font-size="13" letter-spacing="2" fill="#6b6256">${esc((g.ad||'').toLocaleUpperCase('tr-TR'))} MASA DİVANI</text>
+    <text x="${G/2}" y="124" text-anchor="middle" font-family="Georgia,serif" font-size="24" font-weight="700" fill="#2a2622">${esc(baslik.toLocaleUpperCase('tr-TR'))}</text>
+    ${govde}
+    <text x="${G/2}" y="${Y-38}" text-anchor="middle" font-family="Georgia,serif" font-size="15" fill="#8a2f23">§ Kara Kaplı Defter</text>
+  </svg>`;
+  return {svg,w:G,h:Y};
+}
+function _svgPng(svg,w,h){
+  return new Promise((coz,red)=>{
+    const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}); const url=URL.createObjectURL(blob);
+    const img=new Image();
+    img.onload=()=>{ try{ const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+      const ctx=cv.getContext('2d'); ctx.fillStyle='#efe9dd'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url); cv.toBlob(b=>b?coz(b):red(new Error('PNG üretilemedi')),'image/png');
+    }catch(e){ URL.revokeObjectURL(url); red(e); } };
+    img.onerror=()=>{ URL.revokeObjectURL(url); red(new Error('SVG çizilemedi')); };
+    img.src=url;
+  });
+}
+let _haftaUrl=null;
+async function haftaResimAc(gun){
+  acModal(`<h2 class="serif" style="margin:0 0 12px">📸 Dönem Özeti — Görüntü</h2>
+    <div class="center" style="padding:24px 0"><span class="yukleniyor"></span>
+      <div class="sm dim" style="margin-top:10px">Görüntü hazırlanıyor…</div></div>`);
+  let blob;
+  try{ const r=haftaSvgYap(gun||7); blob=await _svgPng(r.svg,r.w,r.h); }
+  catch(e){ return acModal(`<h2 class="serif" style="margin:0 0 8px">📸 Dönem Özeti</h2>
+    <div class="card tight" style="border-color:var(--red)"><div class="sm" style="color:#D2A08F">Görüntü üretilemedi: ${esc(typeof hataMetni==='function'?hataMetni(e):String(e))}</div></div>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:12px" onclick="kapatModal()">Kapat</button>`); }
+  if(_haftaUrl){ try{URL.revokeObjectURL(_haftaUrl);}catch(e){} }
+  _haftaUrl=URL.createObjectURL(blob);
+  const dosya=new File([blob],`parkverde-ozet-${bugun().replace(/-/g,'')}.png`,{type:'image/png'});
+  window._haftaDosya=dosya;
+  const paylasabilir=navigator.canShare&&navigator.canShare({files:[dosya]});
+  acModal(`<h2 class="serif" style="margin:0 0 10px">📸 Dönem Özeti</h2>
+    <img src="${_haftaUrl}" alt="dönem özeti" style="width:100%;border-radius:12px;border:1px solid var(--line);display:block">
+    <div class="xs dim" style="margin:8px 0 12px;text-align:center">Görsele <b>uzun bas → Kaydet / Paylaş</b> da yapabilirsin.</div>
+    ${paylasabilir?`<button class="btn-g btn-full" onclick="haftaResimPaylas()">📲 WhatsApp'a / Paylaş</button>`:''}
+    <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="haftaResimIndir()">⬇ İndir</button>
+    <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+}
+async function haftaResimPaylas(){
+  const f=window._haftaDosya; if(!f) return;
+  try{ await navigator.share({files:[f], title:'Kara Kaplı Defter', text:'Parkverde dönem özeti 🃏'}); }catch(e){}
+}
+function haftaResimIndir(){
+  if(!_haftaUrl) return;
+  const a=document.createElement('a'); a.href=_haftaUrl;
+  a.download=(window._haftaDosya&&window._haftaDosya.name)||'parkverde-ozet.png';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* --------- EŞ KURASI ---------
