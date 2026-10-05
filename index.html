@@ -2763,7 +2763,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.1 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.2 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -11199,14 +11199,14 @@ function haftaOzetiAc(gun){
     </div>
     <div class="zabit" id="hoMetin" style="font-size:13px">${esc(metin)}</div>
     <button class="btn-g btn-full" style="margin-top:12px"
-      onclick="haftaResimAc(${gun||7})">📲 Resim olarak paylaş (WhatsApp)</button>
+      onclick="haftaPdfPaylas(${gun||7})">📄 PDF olarak paylaş (WhatsApp)</button>
     <div class="two" style="margin-top:8px">
+      <button class="btn-b btn-sm" onclick="haftaResimAc(${gun||7})">📲 Resim paylaş</button>
       <button class="btn-b btn-sm" onclick="kopyala(document.getElementById('hoMetin').textContent)">📋 Kopyala</button>
-      <button class="btn-b btn-sm" onclick="kapatModal();haftaRaporAc(${gun||7})">🖨️ PDF / Yazdır</button>
     </div>
     <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="haftaOzetiAkisa(${gun||7})">💬 Akışa da yaz</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>
-    <div class="xs dim" style="margin-top:8px;text-align:center">iPhone'da ana ekrana ekli uygulamada yazdırma çalışmayabilir; <b>Resim olarak paylaş</b> her yerde çalışır.</div>`);
+    <div class="xs dim" style="margin-top:8px;text-align:center">PDF / Resim, WhatsApp'a dosya olarak gider; iPhone'da ana ekrandaki uygulamada da çalışır (yazdırma gerekmez).</div>`);
 }
 async function haftaOzetiAkisa(gun){
   const id=await akisEkle('mesaj',haftaOzetiUret(gun),{ozet:'donem',gun});
@@ -11349,6 +11349,51 @@ function haftaResimIndir(){
   const a=document.createElement('a'); a.href=_haftaUrl;
   a.download=(window._haftaDosya&&window._haftaDosya.name)||'parkverde-ozet.png';
   document.body.appendChild(a); a.click(); a.remove();
+}
+
+/* --------- PDF olarak paylaş ---------
+   Temiz canvas görüntüsünü jsPDF ile tek sayfalık gerçek .pdf'e gömüp
+   navigator.share ile WhatsApp'a DOSYA olarak gönderir. Türkçe/emoji
+   resimde olduğu için PDF'te de birebir doğru çıkar (font sorunu yok).
+   jsPDF yalnız gerekince cdnjs'ten yüklenir (CSP'de izinli). */
+function _jspdfYukle(){
+  return new Promise((coz,red)=>{
+    if(window.jspdf&&window.jspdf.jsPDF) return coz(window.jspdf.jsPDF);
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=()=>(window.jspdf&&window.jspdf.jsPDF)?coz(window.jspdf.jsPDF):red(new Error('jsPDF bulunamadı'));
+    s.onerror=()=>red(new Error('jsPDF yüklenemedi (internet?)'));
+    document.head.appendChild(s);
+  });
+}
+async function haftaPdfPaylas(gun){
+  acModal(`<h2 class="serif" style="margin:0 0 12px">📄 PDF hazırlanıyor</h2>
+    <div class="center" style="padding:24px 0"><span class="yukleniyor"></span>
+      <div class="sm dim" style="margin-top:10px">Dönem özeti PDF'e çevriliyor…</div></div>`);
+  try{
+    const jsPDFc=await _jspdfYukle();
+    const cv=haftaResimCiz(gun||7);
+    const w=cv.width, h=cv.height;
+    const pdf=new jsPDFc({orientation:h>=w?'p':'l', unit:'px', format:[w,h], compress:true});
+    pdf.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);
+    const blob=pdf.output('blob');
+    if(_haftaUrl){ try{URL.revokeObjectURL(_haftaUrl);}catch(e){} }
+    _haftaUrl=URL.createObjectURL(blob);
+    const dosya=new File([blob],`parkverde-ozet-${bugun().replace(/-/g,'')}.pdf`,{type:'application/pdf'});
+    window._haftaDosya=dosya;
+    const paylasabilir=navigator.canShare&&navigator.canShare({files:[dosya]});
+    acModal(`<h2 class="serif" style="margin:0 0 10px">📄 Dönem Özeti · PDF</h2>
+      <div class="card tight" style="text-align:center"><div class="sm" style="font-weight:600">PDF hazır 🧾</div>
+        <div class="xs dim" style="margin-top:4px">${esc(dosya.name)}</div></div>
+      ${paylasabilir?`<button class="btn-g btn-full" style="margin-top:12px" onclick="haftaResimPaylas()">📲 WhatsApp'a / Paylaş</button>`:''}
+      <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="haftaResimIndir()">⬇ İndir / Aç</button>
+      <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+  }catch(e){
+    acModal(`<h2 class="serif" style="margin:0 0 8px">📄 PDF</h2>
+      <div class="card tight" style="border-color:var(--red)"><div class="sm" style="color:#D2A08F">PDF üretilemedi: ${esc(typeof hataMetni==='function'?hataMetni(e):String(e))}. İnternet gerekli olabilir.</div></div>
+      <button class="btn-b btn-full btn-sm" style="margin-top:10px" onclick="haftaResimAc(${gun||7})">📲 Resim olarak dene</button>
+      <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
+  }
 }
 
 /* --------- EŞ KURASI ---------
