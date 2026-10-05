@@ -2763,7 +2763,7 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.8 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 11.9 · bulut</div>`;
 }
 async function ayarSet(g,k,v,tam){
   if(!kurucuMu()) return toast('Kuralları yalnız grubu kuran değiştirebilir',true);
@@ -11200,12 +11200,63 @@ function haftaOzetiAc(gun){
     <div class="zabit" id="hoMetin" style="font-size:13px">${esc(metin)}</div>
     <button class="btn-g btn-full" style="margin-top:12px"
       onclick="kopyala(document.getElementById('hoMetin').textContent)">📋 Kopyala · WhatsApp'a Yapıştır</button>
+    <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="kapatModal();haftaRaporAc(${gun||7})">🖨️ PDF / Yazdır</button>
     <button class="btn-b btn-full btn-sm" style="margin-top:8px" onclick="haftaOzetiAkisa(${gun||7})">💬 Akışa da yaz</button>
     <button class="btn-gh btn-full btn-sm" style="margin-top:8px" onclick="kapatModal()">Kapat</button>`);
 }
 async function haftaOzetiAkisa(gun){
   const id=await akisEkle('mesaj',haftaOzetiUret(gun),{ozet:'donem',gun});
   if(id){ kapatModal(); render(); toast('Özet akışa yazıldı'); }
+}
+
+/* --------- DÖNEM ÖZETİ — PDF / YAZDIR ---------
+   Genel Sicil raporuyla aynı baskı altyapısını (RAPOR_STIL + #raporHost +
+   window.print) kullanır. Metni haftaOzetiUret'ten alıp mahkeme-kararı
+   görünümüne (rkapak/rh2/rmini) çeviriyoruz; tek kaynak haftaOzetiUret. */
+function haftaBelgeHtml(gun){
+  const g=aktifGrup()||{ad:'Masa',emoji:'🍀'};
+  const satlar=haftaOzetiUret(gun||7).split('\n');
+  const baslik=(satlar.shift()||'').replace(/^[^A-Za-zÇĞİÖŞÜçğıöşü]+/,'')||'DÖNEM ÖZETİ';
+  let govde='';
+  satlar.forEach(ham=>{
+    const t=ham.trim(); if(!t) return;
+    if(/^•/.test(t)){ govde+=`<div class="rmini">• ${esc(t.replace(/^•\s*/,''))}</div>`; return; }
+    const m=t.match(/^([A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ0-9 ()]{2,}):\s*(.*)$/);   // BAŞLIK: içerik
+    if(m){ govde+=`<h2 class="rh2">${esc(m[1].trim())}</h2>`; if(m[2]) govde+=`<p class="rmini">${esc(m[2])}</p>`; return; }
+    if(/^\s/.test(ham)){ govde+=`<div class="rmini">${esc(t)}</div>`; return; }  // girintili alt satır
+    govde+=`<p class="rmini">${esc(t)}</p>`;
+  });
+  return `<div class="rsayfa">
+    <div class="rkapak">
+      <div class="rmuhur">§</div>
+      <div class="rust">${esc((g.ad||'').toLocaleUpperCase('tr-TR'))} MASA DİVANI</div>
+      <h1 class="rbaslik">${esc(baslik.toLocaleUpperCase('tr-TR'))}</h1>
+      <div class="rmeta">${(typeof raporTarih==='function'?raporTarih():trh(bugun()))}</div>
+    </div>
+    ${govde}
+    <div class="rimza">
+      <p>İşbu özet masanın defterine geçirilmiş olup, itirazlar defterin sahibi huzurunda,
+        çay demlenmiş iken yapılır.</p>
+      <div class="rimzasat">${esc((g.ad||'').toLocaleUpperCase('tr-TR'))} DİVANI ADINA<br>
+        <span class="rmuhursat">§ Kara Kaplı Defter</span></div>
+    </div>
+  </div>`;
+}
+function haftaRaporAc(gun){
+  const eski=document.getElementById('raporHost'); if(eski) eski.remove();
+  const host=document.createElement('div'); host.id='raporHost';
+  host.innerHTML=`
+    <div class="rarac">
+      <button class="btn-p btn-sm" onclick="window.print()">🖨️ Yazdır / PDF olarak kaydet</button>
+      <button class="btn-gh btn-sm" onclick="raporKapat()">Kapat</button>
+    </div>
+    <div class="rbelge">${haftaBelgeHtml(gun)}</div>`;
+  document.body.appendChild(host);
+  if(!document.getElementById('raporStil') && typeof RAPOR_STIL==='string'){
+    const st=document.createElement('style'); st.id='raporStil'; st.textContent=RAPOR_STIL;
+    document.head.appendChild(st);
+  }
+  window.scrollTo(0,0);
 }
 
 /* --------- EŞ KURASI ---------
