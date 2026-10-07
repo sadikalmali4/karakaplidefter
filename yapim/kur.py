@@ -240,6 +240,7 @@ assert eski in s, 'SECILI_MAC bildirimi bulunamadı'
 s = s.replace('/* ---------- modal ---------- */',
               F('f_giris.js') + '\n' + F('f_akis.js') + '\n' + F('f_kadro.js') + '\n'
               + F('f_gecmis.js') + '\n' + F('f_yonerge.js') + '\n' + F('f_aramizda.js') + '\n'
+              + F('f_analiz.js') + '\n'
               + F('f_efsane.js') + '\n' + F('f_lakap.js') + '\n' + F('f_yer.js') + '\n'
               + F('f_anilar.js') + '\n' + F('f_ceza.js') + '\n'
               + F('f_tabela.js') + '\n' + F('f_devret.js') + '\n'

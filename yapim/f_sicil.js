@@ -127,6 +127,7 @@ function sabikaGorunum(id){
         <div class="xs dim" style="margin-bottom:6px">ÜZERİNDEKİ UNVANLAR</div>
         <div class="row wrap" style="gap:6px">${rozet.map(r=>
           `<span class="pill ${r.tip==='kotu'?'red':'gold'}">${r.k} ${esc(r.ad)}</span>`).join('')}</div>`:''}
+      ${oyun==='batak'&&typeof ihaleKarne==='function'?ihaleKarne(id):''}${oyun==='101'&&typeof yzKarne==='function'?yzKarne(id):''}
       ${h2h(id,oyun)}
     </div>`;
   };
