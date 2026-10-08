@@ -220,7 +220,7 @@ s = s.replace(eski, '\n'.join([
   "const _sekme = sekmeOku();",
   "let TAB = _sekme ? _sekme.t : 'rozet';        /* ilk açılış: Divan */",
   "let DIVAN = _sekme ? (_sekme.d||'unvan') : 'efsane';   /* ilk açılış: efsaneler */",
-  "let SABIKA_ID=null, ARSIV_FILTRE='hepsi', SICIL_OYUN='batak', ROZET_OYUN='batak';",
+  "let SABIKA_ID=null, ARSIV_FILTRE='hepsi', SICIL_OYUN='batak', ROZET_OYUN='batak', SICIL_ALT='sicil';",
 ]), 1)
 
 # git(): seçilen sekme hatırlansın

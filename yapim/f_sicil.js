@@ -78,17 +78,25 @@ function viewSicil(){
   if(!b&&!y) return sz+`<div class="card"><div class="empty"><div class="big">📊</div>
     Henüz kapanmış maç yok.<div class="sm" style="margin-top:6px">İlk tabelayı kapat, sicil kendiliğinden dolar.</div></div></div>`;
 
-  return sz+`<div class="ikili">
-      ${sicilKarti('batak')}
-      ${sicilKarti('101')}
-    </div>
-    ${sezonPanosu()}
-    <div class="ikili">
-      ${sicilKarne('batak')}
-      ${sicilKarne('101')}
-    </div>
-    ${typeof takimLigi==='function'?takimLigi():''}
-    ${typeof sureKisiKart==='function'?sureKisiKart():''}`;
+  /* SADELEŞTİRME (12.5): tek uzun kaydırma yerine alt-sekmeler. Varsayılan
+     "Sıralama"; karne/takım/süre tek dokunuşla, istenince. */
+  const bol=[['sicil','📊 Sıralama'],['karne','🎖️ Karne'],['takim','⚽ Takım'],['sure','⏱️ Süre']];
+  const altnav=`<div class="row" style="overflow-x:auto;gap:7px;padding-bottom:4px;margin-bottom:12px">
+    ${bol.map(([k,ad2])=>`<div class="chip ${SICIL_ALT===k?'on':''}" style="flex-shrink:0"
+      onclick="SICIL_ALT='${k}';render();window.scrollTo(0,0)">${ad2}</div>`).join('')}</div>`;
+  const bos=(ikon,msg)=>`<div class="card"><div class="empty"><div class="big">${ikon}</div>${msg}</div></div>`;
+
+  let ic;
+  if(SICIL_ALT==='karne'){
+    ic=sz+`<div class="ikili">${sicilKarne('batak')}${sicilKarne('101')}</div>`;
+  }else if(SICIL_ALT==='takim'){
+    ic=(typeof takimLigi==='function'&&takimLigi())||bos('⚽','Takım ligi için Ayarlar → Tuttuğu Takımlar bölümünden takım ata.');
+  }else if(SICIL_ALT==='sure'){
+    ic=(typeof sureKisiKart==='function'&&sureKisiKart())||bos('⏱️','Süresi ölçülmüş maç yok.');
+  }else{
+    ic=sz+`<div class="ikili">${sicilKarti('batak')}${sicilKarti('101')}</div>${sezonPanosu()}`;
+  }
+  return altnav+ic;
 }
 
 //== sabikaGorunum
