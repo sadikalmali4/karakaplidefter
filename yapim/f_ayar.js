@@ -69,8 +69,9 @@ function viewAyar(){
     </div></details>`:''}
   </div>
 
-  ${k&&(bagsizHesaplar.length||masaOyn.some(o=>o.profilId))?`<div class="card">
-    <h3>Hesap ↔ Oyuncu Eşleşmesi</h3>
+  ${k&&(bagsizHesaplar.length||masaOyn.some(o=>o.profilId))?`<details class="katlanir" style="margin-bottom:12px">
+    <summary>🔗 Hesap ↔ Oyuncu Eşleşmesi</summary>
+    <div class="card" style="margin-top:10px">
     <div class="xs dim" style="margin-bottom:10px">Kim hangi oyuncu? Yanlış eşleşmeyi buradan düzeltirsin.</div>
     ${MASA_UYELERI.map(u=>{
       const bagli=masaOyn.find(o=>o.profilId===u.profil_id);
@@ -86,7 +87,8 @@ function viewAyar(){
                   ${bos.map(o=>`<option value="${o.id}">${esc(o.ad)}</option>`).join('')}</select>`:'')}
         ${u.profil_id!==OTURUM.id?`<button class="btn-xs btn-dn" onclick="uyeCikar('${u.profil_id}')">Çıkar</button>`:''}
       </div>`;}).join('')}
-  </div>`:''}
+    </div>
+  </details>`:''}
 
   ${typeof takimKart==='function'?takimKart():''}
 
@@ -214,5 +216,5 @@ function viewAyar(){
     </div>
   </div>
   <div id="pushKartHost"></div>
-  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.5 · bulut</div>`;
+  <div class="card tight center xs dim">Kara Kaplı Defter · sürüm 12.6 · bulut</div>`;
 }
